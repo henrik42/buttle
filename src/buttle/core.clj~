@@ -1,0 +1,102 @@
+(ns buttle.core
+  (:gen-class
+   :name buttle.jdbc.Driver
+   :implements [java.sql.Driver]))
+
+;; -----------------------------------------------------------------------------------------
+;;
+;; -----------------------------------------------------------------------------------------
+(defn log [& xs]
+  (.println System/out (apply pr-str xs)))
+
+(defn register-driver []
+  (let [dn "buttle.jdbc.Driver"]
+    (try 
+      (doto (.. (Class/forName dn) newInstance)
+        (java.sql.DriverManager/registerDriver))
+      (catch Throwable t
+        (log "buttle.core: DriverManager/registerDriver '" dn "' failed: " t)
+        (throw (RuntimeException. (str "DriverManager/registerDriver '" dn "' failed: " t)
+                                  t))))))
+
+;; Register driver when loading namespace as part of the class loading
+;; of buttle.jdbc.Driver. When compile/dev loads namespace do not
+;; register.
+(if-not *compile-files*
+  (register-driver))
+
+;; -----------------------------------------------------------------------------------------
+;; Implementations of java.sql.Driver interface
+;; -----------------------------------------------------------------------------------------
+
+;; url = jdbc:subprotocol:subname
+;; jdbc:buttle:{:delegate-url "foo:bar"}
+;; org/postgresql/Driver
+;; "jdbc:postgresql://127.0.0.1:5432/hhe" "inno" "inno"
+#_
+(parse-url "jdbc:buttle:{:delegate-url \"foo:bar\"}")
+
+#_
+(parse-url "jdbc:buttle:egate-url \"foo:bar\"}")
+
+(defn parse-url [url]
+  (try 
+    (some-> (re-matches #"jdbc:buttle:(.+)" url)
+            second
+            read-string
+            eval)
+    (catch Throwable t
+      (throw (ex-info "Could not parse url" {:url url} t)))))
+
+(def connection-handler
+  (proxy [java.lang.reflect.InvocationHandler] []
+    (invoke [the-proxy the-method, the-args]
+      (log the-proxy the-method the-args))))
+
+(defn make-connection-proxy [conn]
+  (java.lang.reflect.Proxy/newProxyInstance
+   (.. conn getClass getClassLoader)
+   (into-array [java.sql.Driver])
+   connection-handler))
+
+(defn -connect [this url info]
+  {:post [(do (log "EXIT (-connect " url " " info ") --> " %) true)]}
+  (log "ENTER (-connect " url " " info ")")
+  (if-let [{:keys [delegate-url user password]} (parse-url url)]
+    (if-let [conn (java.sql.DriverManager/getConnection delegate-url user password)]
+      (make-connection-proxy conn))))
+
+(defn -acceptsURL [this url]
+  (log "-acceptsURL " url)
+  (boolean (parse-url url)))
+
+(defn -getMajorVersion [this]
+  (log "-getMajorVersion")
+  42)
+
+(defn -getMinorVersion [this]
+  (log "-getMinorVersion")
+  42)
+
+(defn -getParentLogger
+  "Return the parent Logger of all the Loggers used by this driver."
+
+  [this]
+
+  (log "(getParentLogger")
+  nil)
+
+(defn #_ DriverPropertyInfo_arr -getPropertyInfo
+  "Gets information about the possible properties for this driver."
+  
+  [this
+   #_ String url
+   #_ Properties info]
+
+  (log "-getPropertyInfo")
+  nil)
+
+
+(defn -jdbcCompliant [this]
+  true)
+
