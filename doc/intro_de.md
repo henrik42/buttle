@@ -303,11 +303,6 @@ kann selber einen `Driver`-Proxy zu diesem liefern.
 
 # Notizen
 
-* Hinweis: es ist auch möglich, direkt den Driver anstatt des
-  DriverManager zu verwenden. Aber dann hat man den Proxy nur wenn man
-  eben Buttle direkt verwendet. Buttle kann sich dann nicht
-  "dazwischen" hängen.
-
 * Buttle erweitern
 
 * Buttle hacken
@@ -318,9 +313,5 @@ kann selber einen `Driver`-Proxy zu diesem liefern.
 
 * Buttle als XATreiber?
 
-* Buttle im App-Server?
+* Buttle im App-Server vor einer DataSource?
 
-* Buttle als DataSource?
-
-* Da Buttle Proxy-basiertes AOP ist, fehlen bestimmte Dinge, die man
-  mit CGlib erreichen kann. Genau wie in Spring.
