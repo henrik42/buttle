@@ -3,8 +3,9 @@
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.8.0"]]
-  :resource-paths ["resources/postgresql-9.4-1201-jdbc41.jar"]
+  :dependencies [[org.clojure/clojure "1.8.0"]
+                 [org.postgresql/postgresql "9.4-1206-jdbc41"]]
+  ;;:resource-paths ["resources/postgresql-9.4-1201-jdbc41.jar"]
   :plugins [[lein-swank "1.4.5"]]
   :__swank {:target "swank-taget"
           :resource ["target"]}
