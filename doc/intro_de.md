@@ -1,5 +1,9 @@
 # Einführung in Buttle
 
+__Hinweis:__ Die folgende Doku beschreibt den Zielzustand für
+_Buttle_. Ich habe erst einen Teil der beschriebenen Funktionalität
+umgesetzt.
+
 _Buttle_ ist ein JDBC-Treiber [1, 2]. _Buttle_ selbst stellt jedoch
 keine Verbindung zu einer Datenbank her. Stattdessen fungiert _Buttle_
 als __Proxy__ (oder _Wrapper_) zu einem _echten_ JDBC-Treiber.
@@ -82,7 +86,7 @@ Instanzen (`Connection`, `Statement`, `ResultSet`) einzugreifen. Damit
 wäre es dann möglich, die Proxys auch _zwischen_ den verschiedenen
 Instanzen zu _installieren_ (so wie es z.B. Spring macht).
 
-## java.sql.DriverManager und java.sql.Driver
+## `java.sql.DriverManager` und `java.sql.Driver`
 
 I.d.R. wird von Anwendungen die Methode
 `java.sql.DriverManager/getConnection` verwendet, um eine Verbindung
