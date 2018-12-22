@@ -6,7 +6,7 @@ class ButtleTest {
 
     public static void main(String[] args) throws Exception {
 
-        if (false) {
+        if (true) {
             System.out.println("Loading driver");
             Driver loadedDriver = (Driver) Class.forName("buttle.jdbc.Driver").newInstance();
             System.out.println("Loaded driver " + loadedDriver);

@@ -5,7 +5,3 @@
     (.println System/out s)
     s))
 
-(defn method->keyword [method & _]
-  ;; {:post [(log "method->keyword --> " %)]}
-  (->> method .getName keyword))
-
