@@ -4,6 +4,6 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.8.0"]]
-  :profiles {:test {:dependencies [[org.postgresql/postgresql "9.4-1206-jdbc41"]]}}
+  :profiles {:test {:dependencies [[org.postgresql/postgresql "9.4.1212"]]}}
   :plugins [[lein-swank "1.4.5"]]
   :aot [buttle.core])
