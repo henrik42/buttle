@@ -30,4 +30,4 @@
 
              :test {:dependencies [[org.postgresql/postgresql "9.4.1212"]]}}
 
-  :aot [buttle.core])
+  :aot [buttle.driver])

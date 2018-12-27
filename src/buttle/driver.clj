@@ -1,4 +1,7 @@
 (ns buttle.driver
+  (:gen-class
+   :name buttle.jdbc.Driver
+   :implements [java.sql.Driver])
   (:require [buttle.driver-manager :as mgr]
             [buttle.connection :as conn]
             [buttle.util :as util]
@@ -53,3 +56,5 @@
 (defn register-driver []
   (mgr/register-driver (make-driver)))
 
+(defn -connect [this url info]
+  (connect-fn url))

@@ -1,9 +1,8 @@
-(ns buttle.core-test
+(ns buttle.driver-manager-test
   (:require [clojure.test :refer :all]
-            [buttle.core :refer :all]
-            [buttle.driver-manager :as drv]))
+            [buttle.driver-manager :as mgr]))
 
-(drv/register-driver (buttle.jdbc.Driver.))
+(mgr/register-driver (buttle.jdbc.Driver.))
 
 (def postgres-url "jdbc:postgresql://127.0.0.1:6632/postgres?")
 (def buttle-url (format "jdbc:buttle:{:user %s :password %s :target-url %s}"
@@ -12,12 +11,12 @@
                         (pr-str postgres-url)))
 
 (defn get-postgres-connection []
-  (drv/get-connection postgres-url
+  (mgr/get-connection postgres-url
                       (System/getenv "buttle_user")
                       (System/getenv "buttle_password")))
 
 (defn get-buttle-connection []
-  (drv/get-connection buttle-url
+  (mgr/get-connection buttle-url
                       (System/getenv "buttle_user")
                       (System/getenv "buttle_password")))
 
