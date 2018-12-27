@@ -67,7 +67,7 @@ __Clojure__
 __Note:__ Should work without `register-driver` via
 `META-INF/services/java.sql.Driver` -- must be fixed.
 
-	C:>java -cp buttle-0.1.0-SNAPSHOT-standalone.jar;postgresql-9.4-1206-jdbc41.jar clojure.main -r
+	C:>java -cp buttle-0.1.0-SNAPSHOT-standalone.jar;postgresql-9.4.1212.jar clojure.main -r
 	Clojure 1.8.0
 	user=> (use 'buttle.driver-manager)
 	;;--> nil
