@@ -4,7 +4,7 @@
 
 (mgr/register-driver (buttle.jdbc.Driver.))
 
-(def postgres-url "jdbc:postgresql://127.0.0.1:6632/postgres?")
+(def postgres-url "jdbc:postgresql://127.0.0.1:6632/postgres")
 (def buttle-url (format "jdbc:buttle:{:user %s :password %s :target-url %s}"
                         (pr-str (System/getenv "buttle_user"))
                         (pr-str (System/getenv "buttle_password"))
