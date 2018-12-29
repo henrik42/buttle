@@ -10,6 +10,10 @@
    (println [s]
      (proxy-super println (str "buttle.driver-test -- DriverManager LOG: " s)))))
 
+(deftest auto-load-buttle-driver
+  ;; buttle.jdbc.Driver is auto registered via SPI mechanism
+  (is (= buttle.jdbc.Driver (.getClass (mgr/get-driver "jdbc:buttle:42")))))
+
 (deftest test-parse-jdbc-url
   (is (= nil (drv/parse-jdbc-url "foobar")))
   (is (= nil (drv/parse-jdbc-url "jdbc:buttle:")))
@@ -38,13 +42,13 @@
 (deftest test-make-driver
   (let [buttle-driver (drv/make-driver)
         ;; Note: you CANNOT use a Clojure proxy here! The
-        ;; DriverManager will not give back the registered driver to
-        ;; you when calling getDriver - due to the caller/classloader
-        ;; check in DriverManager. So we use proxy/make-proxy instead
-        ;; which uses the Java reflection API for creating the
-        ;; proxy. In this case the interaction with DriverManager
-        ;; works as aspected. All this is verified by the test cases
-        ;; here.
+        ;; DriverManager will not give back the registered driver
+        ;; (bar-driver below) to you when calling getDriver - due to
+        ;; the caller/classloader check in DriverManager. So we use
+        ;; proxy/make-proxy instead (foo-driver below) which uses the
+        ;; Java reflection API for creating the proxy. In this case
+        ;; the interaction with DriverManager works as aspected. All
+        ;; this is verified by the test cases here.
         bar-driver (proxy [java.sql.Driver] []
                      (toString []
                        "bar-driver"))
@@ -73,7 +77,7 @@
     ;;
     ;; will print just "skipping: java.sql.DriverInfo" which is
     ;; probably not intended.
-    
+
     (mgr/register-driver bar-driver)
     (is (thrown-with-msg? java.sql.SQLException #"No suitable driver" (mgr/get-driver "foobar")))
     (is (= nil ((into #{} (mgr/get-drivers)) bar-driver)))
@@ -81,8 +85,12 @@
     (mgr/register-driver foo-driver)
     (try
       (is (= foo-driver ((into #{} (mgr/get-drivers)) foo-driver)))
+      ;; go through local driver proxy
       (is (= "foo-connection"
              (str (.connect buttle-driver "jdbc:buttle:{:target-url \"foo:bar:fred\"}" nil))))
+      ;; go through registered Driver instance
+      (is (= "foo-connection"
+             (str (mgr/get-connection "jdbc:buttle:{:target-url \"foo:bar:fred\"}" "no-user" "no-password"))))
       (finally 
         (java.sql.DriverManager/deregisterDriver foo-driver)))))
 
