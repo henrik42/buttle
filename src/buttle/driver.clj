@@ -91,3 +91,6 @@
 
 (defn -connect [this url info]
   (connect-fn url))
+
+(defn -acceptsURL [this url]
+  (boolean (accepts-url-fn url)))

@@ -5,6 +5,11 @@
             [buttle.proxy :as proxy]
             [buttle.driver :as drv]))
 
+(java.sql.DriverManager/setLogWriter
+ (proxy [java.io.PrintWriter] [*out*]
+   (println [s]
+     (proxy-super println (str "buttle.driver-test -- DriverManager LOG: " s)))))
+
 (deftest test-parse-jdbc-url
   (is (= nil (drv/parse-jdbc-url "foobar")))
   (is (= nil (drv/parse-jdbc-url "jdbc:buttle:")))
@@ -30,21 +35,19 @@
   (is (= true (-> (drv/connect-fn buttle-url) .getClass java.lang.reflect.Proxy/isProxyClass)))
   (is (thrown-with-msg? Throwable #"The url cannot be null" (drv/connect-fn "jdbc:buttle:42"))))
 
-#_
-(mgr/register-driver
- (proxy [java.sql.Driver] []
-   (acceptsURL [url]
-     (boolean (re-matches #"foo:bar:.*" url)))))
-
 (deftest test-make-driver
   (let [buttle-driver (drv/make-driver)
-        ;; Note: you CANNOT use a Clojure's proxy here! The
+        ;; Note: you CANNOT use a Clojure proxy here! The
         ;; DriverManager will not give back the registered driver to
-        ;; you when calling getDriver - probably due to the
-        ;; classloader check in DriverManager. So we use
-        ;; proxy/make-proxy instead which uses the Java reflection API
-        ;; for creating the proxy. In this case the interaction with
-        ;; DriverManager works as aspected.
+        ;; you when calling getDriver - due to the caller/classloader
+        ;; check in DriverManager. So we use proxy/make-proxy instead
+        ;; which uses the Java reflection API for creating the
+        ;; proxy. In this case the interaction with DriverManager
+        ;; works as aspected. All this is verified by the test cases
+        ;; here.
+        bar-driver (proxy [java.sql.Driver] []
+                     (toString []
+                       "bar-driver"))
         foo-driver (proxy/make-proxy
                     java.sql.Driver
                     "foo-driver"
@@ -53,8 +56,31 @@
                         "acceptsURL" (boolean (re-matches #"foo:bar:.*" (first the-args)))
                         "connect" (proxy [java.sql.Connection] []
                                     (toString [] "foo-connection")))))]
+
+    ;; In java.sql.DriverManager.getDriver(String) there is
+    ;;
+    ;;     println("    skipping: " + aDriver.driver.getClass().getName());
+    ;;
+    ;; which will print something like
+    ;;
+    ;;  DriverManager LOG: DriverManager.getDriver("foobar")
+    ;;  DriverManager LOG:     skipping: buttle.driver_test.proxy$java.lang.Object$Driver$1a6dd307
+    ;;
+    ;; In java.sql.DriverManager.getDrivers() and java.sql.DriverManager.getConnection(String, Properties, Class<?>)
+    ;; there is a bug:
+    ;;
+    ;;     println("    skipping: " + aDriver.getClass().getName());
+    ;;
+    ;; will print just "skipping: java.sql.DriverInfo" which is
+    ;; probably not intended.
+    
+    (mgr/register-driver bar-driver)
+    (is (thrown-with-msg? java.sql.SQLException #"No suitable driver" (mgr/get-driver "foobar")))
+    (is (= nil ((into #{} (mgr/get-drivers)) bar-driver)))
+    
     (mgr/register-driver foo-driver)
     (try
+      (is (= foo-driver ((into #{} (mgr/get-drivers)) foo-driver)))
       (is (= "foo-connection"
              (str (.connect buttle-driver "jdbc:buttle:{:target-url \"foo:bar:fred\"}" nil))))
       (finally 
