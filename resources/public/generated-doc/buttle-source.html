@@ -2866,7 +2866,7 @@ net.brehaut.ClojureTools = (function (SH) {
   };
 })(SyntaxHighlighter);
 </script><title>buttle -- Marginalia</title></head><body><table><tr><td class="docs"><div class="header"><h1 class="project-name"><a href="https://github.com/henrik42/buttle/">buttle</a></h1><h2 class="project-version">0.1.0-SNAPSHOT</h2><br /><p>Buttle is a proxying JDBC driver which wraps JDBC drivers.</p>
-</div><div class="dependencies"><h3>dependencies</h3><table><tr><td class="dep-name">org.clojure/clojure</td><td class="dotted"><hr /></td><td class="dep-version">1.8.0</td></tr></table></div></td><td class="codes" style="text-align: center; vertical-align: middle;color: #666;padding-right:20px"><br /><br /><br />(this space intentionally left almost blank)</td></tr><tr><td class="docs"><div class="toc"><a name="toc"><h3>namespaces</h3></a><ul><li><a href="#buttle.connection">buttle.connection</a></li><li><a href="#buttle.core">buttle.core</a></li><li><a href="#buttle.driver">buttle.driver</a></li><li><a href="#buttle.driver-manager">buttle.driver-manager</a></li><li><a href="#buttle.proxy">buttle.proxy</a></li><li><a href="#buttle.util">buttle.util</a></li></ul></div></td><td class="codes">&nbsp;</td></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.connection" name="buttle.connection"><h1 class="project-name">buttle.connection</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs">
+</div><div class="dependencies"><h3>dependencies</h3><table><tr><td class="dep-name">org.clojure/clojure</td><td class="dotted"><hr /></td><td class="dep-version">1.8.0</td></tr></table></div></td><td class="codes" style="text-align: center; vertical-align: middle;color: #666;padding-right:20px"><br /><br /><br />(this space intentionally left almost blank)</td></tr><tr><td class="docs"><div class="toc"><a name="toc"><h3>namespaces</h3></a><ul><li><a href="#buttle.connection">buttle.connection</a></li><li><a href="#buttle.driver">buttle.driver</a></li><li><a href="#buttle.driver-manager">buttle.driver-manager</a></li><li><a href="#buttle.proxy">buttle.proxy</a></li><li><a href="#buttle.util">buttle.util</a></li></ul></div></td><td class="codes">&nbsp;</td></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.connection" name="buttle.connection"><h1 class="project-name">buttle.connection</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(ns buttle.connection
   (:require [buttle.proxy :as proxy]))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defn invocation-key [the-method _target-obj _the-args]
@@ -2886,39 +2886,60 @@ net.brehaut.ClojureTools = (function (SH) {
                    (.getReturnType the-method)))]
     (if rt
       (proxy/make-proxy rt r handle)
-      r)))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.core" name="buttle.core"><h1 class="project-name">buttle.core</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(ns buttle.core
-  (:require [buttle.driver :as drv])
+      r)))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.driver" name="buttle.driver"><h1 class="project-name">buttle.driver</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(ns buttle.driver
   (:gen-class
    :name buttle.jdbc.Driver
-   :implements [java.sql.Driver]))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn -connect [this url info]
-  (drv/connect-fn url))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.driver" name="buttle.driver"><h1 class="project-name">buttle.driver</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(ns buttle.driver
+   :implements [java.sql.Driver])
   (:require [buttle.driver-manager :as mgr]
             [buttle.connection :as conn]
             [buttle.util :as util]
-            [buttle.proxy :as proxy]))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn parse-jdbc-url [url]
+            [buttle.proxy :as proxy]))</pre></td></tr><tr><td class="docs"><p>Parses a <em>Buttle</em> JDBC url.</p>
+
+<p>   A <em>Buttle</em> JDBC url has the format <code>#"jdbc:buttle:(.+)"</code>. Any
+   text after <code>jdbc:buttle:</code> will be <code>read-string-eval'ed</code> and should
+   yield a map with keys <code>:target-url</code>, <code>:user</code> and <code>:password</code>. The
+   <code>eval</code>'ed value is returned (even if not a map). If <code>url</code> does not
+   match the pattern <code>nil</code> is returned. If <code>read-string-eval</code> throws
+   an <code>Exception</code> then an <code>Exception</code> will be thrown.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn parse-jdbc-url
+  [url]
   (try 
     (some-&gt; (re-matches #&quot;jdbc:buttle:(.+)&quot; url)
             second
             read-string
             eval)
     (catch Throwable t
-      (throw (ex-info &quot;Could not parse url&quot; {:url url} t)))))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn accepts-url-fn [url]
+      (throw (ex-info &quot;Could not parse url&quot; {:url url} t)))))</pre></td></tr><tr><td class="docs"><p>Parses <code>url</code> via <code>parse-jdbc-url</code> and retrieves the keys
+  <code>:target-url</code>, <code>:user</code> and <code>:password</code> from the returned
+  value (assuming that it is a map). Returns a map with <code>:target-url</code>,
+  <code>:user</code> and <code>:password</code>.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn accepts-url-fn
+  [url]
   (when-let [{:keys [target-url user password]} (parse-jdbc-url url)]
     {:target-url target-url
      :user user
-     :password password}))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn connect-fn [url]
+     :password password}))</pre></td></tr><tr><td class="docs"><p>Returns <code>nil</code> if <code>url</code> is not a <em>Buttle</em> url (as of
+  <code>accepts-url-fn</code>). Else opens a JDBC <code>Connection</code> to <code>:target-url</code>
+  with <code>:user</code> and <code>:password</code> via
+  <code>buttle.driver-manager/get-connection</code>. If that throws then this
+  function throws. Otherwise a <em>Buttle</em> <code>Connection</code> proxy for the
+  opened <code>Connection</code> with <code>buttle.connection/handle</code> is returned.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn connect-fn
+  [url]
   (when-let [{:keys [target-url user password]} (accepts-url-fn url)]
     (proxy/make-proxy
      java.sql.Connection
      (mgr/get-connection target-url user password)
-     conn/handle)))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn make-driver []
+     #'conn/handle)))</pre></td></tr><tr><td class="docs"><p>Creates and returns a <em>Buttle</em> <code>java.sql.Driver</code>.</p>
+
+<p>   This driver can be registered with the <code>java.sql.DriverManager</code> via
+   <code>register-driver</code>. There are two important methods that this
+   driver (proxy) implements: <code>connect</code> and <code>acceptsURL</code>. These are
+   needed for interaction with the <code>DriverManager</code> so that the
+   <em>Buttle</em> driver can be <em>picked up</em> for <em>Buttle</em> urls.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn make-driver
+  []
   (proxy [java.sql.Driver] []
     ;; java.sql.Driver.connect(String url, Properties info)
     (connect [url info]
@@ -2942,7 +2963,11 @@ net.brehaut.ClojureTools = (function (SH) {
     (getParentLogger []
       (java.util.logging.Logger/getLogger &quot;buttle&quot;))))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defn register-driver []
-  (mgr/register-driver (make-driver)))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.driver-manager" name="buttle.driver-manager"><h1 class="project-name">buttle.driver-manager</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs">
+  (mgr/register-driver (make-driver)))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn -connect [this url info]
+  (connect-fn url))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn -acceptsURL [this url]
+  (boolean (accepts-url-fn url)))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.driver-manager" name="buttle.driver-manager"><h1 class="project-name">buttle.driver-manager</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(ns buttle.driver-manager
   (:import [java.sql DriverManager]))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defn register-driver [driver]
@@ -2982,7 +3007,8 @@ net.brehaut.ClojureTools = (function (SH) {
 
 <p>   Creates and returns a Java dynamic proxy with <code>proxy-type</code>. The
    classloader for this proxy is taken from <code>target-obj</code>. The proxy
-   delegates any method invocation to <code>invoke-fn</code>.</p>
+   delegates any method invocation to <code>invoke-fn</code> which in turn
+   delegates to <code>handler-fn</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn make-proxy
   [proxy-type target-obj handler-fn]
   (java.lang.reflect.Proxy/newProxyInstance
@@ -2995,7 +3021,7 @@ net.brehaut.ClojureTools = (function (SH) {
 </td><td class="codes"><pre class="brush: clojure">(defn log [&amp; xs]
   (let [s (apply pr-str xs)]
     (.println System/out s)
-    s))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr></table><div class="footer">Generated by <a href="https://github.com/gdeer81/marginalia">Marginalia</a>.&nbsp;&nbsp;Syntax highlighting provided by Alex Gorbatchev's <a href="http://alexgorbatchev.com/SyntaxHighlighter/">SyntaxHighlighter</a><div id="floating-toc"><ul><li class="floating-toc-li" id="floating-toc_buttle.connection">buttle.connection</li><li class="floating-toc-li" id="floating-toc_buttle.core">buttle.core</li><li class="floating-toc-li" id="floating-toc_buttle.driver">buttle.driver</li><li class="floating-toc-li" id="floating-toc_buttle.driver-manager">buttle.driver-manager</li><li class="floating-toc-li" id="floating-toc_buttle.proxy">buttle.proxy</li><li class="floating-toc-li" id="floating-toc_buttle.util">buttle.util</li></ul></div></div><script type="text/javascript">SyntaxHighlighter.defaults['gutter'] = false;
+    s))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr></table><div class="footer">Generated by <a href="https://github.com/gdeer81/marginalia">Marginalia</a>.&nbsp;&nbsp;Syntax highlighting provided by Alex Gorbatchev's <a href="http://alexgorbatchev.com/SyntaxHighlighter/">SyntaxHighlighter</a><div id="floating-toc"><ul><li class="floating-toc-li" id="floating-toc_buttle.connection">buttle.connection</li><li class="floating-toc-li" id="floating-toc_buttle.driver">buttle.driver</li><li class="floating-toc-li" id="floating-toc_buttle.driver-manager">buttle.driver-manager</li><li class="floating-toc-li" id="floating-toc_buttle.proxy">buttle.proxy</li><li class="floating-toc-li" id="floating-toc_buttle.util">buttle.util</li></ul></div></div><script type="text/javascript">SyntaxHighlighter.defaults['gutter'] = false;
 SyntaxHighlighter.all();
 
 // hackity hack

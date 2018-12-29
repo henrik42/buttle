@@ -1,4 +1,6 @@
-# What is it?
+# Buttle README
+
+## What is it?
 
 _Buttle_ is a proxying JDBC driver which wraps JDBC drivers.
 
@@ -26,7 +28,7 @@ info about
 Events are communicated through a `core.async` channel so that users
 can consume that channel to receive the events.
 
-# What to use it for?
+## What to use it for?
 
 Use it for
 
@@ -38,11 +40,11 @@ Use it for
 
 * application monitoring
 
-# How to extend?
+## How to extend?
 
 __TBD__
 
-# Examples
+## Examples
 
 __SQuirreL__
 
@@ -82,7 +84,7 @@ __Java__
 
 	__TBD__
 
-# Tests
+## Tests
 
 You'll need a Postgres at `127.0.0.1:6632` (but see `jdbc-url` in
 `test/buttle/core_test.clj`).

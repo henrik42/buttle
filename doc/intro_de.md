@@ -1,4 +1,4 @@
-# Einführung in Buttle
+# (German) Einführung in Buttle
 
 __Hinweis:__ Die folgende Doku beschreibt den Zielzustand für
 _Buttle_. Ich habe erst einen Teil der beschriebenen Funktionalität
