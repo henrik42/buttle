@@ -3055,13 +3055,13 @@ net.brehaut.ClojureTools = (function (SH) {
 <p>  The <code>:default</code> implementation calls <code>the-method</code> on <code>target-obj</code>
   with <code>the-args</code>, creates a proxy via <code>make-proxy</code> for non-nil
   interface-typed return values and returns the (possibly proxy'ed)
-  result.</p>
+  result. Throws if the invoked method throws.</p>
 
 <p>  The multi-method dispatch is done on <code>invocation-key</code>.</p>
 
 <p>  This is a multi-method so that you have a means to hook into the
   execution/delegation/proxying logic for some/any of the proxy'ed
-  interface types.</p>
+  interface types i.e. <code>invocation-key</code> dispatch values.</p>
 </td><td class="codes"><pre class="brush: clojure">(defmulti handle
   #'invocation-key)</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defmethod handle :default [the-method target-obj the-args]

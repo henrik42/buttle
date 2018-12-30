@@ -79,13 +79,13 @@
   The `:default` implementation calls `the-method` on `target-obj`
   with `the-args`, creates a proxy via `make-proxy` for non-nil
   interface-typed return values and returns the (possibly proxy'ed)
-  result.
+  result. Throws if the invoked method throws.
 
   The multi-method dispatch is done on `invocation-key`.
 
   This is a multi-method so that you have a means to hook into the
   execution/delegation/proxying logic for some/any of the proxy'ed
-  interface types."
+  interface types i.e. `invocation-key` dispatch values."
 
   #'invocation-key)
 
