@@ -1,4 +1,16 @@
 (ns buttle.driver
+  "The _Buttle_ `java.sql.Driver`.
+
+  This namespace delivers `buttle.jdbc.Driver` via `:gen-class`. This
+  named class can be used by tools (like SQuirreL) and the SPI
+  `services/java.sql.Driver`. Note that this class has implementations
+  for `acceptsURL` and `connect` only.
+
+  Functions in this namespace deliver all the functionality needed for
+  the `java.sql.Driver` interface/contract. Things for connections,
+  statements etc. you find in `buttle.connection`."
+
+  
   (:gen-class
    :name buttle.jdbc.Driver
    :implements [java.sql.Driver])
@@ -56,8 +68,8 @@
 (defn make-driver
   "Creates and returns a _Buttle_ `java.sql.Driver`.
 
-   This driver can be registered with the `java.sql.DriverManager` via
-   `register-driver`. There are two important methods that this
+   This driver can be registered with the
+   `java.sql.DriverManager`. There are two important methods that this
    driver (proxy) implements: `connect` and `acceptsURL`. These are
    needed for interaction with the `DriverManager` so that the
    _Buttle_ driver can be _picked up_ for _Buttle_ urls."
@@ -86,11 +98,16 @@
     (getParentLogger []
       (java.util.logging.Logger/getLogger "buttle"))))
 
-(defn register-driver []
-  (mgr/register-driver (make-driver)))
+(defn -connect
+  "Implements `java.sql.Driver.connect(String, Properties)`. Just
+  delegates to `(connect-fn url)`."
 
-(defn -connect [this url info]
+  [this url info]
   (connect-fn url))
 
-(defn -acceptsURL [this url]
+(defn -acceptsURL
+  "Implements `java.sql.Driver.acceptsURL(String)`. Just delegates
+  to `(boolean (accepts-url-fn url))`."
+
+  [this url]
   (boolean (accepts-url-fn url)))

@@ -2886,7 +2886,16 @@ net.brehaut.ClojureTools = (function (SH) {
                    (.getReturnType the-method)))]
     (if rt
       (proxy/make-proxy rt r handle)
-      r)))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.driver" name="buttle.driver"><h1 class="project-name">buttle.driver</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs">
+      r)))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.driver" name="buttle.driver"><h1 class="project-name">buttle.driver</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>The <em>Buttle</em> <code>java.sql.Driver</code>.</p>
+
+<p>  This namespace delivers <code>buttle.jdbc.Driver</code> via <code>:gen-class</code>. This
+  named class can be used by tools (like SQuirreL) and the SPI
+  <code>services/java.sql.Driver</code>. Note that this class has implementations
+  for <code>acceptsURL</code> and <code>connect</code> only.</p>
+
+<p>  Functions in this namespace deliver all the functionality needed for
+  the <code>java.sql.Driver</code> interface/contract. Things for connections,
+  statements etc. you find in <code>buttle.connection</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns buttle.driver
   (:gen-class
    :name buttle.jdbc.Driver
@@ -2933,8 +2942,8 @@ net.brehaut.ClojureTools = (function (SH) {
      (mgr/get-connection target-url user password)
      #'conn/handle)))</pre></td></tr><tr><td class="docs"><p>Creates and returns a <em>Buttle</em> <code>java.sql.Driver</code>.</p>
 
-<p>   This driver can be registered with the <code>java.sql.DriverManager</code> via
-   <code>register-driver</code>. There are two important methods that this
+<p>   This driver can be registered with the
+   <code>java.sql.DriverManager</code>. There are two important methods that this
    driver (proxy) implements: <code>connect</code> and <code>acceptsURL</code>. These are
    needed for interaction with the <code>DriverManager</code> so that the
    <em>Buttle</em> driver can be <em>picked up</em> for <em>Buttle</em> urls.</p>
@@ -2961,12 +2970,14 @@ net.brehaut.ClojureTools = (function (SH) {
       true)
     ;; Logger getParentLogger()
     (getParentLogger []
-      (java.util.logging.Logger/getLogger &quot;buttle&quot;))))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn register-driver []
-  (mgr/register-driver (make-driver)))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn -connect [this url info]
-  (connect-fn url))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn -acceptsURL [this url]
+      (java.util.logging.Logger/getLogger &quot;buttle&quot;))))</pre></td></tr><tr><td class="docs"><p>Implements <code>java.sql.Driver.connect(String, Properties)</code>. Just
+  delegates to <code>(connect-fn url)</code>.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn -connect
+  [this url info]
+  (connect-fn url))</pre></td></tr><tr><td class="docs"><p>Implements <code>java.sql.Driver.acceptsURL(String)</code>. Just delegates
+  to <code>(boolean (accepts-url-fn url))</code>.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn -acceptsURL
+  [this url]
   (boolean (accepts-url-fn url)))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.driver-manager" name="buttle.driver-manager"><h1 class="project-name">buttle.driver-manager</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>A thin/simple Clojure API around <code>java.sql.DriverManager</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns buttle.driver-manager
   (:import [java.sql DriverManager]))</pre></td></tr><tr><td class="docs"><p>Registers the <code>driver</code> (see
