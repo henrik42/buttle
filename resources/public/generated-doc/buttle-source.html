@@ -2984,7 +2984,12 @@ net.brehaut.ClojureTools = (function (SH) {
     (for [d (get-drivers)]
       (do 
         (DriverManager/deregisterDriver d)
-        d)))))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.proxy" name="buttle.proxy"><h1 class="project-name">buttle.proxy</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Delivers a proxy factory.</p>
+        d)))))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.proxy" name="buttle.proxy"><h1 class="project-name">buttle.proxy</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>A proxy factory.</p>
+
+<p>   <strong>Note:</strong> You cannot use Clojure <code>proxy</code> for creating/registering
+   <code>java.sql.Driver</code> instances due to classloader/caller checks in
+   <code>java.sql.DriverManger</code>. See <code>test/buttle/driver_test.clj</code> for more
+   details.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns buttle.proxy
   (:require [buttle.util :as util]))</pre></td></tr><tr><td class="docs"><p>Invocation handler for <code>make-proxy</code>. It delegates any method
    invocation of <code>proxy-type</code> to <code>handler-fn</code>. Any other method
@@ -2996,6 +3001,10 @@ net.brehaut.ClojureTools = (function (SH) {
    from <code>handler-fn</code>) will be un-rolled so that the cause <code>Exception</code>
    will come out of <code>invoke-fn</code> and thus the proxy made by
    <code>make-proxy</code>.</p>
+
+<p>   This function is not meant for public usage. It functions as a
+   hookable delegation-point for <code>make-proxy</code> so that you may
+   re-bind/re-def the var when debugging and hacking.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn invoke-fn
   [proxy-type target-obj handler-fn the-proxy the-method the-args]
   (try
@@ -3005,10 +3014,20 @@ net.brehaut.ClojureTools = (function (SH) {
     (catch java.lang.reflect.InvocationTargetException t
       (throw (.getCause t)))))</pre></td></tr><tr><td class="docs"><p>A proxy factory.</p>
 
-<p>   Creates and returns a Java dynamic proxy with <code>proxy-type</code>. The
+<p>   Creates and returns a <strong>Java dynamic proxy</strong> with <code>proxy-type</code>. The
    classloader for this proxy is taken from <code>target-obj</code>. The proxy
    delegates any method invocation to <code>invoke-fn</code> which in turn
    delegates to <code>handler-fn</code>.</p>
+
+<p>   Example usage:</p>
+
+<pre><code>    (make-proxy java.sql.Driver "foo-driver"
+     (fn [the-method target-obj the-args]
+       (condp = (.getName the-method)
+         "acceptsURL" true
+         "connect" (proxy [java.sql.Connection] []
+                     (toString [] "foo-connection")))))
+</code></pre>
 </td><td class="codes"><pre class="brush: clojure">(defn make-proxy
   [proxy-type target-obj handler-fn]
   (java.lang.reflect.Proxy/newProxyInstance

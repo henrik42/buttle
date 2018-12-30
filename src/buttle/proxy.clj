@@ -1,5 +1,10 @@
 (ns buttle.proxy
-  "Delivers a proxy factory."
+  "A proxy factory.
+
+   __Note:__ You cannot use Clojure `proxy` for creating/registering
+   `java.sql.Driver` instances due to classloader/caller checks in
+   `java.sql.DriverManger`. See `test/buttle/driver_test.clj` for more
+   details."
   
   (:require [buttle.util :as util]))
 
@@ -13,7 +18,11 @@
    `java.lang.reflect.InvocationTargetException` (incl. those coming
    from `handler-fn`) will be un-rolled so that the cause `Exception`
    will come out of `invoke-fn` and thus the proxy made by
-   `make-proxy`."
+   `make-proxy`.
+
+   This function is not meant for public usage. It functions as a
+   hookable delegation-point for `make-proxy` so that you may
+   re-bind/re-def the var when debugging and hacking."
 
   [proxy-type target-obj handler-fn the-proxy the-method the-args]
   (try
@@ -26,10 +35,20 @@
 (defn make-proxy
   "A proxy factory.
 
-   Creates and returns a Java dynamic proxy with `proxy-type`. The
+   Creates and returns a __Java dynamic proxy__ with `proxy-type`. The
    classloader for this proxy is taken from `target-obj`. The proxy
    delegates any method invocation to `invoke-fn` which in turn
-   delegates to `handler-fn`."
+   delegates to `handler-fn`.
+
+   Example usage:
+
+        (make-proxy java.sql.Driver \"foo-driver\"
+         (fn [the-method target-obj the-args]
+           (condp = (.getName the-method)
+             \"acceptsURL\" true
+             \"connect\" (proxy [java.sql.Connection] []
+                         (toString [] \"foo-connection\")))))
+  "
 
   [proxy-type target-obj handler-fn]
   (java.lang.reflect.Proxy/newProxyInstance
