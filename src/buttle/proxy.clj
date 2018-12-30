@@ -4,7 +4,12 @@
    __Note:__ You cannot use Clojure `proxy` for creating/registering
    `java.sql.Driver` instances due to classloader/caller checks in
    `java.sql.DriverManger`. See `test/buttle/driver_test.clj` for more
-   details."
+   details.
+
+   This namespace delivers all functions needed to create proxys for
+   JDBC relevant interfaces and to implement the delegation logic for
+   these proxys that is needed to route method calls through to the
+   _real_ JDBC driver's instances."
   
   (:require [buttle.util :as util]))
 
@@ -58,12 +63,31 @@
      (invoke [the-proxy the-method the-args]
        (invoke-fn proxy-type target-obj handler-fn the-proxy the-method the-args)))))
 
+(defn invocation-key
+  "Dispatch function for `handle`. Returns a vector with the method's
+  declaring class and `buttle/` namespaced keyword for the method's
+  name."
 
-(defn invocation-key [the-method & _]
+  [the-method & _]
   [(-> the-method .getDeclaringClass)
    (->> the-method .getName (keyword "buttle"))])
 
-(defmulti handle #'invocation-key)
+(defmulti handle
+  "A generic delegation function (arity `[the-method target-obj
+  the-args]`) which delivers proxy'ed return values.
+
+  The `:default` implementation calls `the-method` on `target-obj`
+  with `the-args`, creates a proxy via `make-proxy` for non-nil
+  interface-typed return values and returns the (possibly proxy'ed)
+  result.
+
+  The multi-method dispatch is done on `invocation-key`.
+
+  This is a multi-method so that you have a means to hook into the
+  execution/delegation/proxying logic for some/any of the proxy'ed
+  interface types."
+
+  #'invocation-key)
 
 (defmethod handle :default [the-method target-obj the-args]
   (let [r (.invoke the-method target-obj the-args)

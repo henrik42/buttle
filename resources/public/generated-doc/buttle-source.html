@@ -2993,6 +2993,11 @@ net.brehaut.ClojureTools = (function (SH) {
    <code>java.sql.Driver</code> instances due to classloader/caller checks in
    <code>java.sql.DriverManger</code>. See <code>test/buttle/driver_test.clj</code> for more
    details.</p>
+
+<p>   This namespace delivers all functions needed to create proxys for
+   JDBC relevant interfaces and to implement the delegation logic for
+   these proxys that is needed to route method calls through to the
+   <em>real</em> JDBC driver's instances.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns buttle.proxy
   (:require [buttle.util :as util]))</pre></td></tr><tr><td class="docs"><p>Invocation handler for <code>make-proxy</code>. It delegates any method
    invocation of <code>proxy-type</code> to <code>handler-fn</code>. Any other method
@@ -3038,11 +3043,27 @@ net.brehaut.ClojureTools = (function (SH) {
    (into-array [proxy-type])
    (proxy [java.lang.reflect.InvocationHandler] []
      (invoke [the-proxy the-method the-args]
-       (invoke-fn proxy-type target-obj handler-fn the-proxy the-method the-args)))))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn invocation-key [the-method &amp; _]
+       (invoke-fn proxy-type target-obj handler-fn the-proxy the-method the-args)))))</pre></td></tr><tr><td class="docs"><p>Dispatch function for <code>handle</code>. Returns a vector with the method's
+  declaring class and <code>buttle/</code> namespaced keyword for the method's
+  name.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn invocation-key
+  [the-method &amp; _]
   [(-&gt; the-method .getDeclaringClass)
-   (-&gt;&gt; the-method .getName (keyword &quot;buttle&quot;))])</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defmulti handle #'invocation-key)</pre></td></tr><tr><td class="docs">
+   (-&gt;&gt; the-method .getName (keyword &quot;buttle&quot;))])</pre></td></tr><tr><td class="docs"><p>A generic delegation function (arity `[the-method target-obj
+  the-args]`) which delivers proxy'ed return values.</p>
+
+<p>  The <code>:default</code> implementation calls <code>the-method</code> on <code>target-obj</code>
+  with <code>the-args</code>, creates a proxy via <code>make-proxy</code> for non-nil
+  interface-typed return values and returns the (possibly proxy'ed)
+  result.</p>
+
+<p>  The multi-method dispatch is done on <code>invocation-key</code>.</p>
+
+<p>  This is a multi-method so that you have a means to hook into the
+  execution/delegation/proxying logic for some/any of the proxy'ed
+  interface types.</p>
+</td><td class="codes"><pre class="brush: clojure">(defmulti handle
+  #'invocation-key)</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defmethod handle :default [the-method target-obj the-args]
   (let [r (.invoke the-method target-obj the-args)
         rt (and r (#{java.sql.Statement
