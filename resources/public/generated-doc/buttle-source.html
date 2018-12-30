@@ -2967,18 +2967,31 @@ net.brehaut.ClojureTools = (function (SH) {
 </td><td class="codes"><pre class="brush: clojure">(defn -connect [this url info]
   (connect-fn url))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defn -acceptsURL [this url]
-  (boolean (accepts-url-fn url)))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.driver-manager" name="buttle.driver-manager"><h1 class="project-name">buttle.driver-manager</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs">
+  (boolean (accepts-url-fn url)))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.driver-manager" name="buttle.driver-manager"><h1 class="project-name">buttle.driver-manager</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>A thin/simple Clojure API around <code>java.sql.DriverManager</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns buttle.driver-manager
-  (:import [java.sql DriverManager]))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn register-driver [driver]
-  (DriverManager/registerDriver driver))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn get-driver [url]
-  (DriverManager/getDriver url))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn get-drivers []
-  (enumeration-seq (DriverManager/getDrivers)))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn get-connection [url user password]
-  (DriverManager/getConnection url user password))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn deregister-drivers []
+  (:import [java.sql DriverManager]))</pre></td></tr><tr><td class="docs"><p>Registers the <code>driver</code> (see
+  <code>java.sql.DriverManager.registerDriver(Driver)</code>).</p>
+</td><td class="codes"><pre class="brush: clojure">(defn register-driver
+  [driver]
+  (DriverManager/registerDriver driver))</pre></td></tr><tr><td class="docs"><p>Returns the registered <code>java.sql.Driver</code> which accepts the
+  <code>url</code>. Throws if a driver cannot be found (see
+  <code>java.sql.DriverManager.getDriver(String)</code>).</p>
+</td><td class="codes"><pre class="brush: clojure">(defn get-driver
+  [url]
+  (DriverManager/getDriver url))</pre></td></tr><tr><td class="docs"><p>Returns a seq of all registered drivers (see
+  <code>java.sql.DriverManager.getDrivers()</code>)</p>
+</td><td class="codes"><pre class="brush: clojure">(defn get-drivers
+  []
+  (enumeration-seq (DriverManager/getDrivers)))</pre></td></tr><tr><td class="docs"><p>Finds the driver for <code>url</code> and uses it to open a
+  <code>java.sql.Connection</code>. Returns the connection or throws if anything
+  goes wrong (see `java.sql.DriverManager.getConnection(String,
+  String, String)`).</p>
+</td><td class="codes"><pre class="brush: clojure">(defn get-connection 
+  [url user password]
+  (DriverManager/getConnection url user password))</pre></td></tr><tr><td class="docs"><p>Iterates over all registered drivers (as of <code>(get-drivers)</code>) and
+  deregisters each. Returns seq of drivers.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn deregister-drivers
+  []
   (seq 
    (doall 
     (for [d (get-drivers)]
