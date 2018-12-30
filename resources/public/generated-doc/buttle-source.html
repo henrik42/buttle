@@ -2875,13 +2875,12 @@ net.brehaut.ClojureTools = (function (SH) {
 
 <p>  Functions in this namespace deliver all the functionality needed for
   the <code>java.sql.Driver</code> interface/contract. Things for connections,
-  statements etc. you find in <code>buttle.connection</code>.</p>
+  statements etc. are all delivered through <code>buttle.proxy</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns buttle.driver
   (:gen-class
    :name buttle.jdbc.Driver
    :implements [java.sql.Driver])
   (:require [buttle.driver-manager :as mgr]
-            [buttle.connection :as conn]
             [buttle.util :as util]
             [buttle.proxy :as proxy]))</pre></td></tr><tr><td class="docs"><p>Parses a <em>Buttle</em> JDBC url.</p>
 
@@ -2920,7 +2919,7 @@ net.brehaut.ClojureTools = (function (SH) {
     (proxy/make-proxy
      java.sql.Connection
      (mgr/get-connection target-url user password)
-     #'conn/handle)))</pre></td></tr><tr><td class="docs"><p>Creates and returns a <em>Buttle</em> <code>java.sql.Driver</code>.</p>
+     #'proxy/handle)))</pre></td></tr><tr><td class="docs"><p>Creates and returns a <em>Buttle</em> <code>java.sql.Driver</code>.</p>
 
 <p>   This driver can be registered with the
    <code>java.sql.DriverManager</code>. There are two important methods that this

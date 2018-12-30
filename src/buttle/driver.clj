@@ -8,14 +8,13 @@
 
   Functions in this namespace deliver all the functionality needed for
   the `java.sql.Driver` interface/contract. Things for connections,
-  statements etc. you find in `buttle.connection`."
+  statements etc. are all delivered through `buttle.proxy`."
 
   
   (:gen-class
    :name buttle.jdbc.Driver
    :implements [java.sql.Driver])
   (:require [buttle.driver-manager :as mgr]
-            [buttle.connection :as conn]
             [buttle.util :as util]
             [buttle.proxy :as proxy]))
 
@@ -63,7 +62,7 @@
     (proxy/make-proxy
      java.sql.Connection
      (mgr/get-connection target-url user password)
-     #'conn/handle)))
+     #'proxy/handle)))
 
 (defn make-driver
   "Creates and returns a _Buttle_ `java.sql.Driver`.
