@@ -2912,7 +2912,7 @@ net.brehaut.ClojureTools = (function (SH) {
   with <code>:user</code> and <code>:password</code> via
   <code>buttle.driver-manager/get-connection</code>. If that throws then this
   function throws. Otherwise a <em>Buttle</em> <code>Connection</code> proxy for the
-  opened <code>Connection</code> with <code>buttle.connection/handle</code> is returned.</p>
+  opened <code>Connection</code> with <code>buttle.proxy/handle</code> is returned.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn connect-fn
   [url]
   (when-let [{:keys [target-url user password]} (accepts-url-fn url)]

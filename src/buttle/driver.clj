@@ -55,7 +55,7 @@
   with `:user` and `:password` via
   `buttle.driver-manager/get-connection`. If that throws then this
   function throws. Otherwise a _Buttle_ `Connection` proxy for the
-  opened `Connection` with `buttle.connection/handle` is returned."
+  opened `Connection` with `buttle.proxy/handle` is returned."
 
   [url]
   (when-let [{:keys [target-url user password]} (accepts-url-fn url)]
