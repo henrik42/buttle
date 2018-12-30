@@ -58,3 +58,24 @@
      (invoke [the-proxy the-method the-args]
        (invoke-fn proxy-type target-obj handler-fn the-proxy the-method the-args)))))
 
+
+(defn invocation-key [the-method & _]
+  [(-> the-method .getDeclaringClass)
+   (->> the-method .getName (keyword "buttle"))])
+
+(defmulti handle #'invocation-key)
+
+(defmethod handle :default [the-method target-obj the-args]
+  (let [r (.invoke the-method target-obj the-args)
+        rt (and r (#{java.sql.Statement
+                     java.sql.PreparedStatement
+                     java.sql.CallableStatement
+                     java.sql.Savepoint
+                     java.sql.Clob
+                     java.sql.Blob
+                     java.sql.NClob
+                     java.sql.SQLXML}
+                   (.getReturnType the-method)))]
+    (if rt
+      (make-proxy rt r handle)
+      r)))
