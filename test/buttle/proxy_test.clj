@@ -43,3 +43,10 @@
   (is (thrown-with-msg? RuntimeException #"connection:CLOSE!" (.close a-connection)) "throwing from a-connection")
   (is (thrown-with-msg? RuntimeException #"handler:CLOSE!" (.close connection-proxy)) "throwing from connection proxy")
   (is (thrown-with-msg? RuntimeException #"connection:ROLLBACK!" (.rollback connection-proxy)) "throwing from a-connection"))
+
+(deftest invocation-key-test
+  (is (= [java.sql.Connection :buttle/close]
+         (proxy/invocation-key 
+          (.getMethod java.sql.Connection "close" nil)))))
+
+  
