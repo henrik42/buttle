@@ -49,4 +49,20 @@
          (proxy/invocation-key 
           (.getMethod java.sql.Connection "close" nil)))))
 
-  
+(deftest handle-test
+  (testing "Handing Object.toString()"
+    (is (= "foo"
+           (proxy/handle
+            (.getMethod Object "toString" nil)
+            (proxy [java.sql.Connection] []
+              (toString [] "foo"))
+            nil)))
+    ;; `handle` does not unroll InvocationTargetException! only `make-proxy` does that!
+    (is (thrown? java.lang.reflect.InvocationTargetException
+                 (proxy/handle
+                  (.getMethod Object "toString" nil)
+                  (proxy [java.sql.Connection] []
+                    (toString []
+                      (throw (RuntimeException. "oops foo"))))
+                  nil)))))
+          
