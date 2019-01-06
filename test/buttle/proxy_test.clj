@@ -112,120 +112,6 @@
 
 
 
-;; **************** isa Hierarchie herstellen 
-#_
-(isa? :buttle/getCatalog :buttle/default)
-
-#_
-(isa? java.sql.Connection Object)
-
-#_ ;; Beziehung zwischen Methode und default herstellen
-(do 
-  (derive :buttle/getCatalog :buttle/default)
-  (derive :buttle/getSchema :buttle/default))
-
-;; **************** handle Implementationen installieren
-
-#_ ;; konkret Connection/getCatalog
-(defmethod proxy/handle [java.sql.Connection :buttle/getCatalog] [the-method target-obj the-args]
-  (str "Connection/getCatalog: intercepted " (.getName the-method)))
-
-#_ ;; konkret Connection/getSchema
-(defmethod proxy/handle [java.sql.Connection :buttle/getSchema] [the-method target-obj the-args]
-  (str "Connection/getSchema: intercepted " (.getName the-method)))
-
-#_ ;; generisch alle Methoden der Klasse Connection/*
-(defmethod proxy/handle [java.sql.Connection :buttle/default] [the-method target-obj the-args]
-  (str "Connection/default: intercepted " (.getName the-method)))
-
-#_ ;; generisch alle Klassen für eine Method */getCatalog
-(defmethod proxy/handle [Object :buttle/getCatalog] [the-method target-obj the-args]
-  (str "Object/getCatalog: intercepted " (.getName the-method)))
-
-#_ ;; generisch */* überschreibt :default handle
-(defmethod proxy/handle [Object :buttle/default] [the-method target-obj the-args]
-  (str "Object/default: intercepted " (.getName the-method)))
-
-#_
-(remove-method proxy/handle [java.sql.Connection :buttle/getCatalog])
-
-
-
-#_
-(defmacro defhandle [[clss mthd] [the-method target-obj the-args] body]
-  (list 'do
-        (list 'fix-hierarchy [clss mthd])
-        (list 'defmethod 'buttle.proxy/handle [clss mthd] '[the-method target-obj the-args]
-              body)))
-
-#_
-(defn fix-hierarchy [[clss mthd]]
-  (when-not (= mthd :buttle/default)
-    (util/log "-->" (list 'derive mthd :buttle/default))
-    (derive mthd :buttle/default))
-  (prefer-method buttle.proxy/handle
-                 [class :buttle/default]
-                 [java.lang.Object mthd]))
-  
-#_
-(defhandle [Object :buttle/default] [the-method target-obj the-args]
-  (str the-args))
-
-
-
-;; Für konkrete Methoden derive
-;; (derive :buttle/getCatalog :buttle/default)
-;; (prefer-method proxy/handle
-;;                [java.sql.Connection :buttle/default]
-;;                [java.lang.Object :buttle/getCatalog])
-;; 
-#_
-(defmacro defhandle [[clss mthd] [the-method target-obj the-args] body]
-  body)
-
-#_
-(macroexpand-1
- '(defhandle [Object :buttle/default] [the-method target-obj the-args]
-    (str the-args)))
-
-;; Multiple methods in multimethod 'handle' match dispatch value:
-;; [java.sql.Connection :buttle/getCatalog] ->
-;; [java.lang.Object :buttle/getCatalog] and
-;; [java.sql.Connection :buttle/default], and neither is preferred
-
-;; Sobald man beide Dispatch Values hat, muss man einen der beiden
-;; bevorzugen.
-;;
-;; Ansatz
-;; ------
-;;
-;; Immer, wenn :buttle/default verwendet wird, wird das prefer
-;; ausgeführt, und immer wenn java.lang.Object verwendet wird, wird
-;; auch das prefer ausgeführt. Man hat hier ein Reihenfolgeproblem!
-;; Deswegen muss man beide Fälle berücksichtigen.
-;;
-;; Man braucht also sowas wie
-;; (defhandle [Object :buttle/default] [the-method target-obj the-args]
-;;  (str "Object/default: intercepted " (.getName the-method)))
-;;
-;; Das Macro richtet dann die prefer Beziehung ein.
-;; (defhandle Object [the-method target-obj the-args]
-;;  (str "Object/default: intercepted " (.getName the-method)))
-;; (defhandle java.sql.Connection [the-method target-obj the-args]
-;;  (str "Object/default: intercepted " (.getName the-method)))
-
-#_ 
-(prefer-method proxy/handle
-               [java.sql.Connection :buttle/default]
-               [java.lang.Object :buttle/getCatalog])
-
-
-
-
-
-
-;; ---------------------------------------------------------
-
 (defn remove-handle [[clss mthd]]
   (remove-method proxy/handle [clss mthd]))
   
@@ -234,91 +120,6 @@
         (list 'fix-prefers! [clss mthd])
         (list 'defmethod 'buttle.proxy/handle [clss mthd] '[the-method target-obj the-args]
               body)))
-
-#_
-(some-> (prefers proxy/handle)
-        (get [Object :buttle/default])
-        (get [java.lang.Object :buttle/default]))
-
-
-;; Aber es muss doch genau umgekehrt sein!!
-#_
-(derive :buttle/default :buttle/getSchema)
-
-#_ ;; -> exception
-(derive :buttle/default :buttle/default)
-
-#_ ;; so ist es richtig
-(derive :buttle/getSchema :buttle/default)
-
-#_ ;; --> true
-(isa? :buttle/default :buttle/foo)
-
-#_
-(isa? :buttle/getSchema :buttle/default)
-
-
-
-
-
-
-
-;; Fall 1: defhandle [java.sql.Connection :buttle/default]
-;;
-;; Achtung: man kennt aber die descendants!!! Und über die kann man
-;; schleifen, um die prefers zu erstellen!!!!
-;; (prefer [java.sql.Connection :buttle/default] [Object desc])
-;; Damit bevorzugen wir [java.sql.Connection :buttle/default]
-;;
-;; Es erfolgt der Call mit [java.sql.Connection :buttle/getSchema].
-;;
-;; Fall 2: defhandle [java.lang.Object :buttle/getCatalog] erst
-;; derive! und dann Schleife über alle prefer-keys und
-;; schleife/rekursiv über die clss :default
-
-#_
-(prefer-method proxy/handle
-               [java.sql.Connection :buttle/default]
-               [java.lang.Object :buttle/getCatalog])
-
-#_
-(prefer-method proxy/handle
-               [java.sql.Connection :buttle/default]
-               [java.lang.Object :buttle/getSchema])
-
-#_ ;; {[java.sql.Connection :buttle/default]
-   ;;  #{[java.lang.Object :buttle/getSchema] [java.lang.Object :buttle/getCatalog]}}
-(prefers proxy/handle)
-
-#_
-(prefers-for [java.sql.Connection :buttle/default] )
-
-#_
-(defn prefers-for [])
-
-
-
-
-
-
-;; Ist nicht threadsafe
-#_
-(defn fix-hierarchy! [[clss mthd]]
-  (util/log "fix-hierarchy! -->" [clss mthd])
-  (when-not (= mthd :buttle/default)
-    ;; make mthd a :buttle/default, so that :buttle/default methods
-    ;; will match calls to mthd
-    (derive mthd :buttle/default))
-  (when-not
-      (some-> (prefers proxy/handle)
-              (get [Object :buttle/default])
-              (get [java.lang.Object :buttle/default]))
-    (prefer-method proxy/handle
-                   [clss :buttle/default]
-                   [java.lang.Object mthd])))
-
-
-
 
 (defn methods-of [clss]
   (->> clss
@@ -332,6 +133,7 @@
       (throw (RuntimeException. "You cannot use def-handle with Object/:buttle/default")))
     (doseq [m (methods-of clss)]
       (util/log (format "(fix-prefers! %s) : derive %s :buttle/default" [clss mthd] m))
+      ;; MUTATION/SIDEEFFECT!!!!
       (derive m :buttle/default))
     (doseq [m (descendants :buttle/default)]
       (util/log (format "(fix-prefers! %s) : prefer-method %s %s" [clss mthd]
@@ -341,38 +143,8 @@
                      [clss :buttle/default]
                      [java.lang.Object m]))))
 
-#_ ;; konkret Connection/getCatalog
-(def-handle [java.sql.Connection :buttle/getCatalog] [the-method target-obj the-args]
-  (str "Connection/getCatalog: intercepted " (.getName the-method)))
 
-#_ ;; konkret Connection/getSchema
-(def-handle [java.sql.Connection :buttle/getSchema] [the-method target-obj the-args]
-  (str "Connection/getSchema: intercepted " (.getName the-method)))
 
-#_ ;; generisch alle Methoden der Klasse Connection/*
-(def-handle [java.sql.Connection :buttle/default] [the-method target-obj the-args]
-  (str "Connection/default: intercepted " (.getName the-method)))
-
-#_ 
-(def-handle [java.sql.ResultSet :buttle/default] [the-method target-obj the-args]
-  (str "ResultSet/default: intercepted " (.getName the-method)))
-
-#_ ;; generisch alle Klassen für eine Method */getCatalog
-(def-handle [Object :buttle/getCatalog] [the-method target-obj the-args]
-  (str "Object/getCatalog: intercepted " (.getName the-method)))
-
-#_ ;; generisch alle Klassen für eine Method */getCatalog
-(def-handle [Object :buttle/getString] [the-method target-obj the-args]
-  (str "Object/getString: intercepted " (.getName the-method)))
-
-;; Preference conflict in multimethod 'handle':
-;; [java.lang.Object :buttle/default] is already preferred to [java.lang.Object :buttle/default]
-
-;; KAPUTT: geht nicht, weil wir nicht ermitteln können, dass ein
-;; getSchema auch ein :buttle/default ist.
-#_ ;; generisch */* überschreibt :default handle
-(def-handle [Object :buttle/default] [the-method target-obj the-args]
-  (str "Object/default: intercepted " (.getName the-method)))
 
 (defn handle-connection [f]
   (proxy/handle
@@ -451,9 +223,10 @@
            (handle-connection :getSchema)))
 
     (remove-handle [Object :buttle/getCatalog])
+    (remove-handle [java.sql.ResultSet :buttle/getString])
     
     (is (= "proxy getCatalog"
            (handle-connection :getCatalog)))
-
-    ))
+    (is (= "proxy getString"
+           (handle-resultset :getString)))))
     
