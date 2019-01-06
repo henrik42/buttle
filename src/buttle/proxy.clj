@@ -63,21 +63,14 @@
      (invoke [the-proxy the-method the-args]
        (invoke-fn proxy-type target-obj handler-fn the-proxy the-method the-args)))))
 
-#_
-(def invocation-key-hierarchy
-  (make-hierarchy))
-
 (defn invocation-key
   "Dispatch function for `handle`. Returns a vector with the method's
   declaring class and `buttle/` namespaced keyword for the method's
   name."
 
   [the-method & _]
-  (let [ik [(-> the-method .getDeclaringClass)
-            (->> the-method .getName (keyword "buttle"))]]
-    ;;(derive invocation-key-hierarchy (second ik :buttle/:default))
-    (util/log "-->" ik)
-    ik))
+  [(-> the-method .getDeclaringClass)
+   (->> the-method .getName (keyword "buttle"))])
 
 (defmulti handle
   "A generic delegation function (arity `[the-method target-obj
@@ -97,7 +90,7 @@
 
   #'invocation-key)
 
-(defmethod handle :default [the-method target-obj the-args]
+(defn handle-default [the-method target-obj the-args]
   (let [r (.invoke the-method target-obj the-args)
         rt (and r (#{java.sql.Statement
                      java.sql.PreparedStatement
@@ -111,3 +104,35 @@
     (if rt
       (make-proxy rt r handle)
       r)))
+
+(defmethod handle :default [the-method target-obj the-args]
+  (handle-default the-method target-obj the-args))
+
+(defn remove-handle [[clss mthd]]
+  (remove-method handle [clss mthd]))
+  
+(defmacro def-handle [[clss mthd] [the-method target-obj the-args] body]
+  (list 'do
+        (list 'buttle.proxy/fix-prefers! [clss mthd])
+        (list 'defmethod 'buttle.proxy/handle [clss mthd] '[the-method target-obj the-args]
+              body)))
+
+(defn methods-of [clss]
+  (->> clss
+       .getMethods
+       (map #(keyword "buttle" (.getName %)))))
+
+(defn fix-prefers! [[clss mthd]]
+  (when (= mthd :buttle/default)
+    (when (= Object clss)
+      (throw (RuntimeException. "You cannot use def-handle with Object/:buttle/default")))
+    (doseq [m (methods-of clss)]
+      ;; MUTATION/SIDEEFFECT!!!!
+      (derive m :buttle/default))
+    (doseq [m (descendants :buttle/default)]
+      ;; MUTATION/SIDEEFFECT!!!!
+      (prefer-method handle
+                     [clss :buttle/default]
+                     [java.lang.Object m]))))
+
+

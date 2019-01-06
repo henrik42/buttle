@@ -1,6 +1,5 @@
 (ns buttle.proxy-test
   (:require [clojure.test :refer :all]
-            [buttle.util :as util]
             [buttle.proxy :as proxy]))
 
 ;; This `java.sql.Connection` proxy stands for the _real_ object that
@@ -112,38 +111,6 @@
 
 
 
-(defn remove-handle [[clss mthd]]
-  (remove-method proxy/handle [clss mthd]))
-  
-(defmacro def-handle [[clss mthd] [the-method target-obj the-args] body]
-  (list 'do
-        (list 'fix-prefers! [clss mthd])
-        (list 'defmethod 'buttle.proxy/handle [clss mthd] '[the-method target-obj the-args]
-              body)))
-
-(defn methods-of [clss]
-  (->> clss
-       .getMethods
-       (map #(keyword "buttle" (.getName %)))))
-
-(defn fix-prefers! [[clss mthd]]
-  (util/log (format "(fix-prefers! %s)" [clss mthd]))
-  (when (= mthd :buttle/default)
-    (when (= Object clss)
-      (throw (RuntimeException. "You cannot use def-handle with Object/:buttle/default")))
-    (doseq [m (methods-of clss)]
-      (util/log (format "(fix-prefers! %s) : derive %s :buttle/default" [clss mthd] m))
-      ;; MUTATION/SIDEEFFECT!!!!
-      (derive m :buttle/default))
-    (doseq [m (descendants :buttle/default)]
-      (util/log (format "(fix-prefers! %s) : prefer-method %s %s" [clss mthd]
-                        [clss :buttle/default] [java.lang.Object m]))
-      ;; MUTATION/SIDEEFFECT!!!!
-      (prefer-method proxy/handle
-                     [clss :buttle/default]
-                     [java.lang.Object m]))))
-
-
 
 
 (defn handle-connection [f]
@@ -167,7 +134,6 @@
                      (getString [_] "proxy getString")))
    (into-array ["bar"])))
 
-;; lein test :only buttle.proxy-test/handle-tests
 (deftest handle-tests
   
   (testing "proxys"
@@ -180,9 +146,9 @@
   
   (testing "calling function"
     
-    (def-handle [Object :buttle/getCatalog] [the-method target-obj the-args]
+    (proxy/def-handle [Object :buttle/getCatalog] [the-method target-obj the-args]
       (str "Object/getCatalog: intercepted " (.getName the-method)))
-    (def-handle [java.sql.ResultSet :buttle/getString] [the-method target-obj the-args]
+    (proxy/def-handle [java.sql.ResultSet :buttle/getString] [the-method target-obj the-args]
       (str "ResultSet/getString: intercepted " (.getName the-method)))
     
     (is (= "Object/getCatalog: intercepted getCatalog"
@@ -192,7 +158,7 @@
     (is (= "ResultSet/getString: intercepted getString"
            (handle-resultset :getString)))
     
-    (def-handle [java.sql.Connection :buttle/default] [the-method target-obj the-args]
+    (proxy/def-handle [java.sql.Connection :buttle/default] [the-method target-obj the-args]
       (str "Connection/default: intercepted " (.getName the-method)))
     
     (is (= "Connection/default: intercepted getCatalog"
@@ -200,7 +166,7 @@
     (is (= "Connection/default: intercepted getSchema"
            (handle-connection :getSchema)))
 
-    (def-handle [java.sql.Connection :buttle/getCatalog] [the-method target-obj the-args]
+    (proxy/def-handle [java.sql.Connection :buttle/getCatalog] [the-method target-obj the-args]
       (str "Connection/getCatalog: intercepted " (.getName the-method)))
     
     (is (= "Connection/getCatalog: intercepted getCatalog"
@@ -208,22 +174,22 @@
     (is (= "Connection/default: intercepted getSchema"
            (handle-connection :getSchema)))
     
-    (remove-handle [java.sql.Connection :buttle/default])
+    (proxy/remove-handle [java.sql.Connection :buttle/default])
     
     (is (= "Connection/getCatalog: intercepted getCatalog"
            (handle-connection :getCatalog)))
     (is (= "proxy getSchema"
            (handle-connection :getSchema)))
 
-    (remove-handle [java.sql.Connection :buttle/getCatalog])
+    (proxy/remove-handle [java.sql.Connection :buttle/getCatalog])
 
     (is (= "Object/getCatalog: intercepted getCatalog"
            (handle-connection :getCatalog)))
     (is (= "proxy getSchema"
            (handle-connection :getSchema)))
 
-    (remove-handle [Object :buttle/getCatalog])
-    (remove-handle [java.sql.ResultSet :buttle/getString])
+    (proxy/remove-handle [Object :buttle/getCatalog])
+    (proxy/remove-handle [java.sql.ResultSet :buttle/getString])
     
     (is (= "proxy getCatalog"
            (handle-connection :getCatalog)))
