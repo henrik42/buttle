@@ -63,23 +63,31 @@
      (invoke [the-proxy the-method the-args]
        (invoke-fn proxy-type target-obj handler-fn the-proxy the-method the-args)))))
 
+#_
+(def invocation-key-hierarchy
+  (make-hierarchy))
+
 (defn invocation-key
   "Dispatch function for `handle`. Returns a vector with the method's
   declaring class and `buttle/` namespaced keyword for the method's
   name."
 
   [the-method & _]
-  [(-> the-method .getDeclaringClass)
-   (->> the-method .getName (keyword "buttle"))])
+  (let [ik [(-> the-method .getDeclaringClass)
+            (->> the-method .getName (keyword "buttle"))]]
+    ;;(derive invocation-key-hierarchy (second ik :buttle/:default))
+    (util/log "-->" ik)
+    ik))
 
 (defmulti handle
   "A generic delegation function (arity `[the-method target-obj
   the-args]`) which delivers proxy'ed return values.
 
   The `:default` implementation calls `the-method` on `target-obj`
-  with `the-args`, creates a proxy via `make-proxy` for non-nil
-  interface-typed return values and returns the (possibly proxy'ed)
-  result. Throws if the invoked method throws.
+  with `the-args`, creates a proxy via `make-proxy` (which uses
+  `handle` as its `handler-fn`) for non-nil interface-typed return
+  values and returns the (possibly proxy'ed) result. Throws if the
+  invoked method throws.
 
   The multi-method dispatch is done on `invocation-key`.
 
