@@ -55,8 +55,7 @@
            (condp = (.getName the-method)
              \"acceptsURL\" true
              \"connect\" (proxy [java.sql.Connection] []
-                         (toString [] \"foo-connection\")))))
-  "
+                         (toString [] \"foo-connection\")))))"
 
   [proxy-type target-obj handler-fn]
   (java.lang.reflect.Proxy/newProxyInstance
@@ -73,10 +72,10 @@
 
   Example:
 
-  (-> java.sql.Connection
-      (.getMethod \"close\" nil)
-      invocation-key)
-  ;; --> [java.sql.Connection :buttle/close]"
+      (-> java.sql.Connection
+          (.getMethod \"close\" nil)
+          invocation-key)
+      ;; --> [java.sql.Connection :buttle/close]"
 
   [the-method & _]
   [(-> the-method .getDeclaringClass)
@@ -108,17 +107,10 @@
   proxy'ed) result. Throws if the invoked method throws."
 
   [the-method target-obj the-args]
+
   (let [r (.invoke the-method target-obj the-args)
-        rt (and r (#{java.sql.Statement
-                     java.sql.PreparedStatement
-                     java.sql.CallableStatement
-                     java.sql.Savepoint
-                     java.sql.Clob
-                     java.sql.Blob
-                     java.sql.NClob
-                     java.sql.SQLXML}
-                   (.getReturnType the-method)))]
-    (if rt
+        rt (and r (.getReturnType the-method))]
+    (if (and rt (.isInterface rt))
       (make-proxy rt r handle)
       r)))
 
@@ -130,11 +122,17 @@
   `invocation-key`) value `[clss mthd]`. Can be undone via
   `remove-handle`. Re-registering just overwrites.
 
-  Uses `fix-prefers` on the given key. So you may use keys like
+  Uses `fix-prefers!` on the given key. So you may use keys like
   __(a)__ `[Object :buttle/getCatalog]` and __(b)__
   `[java.sql.Connection :buttle/default]` to register methods for
   __(a)__ specific method names and __(b)__ interfaces (with a
-  __preference__ for __(b)__ in conflicting cases)."
+  __preference__ for __(b)__ in conflicting cases).
+
+  __Note:__ This macro (i.e. the resulting code) may not be not
+  thread-safe because it uses `fix-prefers!` which may not be
+  thread-safe. You should use `def-handle` only in top-level-forms for
+  defining `handle` method-implemenations but not in functions you
+  call as part of the program flow."
 
   [[clss mthd] [the-method target-obj the-args] body]
   (list 'do
@@ -159,15 +157,19 @@
 
 (defn fix-prefers!
   "If `(= mthd :buttle/default)` makes all/any method `m` of class
-  `clss` a (`derive`) child of `:buttle/default` and _prefers_ `[clss
-  :buttle/default]` over `[java.lang.Object m]`. This let's you
+  `clss` (via `derive`) a child of `:buttle/default` and _prefers_
+  `[clss :buttle/default]` over `[java.lang.Object m]`. This lets you
   dispatch via `invocation-key` with an _inheritance_ mechanism which
-  uses `isa?` on types `(isa? Connection Object)` and on method
-  keys `(isa? :buttle/getCatalog :buttle/default)`.
+  uses/combines `isa?` on types `(isa? Connection Object)` and on
+  method keys `(isa? :buttle/getCatalog :buttle/default)`.
 
   Now you can __(a)__ `def-handle [Object :buttle/getCatalog]` and
   __(b)__ `def-handle [java.sql.Connection :buttle/default]` with a
-  __preference__ for __(a)__ when calling `Connection/getCatalog`."
+  __preference__ for __(a)__ when calling `Connection/getCatalog`.
+
+  This function is thread-safe only if `derive` and `prefer-method`
+  are so. You will usually not use this function directly but only
+  through `def-handle`."
 
   [[clss mthd]]
   (when (= mthd :buttle/default)
