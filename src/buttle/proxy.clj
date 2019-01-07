@@ -16,6 +16,13 @@
   
   (:require [buttle.util :as util]))
 
+(def function-default-hierarchy
+  "Atom carrying a simple/shallow hierarchy of `:buttle/<method-name>`
+  to `:buttle/default` entries. This hierarchy is used for `handle`
+  multi-method and `fix-prefers!`."
+  
+  (atom (make-hierarchy)))
+
 (defn invoke-fn
   "Invocation handler for `make-proxy`. It delegates any method
    invocation of `proxy-type` to `handler-fn`. Any other method
@@ -93,7 +100,7 @@
   to hook into the execution/delegation/proxying logic for some/any of
   the proxy'ed interface types i.e. `invocation-key` dispatch values."
 
-  #'invocation-key)
+  #'invocation-key :hierarchy function-default-hierarchy)
 
 (defn handle-default
   "Calls `the-method` on `target-obj` with `the-args`, creates a proxy
@@ -178,11 +185,10 @@
       (throw (RuntimeException. "You cannot use def-handle with Object/:buttle/default")))
     (doseq [m (methods-of clss)]
       ;; MUTATION/SIDEEFFECT!!!!
-      (derive m :buttle/default))
-    (doseq [m (descendants :buttle/default)]
+      (swap! function-default-hierarchy derive m :buttle/default))
+    (doseq [m (descendants @function-default-hierarchy :buttle/default)]
       ;; MUTATION/SIDEEFFECT!!!!
       (prefer-method handle
                      [clss :buttle/default]
                      [java.lang.Object m]))))
-
 

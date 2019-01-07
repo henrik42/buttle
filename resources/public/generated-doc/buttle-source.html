@@ -3002,7 +3002,11 @@ net.brehaut.ClojureTools = (function (SH) {
 <p>   In order to hook your own code into the delegation you may use
    <code>def-handle</code> to register your functions for certain method calls.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns buttle.proxy
-  (:require [buttle.util :as util]))</pre></td></tr><tr><td class="docs"><p>Invocation handler for <code>make-proxy</code>. It delegates any method
+  (:require [buttle.util :as util]))</pre></td></tr><tr><td class="docs"><p>Atom carrying a simple/shallow hierarchy of <code>:buttle/&lt;method-name&gt;</code>
+  to <code>:buttle/default</code> entries. This hierarchy is used for <code>handle</code>
+  multi-method and <code>fix-prefers!</code>.</p>
+</td><td class="codes"><pre class="brush: clojure">(def function-default-hierarchy
+  (atom (make-hierarchy)))</pre></td></tr><tr><td class="docs"><p>Invocation handler for <code>make-proxy</code>. It delegates any method
    invocation of <code>proxy-type</code> to <code>handler-fn</code>. Any other method
    invocations (like <code>Object.toString()</code>) will be invoked on
    <code>target-object</code>.</p>
@@ -3071,7 +3075,7 @@ net.brehaut.ClojureTools = (function (SH) {
   to hook into the execution/delegation/proxying logic for some/any of
   the proxy'ed interface types i.e. <code>invocation-key</code> dispatch values.</p>
 </td><td class="codes"><pre class="brush: clojure">(defmulti handle
-  #'invocation-key)</pre></td></tr><tr><td class="docs"><p>Calls <code>the-method</code> on <code>target-obj</code> with <code>the-args</code>, creates a proxy
+  #'invocation-key :hierarchy function-default-hierarchy)</pre></td></tr><tr><td class="docs"><p>Calls <code>the-method</code> on <code>target-obj</code> with <code>the-args</code>, creates a proxy
   via <code>make-proxy</code> (which uses <code>handle</code> as its <code>handler-fn</code>) for
   non-<code>nil</code> interface-typed return values and returns the (possibly
   proxy'ed) result. Throws if the invoked method throws.</p>
@@ -3139,8 +3143,8 @@ net.brehaut.ClojureTools = (function (SH) {
       (throw (RuntimeException. &quot;You cannot use def-handle with Object/:buttle/default&quot;)))
     (doseq [m (methods-of clss)]
       ;; MUTATION/SIDEEFFECT!!!!
-      (derive m :buttle/default))
-    (doseq [m (descendants :buttle/default)]
+      (swap! function-default-hierarchy derive m :buttle/default))
+    (doseq [m (descendants @function-default-hierarchy :buttle/default)]
       ;; MUTATION/SIDEEFFECT!!!!
       (prefer-method handle
                      [clss :buttle/default]

@@ -195,4 +195,3 @@
            (handle-connection :getCatalog)))
     (is (= "proxy getString"
            (handle-resultset :getString)))))
-    
