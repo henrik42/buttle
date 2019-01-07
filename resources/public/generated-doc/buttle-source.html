@@ -2989,10 +2989,10 @@ net.brehaut.ClojureTools = (function (SH) {
         (DriverManager/deregisterDriver d)
         d)))))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.proxy" name="buttle.proxy"><h1 class="project-name">buttle.proxy</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>A proxy factory.</p>
 
-<p>   <strong>Note:</strong> You cannot use Clojure <code>proxy</code> for creating/registering
-   <code>java.sql.Driver</code> instances due to classloader/caller checks in
-   <code>java.sql.DriverManger</code>. See <code>test/buttle/driver_test.clj</code> for more
-   details.</p>
+<p>   <strong>Note:</strong> You cannot use Clojure's built-in <code>proxy</code> for
+   creating/registering <code>java.sql.Driver</code> instances due to
+   classloader/caller checks in <code>java.sql.DriverManger</code>. See
+   <code>test/buttle/driver_test.clj</code> for more details.</p>
 
 <p>   This namespace delivers all functions needed to (generically)
    create proxys for JDBC related interfaces and to implement the
@@ -3063,12 +3063,7 @@ net.brehaut.ClojureTools = (function (SH) {
    (-&gt;&gt; the-method .getName (keyword &quot;buttle&quot;))])</pre></td></tr><tr><td class="docs"><p>A generic delegation function (arity `[the-method target-obj
   the-args]`) which delivers proxy'ed return values.</p>
 
-<p>  The <code>:default</code> implementation (which just delegates to
-  <code>handle-default</code>) calls <code>the-method</code> on <code>target-obj</code> with
-  <code>the-args</code>, creates a proxy via <code>make-proxy</code> (which uses <code>handle</code> as
-  its <code>handler-fn</code>) for non-<code>nil</code> interface-typed return values and
-  returns the (possibly proxy'ed) result. Throws if the invoked method
-  throws.</p>
+<p>  The <code>:default</code> implementation just delegates to <code>handle-default</code>.</p>
 
 <p>  The multi-method dispatch is done on <code>invocation-key</code>.</p>
 
@@ -3094,9 +3089,15 @@ net.brehaut.ClojureTools = (function (SH) {
 
 <p>  Uses <code>fix-prefers!</code> on the given key. So you may use keys like
   <strong>(a)</strong> <code>[Object :buttle/getCatalog]</code> and <strong>(b)</strong>
-  <code>[java.sql.Connection :buttle/default]</code> to register methods for
-  <strong>(a)</strong> specific method names and <strong>(b)</strong> interfaces (with a
-  <strong>preference</strong> for <strong>(b)</strong> in conflicting cases).</p>
+  <code>[java.sql.Connection :buttle/default]</code> to register an
+  implementation for <strong>(a)</strong> specific method <strong>names</strong> (ignoring the
+  defining class/interface) and <strong>(b)</strong> specific interfaces ignoring
+  the method name (with a <strong>preference</strong> for <strong>(b)</strong> in conflicting
+  cases).</p>
+
+<p>  The most specific registration would be `[java.sql.Connection
+  :buttle/getCatalog]`. So this would be prefered over <strong>(a)</strong> and
+  <strong>(b)</strong> when present.</p>
 
 <p>  <strong>Note:</strong> This macro (i.e. the resulting code) may not be not
   thread-safe because it uses <code>fix-prefers!</code> which may not be

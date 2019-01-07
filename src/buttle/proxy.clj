@@ -1,10 +1,10 @@
 (ns buttle.proxy
   "A proxy factory.
 
-   __Note:__ You cannot use Clojure `proxy` for creating/registering
-   `java.sql.Driver` instances due to classloader/caller checks in
-   `java.sql.DriverManger`. See `test/buttle/driver_test.clj` for more
-   details.
+   __Note:__ You cannot use Clojure's built-in `proxy` for
+   creating/registering `java.sql.Driver` instances due to
+   classloader/caller checks in `java.sql.DriverManger`. See
+   `test/buttle/driver_test.clj` for more details.
 
    This namespace delivers all functions needed to (generically)
    create proxys for JDBC related interfaces and to implement the
@@ -85,12 +85,7 @@
   "A generic delegation function (arity `[the-method target-obj
   the-args]`) which delivers proxy'ed return values.
 
-  The `:default` implementation (which just delegates to
-  `handle-default`) calls `the-method` on `target-obj` with
-  `the-args`, creates a proxy via `make-proxy` (which uses `handle` as
-  its `handler-fn`) for non-`nil` interface-typed return values and
-  returns the (possibly proxy'ed) result. Throws if the invoked method
-  throws.
+  The `:default` implementation just delegates to `handle-default`.
 
   The multi-method dispatch is done on `invocation-key`.
 
@@ -124,9 +119,15 @@
 
   Uses `fix-prefers!` on the given key. So you may use keys like
   __(a)__ `[Object :buttle/getCatalog]` and __(b)__
-  `[java.sql.Connection :buttle/default]` to register methods for
-  __(a)__ specific method names and __(b)__ interfaces (with a
-  __preference__ for __(b)__ in conflicting cases).
+  `[java.sql.Connection :buttle/default]` to register an
+  implementation for __(a)__ specific method __names__ (ignoring the
+  defining class/interface) and __(b)__ specific interfaces ignoring
+  the method name (with a __preference__ for __(b)__ in conflicting
+  cases).
+
+  The most specific registration would be `[java.sql.Connection
+  :buttle/getCatalog]`. So this would be prefered over __(a)__ and
+  __(b)__ when present.
 
   __Note:__ This macro (i.e. the resulting code) may not be not
   thread-safe because it uses `fix-prefers!` which may not be
