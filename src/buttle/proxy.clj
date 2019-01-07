@@ -6,10 +6,13 @@
    `java.sql.DriverManger`. See `test/buttle/driver_test.clj` for more
    details.
 
-   This namespace delivers all functions needed to create proxys for
-   JDBC relevant interfaces and to implement the delegation logic for
-   these proxys that is needed to route method calls through to the
-   _real_ JDBC driver's instances."
+   This namespace delivers all functions needed to (generically)
+   create proxys for JDBC related interfaces and to implement the
+   delegation logic for these proxys that is needed to route method
+   calls through to the _real_ JDBC driver's instances.
+
+   In order to hook your own code into the delegation you may use
+   `def-handle` to register your functions for certain method calls."
   
   (:require [buttle.util :as util]))
 
@@ -66,7 +69,14 @@
 (defn invocation-key
   "Dispatch function for `handle`. Returns a vector with the method's
   declaring class and `buttle/` namespaced keyword for the method's
-  name."
+  name.
+
+  Example:
+
+  (-> java.sql.Connection
+      (.getMethod \"close\" nil)
+      invocation-key)
+  ;; --> [java.sql.Connection :buttle/close]"
 
   [the-method & _]
   [(-> the-method .getDeclaringClass)
@@ -76,21 +86,28 @@
   "A generic delegation function (arity `[the-method target-obj
   the-args]`) which delivers proxy'ed return values.
 
-  The `:default` implementation calls `the-method` on `target-obj`
-  with `the-args`, creates a proxy via `make-proxy` (which uses
-  `handle` as its `handler-fn`) for non-nil interface-typed return
-  values and returns the (possibly proxy'ed) result. Throws if the
-  invoked method throws.
+  The `:default` implementation (which just delegates to
+  `handle-default`) calls `the-method` on `target-obj` with
+  `the-args`, creates a proxy via `make-proxy` (which uses `handle` as
+  its `handler-fn`) for non-`nil` interface-typed return values and
+  returns the (possibly proxy'ed) result. Throws if the invoked method
+  throws.
 
   The multi-method dispatch is done on `invocation-key`.
 
-  This is a multi-method so that you have a means to hook into the
-  execution/delegation/proxying logic for some/any of the proxy'ed
-  interface types i.e. `invocation-key` dispatch values."
+  This is a multi-method so that you have a means (see `def-handle`)
+  to hook into the execution/delegation/proxying logic for some/any of
+  the proxy'ed interface types i.e. `invocation-key` dispatch values."
 
   #'invocation-key)
 
-(defn handle-default [the-method target-obj the-args]
+(defn handle-default
+  "Calls `the-method` on `target-obj` with `the-args`, creates a proxy
+  via `make-proxy` (which uses `handle` as its `handler-fn`) for
+  non-`nil` interface-typed return values and returns the (possibly
+  proxy'ed) result. Throws if the invoked method throws."
+
+  [the-method target-obj the-args]
   (let [r (.invoke the-method target-obj the-args)
         rt (and r (#{java.sql.Statement
                      java.sql.PreparedStatement
@@ -108,21 +125,51 @@
 (defmethod handle :default [the-method target-obj the-args]
   (handle-default the-method target-obj the-args))
 
-(defn remove-handle [[clss mthd]]
-  (remove-method handle [clss mthd]))
-  
-(defmacro def-handle [[clss mthd] [the-method target-obj the-args] body]
+(defmacro def-handle
+  "Registers a `handle` method implementation for dispatch (as of
+  `invocation-key`) value `[clss mthd]`. Can be undone via
+  `remove-handle`. Re-registering just overwrites.
+
+  Uses `fix-prefers` on the given key. So you may use keys like
+  __(a)__ `[Object :buttle/getCatalog]` and __(b)__
+  `[java.sql.Connection :buttle/default]` to register methods for
+  __(a)__ specific method names and __(b)__ interfaces (with a
+  __preference__ for __(b)__ in conflicting cases)."
+
+  [[clss mthd] [the-method target-obj the-args] body]
   (list 'do
         (list 'buttle.proxy/fix-prefers! [clss mthd])
         (list 'defmethod 'buttle.proxy/handle [clss mthd] '[the-method target-obj the-args]
               body)))
 
-(defn methods-of [clss]
+(defn remove-handle
+  "Removes the `handle` for `[clss mthd]`. No-op if there is no
+  registered `handle` for this key."
+
+  [[clss mthd]]
+  (remove-method handle [clss mthd]))
+  
+(defn methods-of
+  "Returns seq of `:buttle/` namespaced method names of class `clss`."
+
+  [clss]
   (->> clss
        .getMethods
        (map #(keyword "buttle" (.getName %)))))
 
-(defn fix-prefers! [[clss mthd]]
+(defn fix-prefers!
+  "If `(= mthd :buttle/default)` makes all/any method `m` of class
+  `clss` a (`derive`) child of `:buttle/default` and _prefers_ `[clss
+  :buttle/default]` over `[java.lang.Object m]`. This let's you
+  dispatch via `invocation-key` with an _inheritance_ mechanism which
+  uses `isa?` on types `(isa? Connection Object)` and on method
+  keys `(isa? :buttle/getCatalog :buttle/default)`.
+
+  Now you can __(a)__ `def-handle [Object :buttle/getCatalog]` and
+  __(b)__ `def-handle [java.sql.Connection :buttle/default]` with a
+  __preference__ for __(a)__ when calling `Connection/getCatalog`."
+
+  [[clss mthd]]
   (when (= mthd :buttle/default)
     (when (= Object clss)
       (throw (RuntimeException. "You cannot use def-handle with Object/:buttle/default")))

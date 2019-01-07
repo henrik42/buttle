@@ -2994,10 +2994,13 @@ net.brehaut.ClojureTools = (function (SH) {
    <code>java.sql.DriverManger</code>. See <code>test/buttle/driver_test.clj</code> for more
    details.</p>
 
-<p>   This namespace delivers all functions needed to create proxys for
-   JDBC relevant interfaces and to implement the delegation logic for
-   these proxys that is needed to route method calls through to the
-   <em>real</em> JDBC driver's instances.</p>
+<p>   This namespace delivers all functions needed to (generically)
+   create proxys for JDBC related interfaces and to implement the
+   delegation logic for these proxys that is needed to route method
+   calls through to the <em>real</em> JDBC driver's instances.</p>
+
+<p>   In order to hook your own code into the delegation you may use
+   <code>def-handle</code> to register your functions for certain method calls.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns buttle.proxy
   (:require [buttle.util :as util]))</pre></td></tr><tr><td class="docs"><p>Invocation handler for <code>make-proxy</code>. It delegates any method
    invocation of <code>proxy-type</code> to <code>handler-fn</code>. Any other method
@@ -3046,25 +3049,38 @@ net.brehaut.ClojureTools = (function (SH) {
        (invoke-fn proxy-type target-obj handler-fn the-proxy the-method the-args)))))</pre></td></tr><tr><td class="docs"><p>Dispatch function for <code>handle</code>. Returns a vector with the method's
   declaring class and <code>buttle/</code> namespaced keyword for the method's
   name.</p>
+
+<p>  Example:</p>
+
+<p>  (-> java.sql.Connection
+      (.getMethod "close" nil)
+      invocation-key)
+  ;; --> [java.sql.Connection :buttle/close]</p>
 </td><td class="codes"><pre class="brush: clojure">(defn invocation-key
   [the-method &amp; _]
   [(-&gt; the-method .getDeclaringClass)
    (-&gt;&gt; the-method .getName (keyword &quot;buttle&quot;))])</pre></td></tr><tr><td class="docs"><p>A generic delegation function (arity `[the-method target-obj
   the-args]`) which delivers proxy'ed return values.</p>
 
-<p>  The <code>:default</code> implementation calls <code>the-method</code> on <code>target-obj</code>
-  with <code>the-args</code>, creates a proxy via <code>make-proxy</code> for non-nil
-  interface-typed return values and returns the (possibly proxy'ed)
-  result. Throws if the invoked method throws.</p>
+<p>  The <code>:default</code> implementation (which just delegates to
+  <code>handle-default</code>) calls <code>the-method</code> on <code>target-obj</code> with
+  <code>the-args</code>, creates a proxy via <code>make-proxy</code> (which uses <code>handle</code> as
+  its <code>handler-fn</code>) for non-<code>nil</code> interface-typed return values and
+  returns the (possibly proxy'ed) result. Throws if the invoked method
+  throws.</p>
 
 <p>  The multi-method dispatch is done on <code>invocation-key</code>.</p>
 
-<p>  This is a multi-method so that you have a means to hook into the
-  execution/delegation/proxying logic for some/any of the proxy'ed
-  interface types i.e. <code>invocation-key</code> dispatch values.</p>
+<p>  This is a multi-method so that you have a means (see <code>def-handle</code>)
+  to hook into the execution/delegation/proxying logic for some/any of
+  the proxy'ed interface types i.e. <code>invocation-key</code> dispatch values.</p>
 </td><td class="codes"><pre class="brush: clojure">(defmulti handle
-  #'invocation-key)</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defmethod handle :default [the-method target-obj the-args]
+  #'invocation-key)</pre></td></tr><tr><td class="docs"><p>Calls <code>the-method</code> on <code>target-obj</code> with <code>the-args</code>, creates a proxy
+  via <code>make-proxy</code> (which uses <code>handle</code> as its <code>handler-fn</code>) for
+  non-<code>nil</code> interface-typed return values and returns the (possibly
+  proxy'ed) result. Throws if the invoked method throws.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn handle-default
+  [the-method target-obj the-args]
   (let [r (.invoke the-method target-obj the-args)
         rt (and r (#{java.sql.Statement
                      java.sql.PreparedStatement
@@ -3077,7 +3093,54 @@ net.brehaut.ClojureTools = (function (SH) {
                    (.getReturnType the-method)))]
     (if rt
       (make-proxy rt r handle)
-      r)))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.util" name="buttle.util"><h1 class="project-name">buttle.util</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs">
+      r)))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defmethod handle :default [the-method target-obj the-args]
+  (handle-default the-method target-obj the-args))</pre></td></tr><tr><td class="docs"><p>Registers a <code>handle</code> method implementation for dispatch (as of
+  <code>invocation-key</code>) value <code>[clss mthd]</code>. Can be undone via
+  <code>remove-handle</code>. Re-registering just overwrites.</p>
+
+<p>  Uses <code>fix-prefers</code> on the given key. So you may use keys like
+  <strong>(a)</strong> <code>[Object :buttle/getCatalog]</code> and <strong>(b)</strong>
+  <code>[java.sql.Connection :buttle/default]</code> to register methods for
+  <strong>(a)</strong> specific method names and <strong>(b)</strong> interfaces (with a
+  <strong>preference</strong> for <strong>(b)</strong> in conflicting cases).</p>
+</td><td class="codes"><pre class="brush: clojure">(defmacro def-handle
+  [[clss mthd] [the-method target-obj the-args] body]
+  (list 'do
+        (list 'buttle.proxy/fix-prefers! [clss mthd])
+        (list 'defmethod 'buttle.proxy/handle [clss mthd] '[the-method target-obj the-args]
+              body)))</pre></td></tr><tr><td class="docs"><p>Removes the <code>handle</code> for <code>[clss mthd]</code>. No-op if there is no
+  registered <code>handle</code> for this key.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn remove-handle
+  [[clss mthd]]
+  (remove-method handle [clss mthd]))</pre></td></tr><tr><td class="docs"><p>Returns seq of <code>:buttle/</code> namespaced method names of class <code>clss</code>.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn methods-of
+  [clss]
+  (-&gt;&gt; clss
+       .getMethods
+       (map #(keyword &quot;buttle&quot; (.getName %)))))</pre></td></tr><tr><td class="docs"><p>If <code>(= mthd :buttle/default)</code> makes all/any method <code>m</code> of class
+  <code>clss</code> a (<code>derive</code>) child of <code>:buttle/default</code> and <em>prefers</em> `[clss
+  :buttle/default]<code>over</code>[java.lang.Object m]`. This let's you
+  dispatch via <code>invocation-key</code> with an <em>inheritance</em> mechanism which
+  uses <code>isa?</code> on types <code>(isa? Connection Object)</code> and on method
+  keys <code>(isa? :buttle/getCatalog :buttle/default)</code>.</p>
+
+<p>  Now you can <strong>(a)</strong> <code>def-handle [Object :buttle/getCatalog]</code> and
+  <strong>(b)</strong> <code>def-handle [java.sql.Connection :buttle/default]</code> with a
+  <strong>preference</strong> for <strong>(a)</strong> when calling <code>Connection/getCatalog</code>.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn fix-prefers!
+  [[clss mthd]]
+  (when (= mthd :buttle/default)
+    (when (= Object clss)
+      (throw (RuntimeException. &quot;You cannot use def-handle with Object/:buttle/default&quot;)))
+    (doseq [m (methods-of clss)]
+      ;; MUTATION/SIDEEFFECT!!!!
+      (derive m :buttle/default))
+    (doseq [m (descendants :buttle/default)]
+      ;; MUTATION/SIDEEFFECT!!!!
+      (prefer-method handle
+                     [clss :buttle/default]
+                     [java.lang.Object m]))))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.util" name="buttle.util"><h1 class="project-name">buttle.util</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(ns buttle.util)</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defn log [&amp; xs]
   (let [s (apply pr-str xs)]
