@@ -107,13 +107,10 @@
               (java.lang.reflect.Proxy/isProxyClass (.getClass stmt))}))
         "See that we get a JDK proxy stmt (around a-stmt) through handle")))
 
+(defn handle-connection
+  "Helper function."
 
-
-
-
-
-
-(defn handle-connection [f]
+  [f]
   (proxy/handle
    (condp = f
      :getCatalog (.getMethod java.sql.Connection "getCatalog" nil)
@@ -124,7 +121,10 @@
      (getSchema [] "proxy getSchema"))
    nil))
 
-(defn handle-resultset [f]
+(defn handle-resultset
+  "Helper function."
+
+  [f]
   (proxy/handle
    (condp = f
      :getString (.getMethod java.sql.ResultSet "getString" (into-array [String]))
