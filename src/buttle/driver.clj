@@ -6,10 +6,14 @@
   `services/java.sql.Driver`. Note that this class has implementations
   for `acceptsURL` and `connect` only.
 
+  The `-init` function will register a _Buttle_ `Driver` proxy with
+  the `java.sql.DriverManager`. So whenever an instance of
+  `buttle.jdbc.Driver` is created, a proxy ( __not__ the
+  `buttle.jdbc.Driver`!) is registered.
+
   Functions in this namespace deliver all the functionality needed for
   the `java.sql.Driver` interface/contract. Things for connections,
   statements etc. are all delivered through `buttle.proxy`."
-
   
   (:gen-class
    :init init
@@ -99,6 +103,12 @@
       (java.util.logging.Logger/getLogger "buttle"))))
 
 (defn -init []
+  "Registers a _Buttle_ `Driver` proxy with the
+  `java.sql.DriverManager`. This function is the _constructor_ of
+  `buttle.jdbc.Driver`. So whenever an instance of
+  `buttle.jdbc.Driver` is created, a proxy ( __not__ the
+  `buttle.jdbc.Driver`!) is registered."
+
   (mgr/register-driver (make-driver))
   [[] nil])
 

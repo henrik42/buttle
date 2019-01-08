@@ -2873,6 +2873,11 @@ net.brehaut.ClojureTools = (function (SH) {
   <code>services/java.sql.Driver</code>. Note that this class has implementations
   for <code>acceptsURL</code> and <code>connect</code> only.</p>
 
+<p>  The <code>-init</code> function will register a <em>Buttle</em> <code>Driver</code> proxy with
+  the <code>java.sql.DriverManager</code>. So whenever an instance of
+  <code>buttle.jdbc.Driver</code> is created, a proxy ( <strong>not</strong> the
+  <code>buttle.jdbc.Driver</code>!) is registered.</p>
+
 <p>  Functions in this namespace deliver all the functionality needed for
   the <code>java.sql.Driver</code> interface/contract. Things for connections,
   statements etc. are all delivered through <code>buttle.proxy</code>.</p>
@@ -2952,6 +2957,11 @@ net.brehaut.ClojureTools = (function (SH) {
     (getParentLogger []
       (java.util.logging.Logger/getLogger &quot;buttle&quot;))))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defn -init []
+  &quot;Registers a _Buttle_ `Driver` proxy with the
+  `java.sql.DriverManager`. This function is the _constructor_ of
+  `buttle.jdbc.Driver`. So whenever an instance of
+  `buttle.jdbc.Driver` is created, a proxy ( __not__ the
+  `buttle.jdbc.Driver`!) is registered.&quot;
   (mgr/register-driver (make-driver))
   [[] nil])</pre></td></tr><tr><td class="docs"><p>Implements <code>java.sql.Driver.connect(String, Properties)</code>. Just
   delegates to <code>(connect-fn url)</code>.</p>
