@@ -134,7 +134,7 @@
                      (getString [_] "proxy getString")))
    (into-array ["bar"])))
 
-(deftest handle-tests
+(deftest more-handle-tests
   
   (testing "proxys"
     (is (= "proxy getSchema"

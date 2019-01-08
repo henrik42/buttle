@@ -12,6 +12,7 @@
 
   
   (:gen-class
+   :init init
    :name buttle.jdbc.Driver
    :implements [java.sql.Driver])
   (:require [buttle.driver-manager :as mgr]
@@ -58,7 +59,7 @@
   opened `Connection` with `buttle.proxy/handle` is returned."
 
   [url]
-  (when-let [{:keys [target-url user password]} (accepts-url-fn url)]
+  (when-let [{:keys [target-url user password] :as args} (accepts-url-fn url)]
     (proxy/make-proxy
      java.sql.Connection
      (mgr/get-connection target-url user password)
@@ -96,6 +97,10 @@
     ;; Logger getParentLogger()
     (getParentLogger []
       (java.util.logging.Logger/getLogger "buttle"))))
+
+(defn -init []
+  (mgr/register-driver (make-driver))
+  [[] nil])
 
 (defn -connect
   "Implements `java.sql.Driver.connect(String, Properties)`. Just

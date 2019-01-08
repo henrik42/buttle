@@ -2878,6 +2878,7 @@ net.brehaut.ClojureTools = (function (SH) {
   statements etc. are all delivered through <code>buttle.proxy</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns buttle.driver
   (:gen-class
+   :init init
    :name buttle.jdbc.Driver
    :implements [java.sql.Driver])
   (:require [buttle.driver-manager :as mgr]
@@ -2915,7 +2916,7 @@ net.brehaut.ClojureTools = (function (SH) {
   opened <code>Connection</code> with <code>buttle.proxy/handle</code> is returned.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn connect-fn
   [url]
-  (when-let [{:keys [target-url user password]} (accepts-url-fn url)]
+  (when-let [{:keys [target-url user password] :as args} (accepts-url-fn url)]
     (proxy/make-proxy
      java.sql.Connection
      (mgr/get-connection target-url user password)
@@ -2949,7 +2950,10 @@ net.brehaut.ClojureTools = (function (SH) {
       true)
     ;; Logger getParentLogger()
     (getParentLogger []
-      (java.util.logging.Logger/getLogger &quot;buttle&quot;))))</pre></td></tr><tr><td class="docs"><p>Implements <code>java.sql.Driver.connect(String, Properties)</code>. Just
+      (java.util.logging.Logger/getLogger &quot;buttle&quot;))))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn -init []
+  (mgr/register-driver (make-driver))
+  [[] nil])</pre></td></tr><tr><td class="docs"><p>Implements <code>java.sql.Driver.connect(String, Properties)</code>. Just
   delegates to <code>(connect-fn url)</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn -connect
   [this url info]

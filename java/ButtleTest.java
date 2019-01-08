@@ -1,33 +1,25 @@
-// user@foo:~/solo/buttle/java$ java -Djdbc.drivers=buttle.jdbc.Driver:org.postgresql.Driver -cp ../src/:../target/classes/:../target/buttle-0.1.0-SNAPSHOT.jar:/home/user/.m2/repository/org/clojure/clojure/1.8.0/clojure-1.8.0.jar:../resources/postgresql-9.4-1201-jdbc41.jar:. ButtleTest
-
 import java.sql.*;
 
 class ButtleTest {
 
-    public static void main(String[] args) throws Exception {
+	public static void main(String[] args) throws Exception {
 
-        if (true) {
-            System.out.println("Loading driver");
-            Driver loadedDriver = (Driver) Class.forName("buttle.jdbc.Driver").newInstance();
-            System.out.println("Loaded driver " + loadedDriver);
-            
-            // DriverManager.registerDriver(loadedDriver);
-            
-            Driver driver = DriverManager.getDriver("jdbc:postgres:foobar");
-            System.out.println("JAVA: driver " + driver);
-            
-            driver.connect("jdbc:postgres:foobar", null);
-        }
+		String user = System.getProperty("buttle_user");
+		String password = System.getProperty("buttle_password");
+		String jdbcUrl = "jdbc:postgresql://127.0.0.1:6632/postgres";
+		String buttleUrl = String.format("jdbc:buttle:{:user \"%s\" :password \"%s\" :target-url \"%s\"}", user,
+				password, jdbcUrl);
 
-        Connection conn = DriverManager
-            .getConnection("jdbc:buttle:{:user \"inno\" :password \"inno\" :delegate-url \"jdbc:postgresql://127.0.0.1:5432/hhe\"}");
-        Statement stmt = conn.createStatement();
-        ResultSet rs = stmt.executeQuery("select * from foobar");
+		Connection conn = DriverManager.getConnection(buttleUrl, user, password);
+		Statement stmt = conn.createStatement();
+		ResultSet rs = stmt.executeQuery("select * from pg_catalog.pg_tables where schemaname = 'pg_catalog'");
 
-        while (rs.next()) {
-            Object o = rs.getObject(1);
-            System.out.println("O=" + o);
-        }
-
-    }
+		for (int cc = rs.getMetaData().getColumnCount(); rs.next();) {
+			for (int i = 1; i <= cc; i++) {
+				System.out.print(i == 1 ? "" : ",");
+				System.out.print(rs.getObject(i));
+			}
+			System.out.println();
+		}
+	}
 }
