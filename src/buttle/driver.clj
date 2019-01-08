@@ -125,3 +125,19 @@
 
   [this url]
   (boolean (accepts-url-fn url)))
+
+(defn eval-buttle-user-form
+  "If system property `buttle.user-form` is set, uses `(-> read-string
+  eval)` to evaluate that string. This function is called when
+  namespace `buttle.driver` is loaded. This happens for example when
+  die _Buttle_ JDBC driver is loaded."
+
+  []
+  (when-let [user-form (System/getProperty "buttle.user-form")]
+    (try 
+      (eval (read-string user-form))
+      (catch Throwable t
+        (.println System/err (format "(eval-buttle-user-form %s) failed: %s" (pr-str user-form) t))))))
+
+;; invoke function when namespace is loaded.
+(eval-buttle-user-form)

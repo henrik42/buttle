@@ -2971,7 +2971,18 @@ net.brehaut.ClojureTools = (function (SH) {
   to <code>(boolean (accepts-url-fn url))</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn -acceptsURL
   [this url]
-  (boolean (accepts-url-fn url)))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.driver-manager" name="buttle.driver-manager"><h1 class="project-name">buttle.driver-manager</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>A thin/simple Clojure API around <code>java.sql.DriverManager</code>.</p>
+  (boolean (accepts-url-fn url)))</pre></td></tr><tr><td class="docs"><p>If system property <code>buttle.user-form</code> is set, uses `(-> read-string
+  eval)` to evaluate that string. This function is called when
+  namespace <code>buttle.driver</code> is loaded. This happens for example when
+  die <em>Buttle</em> JDBC driver is loaded.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn eval-buttle-user-form
+  []
+  (when-let [user-form (System/getProperty &quot;buttle.user-form&quot;)]
+    (try 
+      (eval (read-string user-form))
+      (catch Throwable t
+        (.println System/err (format &quot;(eval-buttle-user-form %s) failed: %s&quot; (pr-str user-form) t))))))</pre></td></tr><tr><td class="docs"><p>invoke function when namespace is loaded.</p>
+</td><td class="codes"><pre class="brush: clojure">(eval-buttle-user-form)</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.driver-manager" name="buttle.driver-manager"><h1 class="project-name">buttle.driver-manager</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>A thin/simple Clojure API around <code>java.sql.DriverManager</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns buttle.driver-manager
   (:import [java.sql DriverManager]))</pre></td></tr><tr><td class="docs"><p>Registers the <code>driver</code> (see
   <code>java.sql.DriverManager.registerDriver(Driver)</code>).</p>
