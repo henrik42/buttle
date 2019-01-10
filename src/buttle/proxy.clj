@@ -119,7 +119,12 @@
   "Calls `the-method` on `target-obj` with `the-args`, creates a proxy
   via `make-proxy` (which uses `handle` as its `handler-fn`) for
   non-`nil` interface-typed return values and returns the (possibly
-  proxy'ed) result. Throws if the invoked method throws."
+  proxy'ed) result. Throws if the invoked method throws.
+
+  Sends (`buttle.event/send-event`) an `->invoke-event` before calling
+  `the-method`. Sends a `->throw-event` if `the-method` call
+  throws. Else sends a `->return-event` before result proxy is
+  created."
 
   [the-method target-obj the-args]
 

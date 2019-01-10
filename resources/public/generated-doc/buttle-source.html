@@ -3012,15 +3012,24 @@ net.brehaut.ClojureTools = (function (SH) {
     (for [d (get-drivers)]
       (do 
         (DriverManager/deregisterDriver d)
-        d)))))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.event" name="buttle.event"><h1 class="project-name">buttle.event</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs">
+        d)))))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.event" name="buttle.event"><h1 class="project-name">buttle.event</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Send events to consumers via core.async/channel.</p>
+
+<p>  Consumers can <code>tap</code> on <code>event-mult</code> to receive events that are
+  produced through <code>send-event`` (</code>buttle.proxy/handle-default` is
+  such a producer).</p>
 </td><td class="codes"><pre class="brush: clojure">(ns buttle.event
-  (:require [clojure.core.async :as a]))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(def event-ch (a/chan))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn put-event [e]
+  (:require [clojure.core.async :as a]))</pre></td></tr><tr><td class="docs"><p>The channel through which events are sent. Is the input for
+  <code>event-mult</code>.</p>
+</td><td class="codes"><pre class="brush: clojure">(def event-ch
+  (a/chan))</pre></td></tr><tr><td class="docs"><p>For internal use only. Sends event <code>e</code> to <code>event-ch</code>.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn put-event
+  [e]
   (a/&gt;!! event-ch e))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defn send-event [e]
-  (put-event e))</pre></td></tr><tr><td class="docs"><p>API/Hook for consumers</p>
-</td><td class="codes"><pre class="brush: clojure">(def event-mult (a/mult event-ch))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.proxy" name="buttle.proxy"><h1 class="project-name">buttle.proxy</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>A proxy factory.</p>
+  &quot;Sends event `e` to `event-ch`.&quot;
+  (put-event e))</pre></td></tr><tr><td class="docs"><p>API for consumers which want to receive events.</p>
+</td><td class="codes"><pre class="brush: clojure">(def event-mult
+  (a/mult event-ch))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.proxy" name="buttle.proxy"><h1 class="project-name">buttle.proxy</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>A proxy factory.</p>
 
 <p>   <strong>Note:</strong> You cannot use Clojure's built-in <code>proxy</code> for
    creating/registering <code>java.sql.Driver</code> instances due to
@@ -3122,6 +3131,11 @@ net.brehaut.ClojureTools = (function (SH) {
   via <code>make-proxy</code> (which uses <code>handle</code> as its <code>handler-fn</code>) for
   non-<code>nil</code> interface-typed return values and returns the (possibly
   proxy'ed) result. Throws if the invoked method throws.</p>
+
+<p>  Sends (<code>buttle.event/send-event</code>) an <code>-&gt;invoke-event</code> before calling
+  <code>the-method</code>. Sends a <code>-&gt;throw-event</code> if <code>the-method</code> call
+  throws. Else sends a <code>-&gt;return-event</code> before result proxy is
+  created.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn handle-default
   [the-method target-obj the-args]
   (let [invoke-evt (-&gt;invoke-event the-method target-obj the-args)
