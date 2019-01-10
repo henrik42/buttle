@@ -14,7 +14,7 @@
    In order to hook your own code into the delegation you may use
    `def-handle` to register your functions for certain method calls."
   
-  (:require [buttle.util :as util]))
+  (:require [buttle.event :as event]))
 
 (def function-default-hierarchy
   "Atom carrying a simple/shallow hierarchy of `:buttle/<method-name>`
@@ -102,6 +102,19 @@
 
   #'invocation-key :hierarchy function-default-hierarchy)
 
+(defn ->invoke-event [the-method target-obj the-args]
+  {})
+
+(defn ->throw-event [invoke-evt t]
+  {:type :throw
+   :invoke-evt invoke-evt
+   :throwable t})
+
+(defn ->return-event [invoke-evt r]
+  {:type :return
+   :invoke-evt invoke-evt
+   :return r})
+
 (defn handle-default
   "Calls `the-method` on `target-obj` with `the-args`, creates a proxy
   via `make-proxy` (which uses `handle` as its `handler-fn`) for
@@ -110,7 +123,14 @@
 
   [the-method target-obj the-args]
 
-  (let [r (.invoke the-method target-obj the-args)
+  (let [invoke-evt (->invoke-event the-method target-obj the-args)
+        _ (event/send-event invoke-evt)
+        r (try
+            (.invoke the-method target-obj the-args)
+            (catch Throwable t
+              (event/send-event (->throw-event invoke-evt t))
+              (throw t)))
+        _ (event/send-event (->return-event invoke-evt r))
         rt (and r (.getReturnType the-method))]
     (if (and rt (.isInterface rt))
       (make-proxy rt r handle)
