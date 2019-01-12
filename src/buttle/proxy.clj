@@ -16,6 +16,33 @@
   
   (:require [buttle.event :as event]))
 
+(defn ->invoke-event [the-method target-obj the-args]
+  {:type :invoke
+   :invoke (keyword
+            (-> the-method .getDeclaringClass .getName str)
+            (-> the-method .getName))
+   :args (into [] the-args)
+   :thread (let [t (Thread/currentThread)]
+             {:name (.getName t)
+              :id (.getId t)})
+   :ts (System/currentTimeMillis)})
+
+(defn ->throw-event [invoke-evt t]
+  (let [now (System/currentTimeMillis)]
+    {:type :throw
+     :invoke invoke-evt
+     :throw t
+     :ts now
+     :dur-msec (- now (:ts invoke-evt))}))
+
+(defn ->return-event [invoke-evt r]
+  (let [now (System/currentTimeMillis)]
+    {:type :return
+     :invoke invoke-evt
+     :return r
+     :ts (System/currentTimeMillis)
+     :dur-msec (- now (:ts invoke-evt))}))
+
 (def function-default-hierarchy
   "Atom carrying a simple/shallow hierarchy of `:buttle/<method-name>`
   to `:buttle/default` entries. This hierarchy is used for `handle`
@@ -101,19 +128,6 @@
   the proxy'ed interface types i.e. `invocation-key` dispatch values."
 
   #'invocation-key :hierarchy function-default-hierarchy)
-
-(defn ->invoke-event [the-method target-obj the-args]
-  {})
-
-(defn ->throw-event [invoke-evt t]
-  {:type :throw
-   :invoke-evt invoke-evt
-   :throwable t})
-
-(defn ->return-event [invoke-evt r]
-  {:type :return
-   :invoke-evt invoke-evt
-   :return r})
 
 (defn handle-default
   "Calls `the-method` on `target-obj` with `the-args`, creates a proxy
