@@ -2,7 +2,6 @@
   (:require [clojure.test :refer :all]
             [clojure.core.async :as a]
             [buttle.proxy :as proxy]
-            [buttle.util :as util]
             [buttle.event :as event]))
 
 ;; ----------------------------------------------------------------------------------
