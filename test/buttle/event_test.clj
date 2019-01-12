@@ -69,9 +69,9 @@
   ;;{:post [(or (.println System/out (format "(project-event :map %s) --> %s" x %)) true)]}
   (condp = (:type x)
     nil x
-    :invoke (map-map x {:thread "THREAD" :ts "TS"})
+    :invoke (map-map x {:ts "TS" :thread "THREAD"})
     :return (map-map x {:ts "TS" :dur-msec "DUR-MSEC" :invoke "INVOKE"})
-    :throw x))
+    :throw (map-map x  {:ts "TS" :dur-msec "DUR-MSEC" :invoke "INVOKE" :throw "THROW"})))
 
 (deftest project-event-test
   (let [i-evt {:type :invoke :ts 1}]
@@ -108,9 +108,28 @@
     (event/send-event :done)
     @p
     (a/close! ch)
-    ;; (.println System/out (project-event @bag))
     (is (= [{:type :invoke, :invoke :java.sql.Connection/getCatalog, :args [], :thread "THREAD", :ts "TS"}
             {:type :return, :invoke "INVOKE", :return "bar", :ts "TS", :dur-msec "DUR-MSEC"}
+            :done]
+           (project-event @bag)))))
+
+(deftest invoke-throw-test
+  (let [bag (atom [])
+        p (promise)
+        ch (consume-until-done p bag)]
+    (try 
+      (proxy/handle
+       (.getMethod java.sql.Connection "getCatalog" nil)
+       (proxy [java.sql.Connection] []
+         (getCatalog []
+           (throw (RuntimeException. "oops"))))
+       nil)
+      (catch Throwable t))
+    (event/send-event :done)
+    @p
+    (a/close! ch)
+    (is (= [{:type :invoke, :invoke :java.sql.Connection/getCatalog, :args [], :thread "THREAD", :ts "TS"}
+            {:type :throw, :throw "THROW" :invoke "INVOKE", :ts "TS", :dur-msec "DUR-MSEC"}
             :done]
            (project-event @bag)))))
 
