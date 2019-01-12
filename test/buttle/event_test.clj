@@ -5,34 +5,48 @@
             [buttle.util :as util]
             [buttle.event :as event]))
 
+;; ----------------------------------------------------------------------------------
+;; For all the tests I use a promise to synchronize the
+;; event-receiving part with the test-driving (send event and compare
+;; values) part.
+;;
+;; This test is most simple. Just tap a channel onto
+;; `event/event-mult`, go-consume one value from that channel and
+;; deliver it to the test-driving thread. Close and untap (which we do
+;; not really need here). The test-driver just sends an event and
+;; checks that it receives it through the promise.
+;; ----------------------------------------------------------------------------------
+
 (deftest produce-and-consume-event-test
-  (let [p (promise)
-        c (let [ch (a/chan)]
-            (a/tap event/event-mult ch)
-            (a/go
-             (when-let [e (a/<! ch)]
-               (deliver p e))
-             (a/close! ch)
-             (a/untap event/event-mult ch))
-            ch)]
+  (let [p (promise)]
+    (let [ch (a/chan)]
+      (a/tap event/event-mult ch)
+      (a/go
+       (when-let [e (a/<! ch)]
+         (deliver p e))
+       (a/close! ch)
+       (a/untap event/event-mult ch)))
     (event/send-event {:foo :bar})
     (is (= {:foo :bar} @p))))
 
 ;; ----------------------------------------------------------------------------------
+;; Functions for projecting events onto event-like-maps with some
+;; dynamic values replaced by given substitutes. Tests are then run
+;; against the less-detailed event-maps since we cannot know some of
+;; the values (like timestamps and duration).
+;; ----------------------------------------------------------------------------------
 
 (defn map-map [m mappings]
-  (into {}
-        (map
-         (fn [[k v]]
-           [k (or (mappings k) v)])
-         m)))
+  (into {} (map
+            (fn [[k v]]
+              [k (or (mappings k) v)])
+            m)))
 
 (deftest map-map-test
   (is (= {:foo "FOO" :bar "BAR" :fred 3}
          (map-map {:foo 1 :bar 2 :fred 3} {:foo "FOO" :bar "BAR" :qux "QUX"}))))
 
-(defn type-of
-  [x]
+(defn type-of [x]
   ;;{:post [(or (.println System/out (format "(type-of %s) --> %s" x %)) true)]}
   (cond
     (vector? x) :vector
@@ -64,19 +78,27 @@
     (is (= {:type :invoke :ts "TS"}
            (project-event i-evt)))))
 
-(deftest call-method-events
-  (let [events (atom [])
+;; ----------------------------------------------------------------------------------
+;; Helper function that pulls events out of event/event-mult and
+;; conjoins them to bag ref until :done event. Returns the channel.
+;; ----------------------------------------------------------------------------------
+
+(defn consume-until-done [prms bag]
+  (let [ch (a/chan)]
+    (a/tap event/event-mult ch)
+    (a/go
+     (loop []
+       (when-let [e (a/<! ch)]
+         (swap! bag conj e)
+         (when (= :done e)
+           (deliver prms e))
+         (recur))))
+    ch))
+    
+(deftest invoke-return-test
+  (let [bag (atom [])
         p (promise)
-        c (let [ch (a/chan)]
-            (a/tap event/event-mult ch)
-            (a/go
-             (loop []
-               (when-let [e (a/<! ch)]
-                 (swap! events conj e)
-                 (when (= :done e)
-                   (deliver p e))
-                 (recur))))
-            ch)]
+        ch (consume-until-done p bag)]
     (proxy/handle
      (.getMethod java.sql.Connection "getCatalog" nil)
      (proxy [java.sql.Connection] []
@@ -85,9 +107,10 @@
      nil)
     (event/send-event :done)
     @p
-    (a/close! c)
-    ;; (.println System/out (project-event @events))
+    (a/close! ch)
+    ;; (.println System/out (project-event @bag))
     (is (= [{:type :invoke, :invoke :java.sql.Connection/getCatalog, :args [], :thread "THREAD", :ts "TS"}
             {:type :return, :invoke "INVOKE", :return "bar", :ts "TS", :dur-msec "DUR-MSEC"}
             :done]
-           (project-event @events)))))
+           (project-event @bag)))))
+
