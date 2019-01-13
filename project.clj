@@ -1,6 +1,6 @@
 (defproject buttle "0.1.0-SNAPSHOT"
   
-  :description "Buttle is a proxying JDBC driver which wraps JDBC drivers."
+  :description "Buttle is a proxying JDBC driver which wraps real JDBC drivers."
   
   :url "https://github.com/henrik42/buttle/"
   

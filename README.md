@@ -2,25 +2,23 @@
 
 ## What is it?
 
-_Buttle_ is a proxying JDBC driver which wraps JDBC drivers.
+_Buttle_ is a proxying JDBC driver which wraps _real_ JDBC drivers.
 
 _Buttle_ supplies a `java.sql.Driver` which delegates calls to a
 backing `Driver` (like `org.postgresql.Driver`). _Buttle_ then
-constructs Proxys _around_ the returned values. These Proxys then do
-the same for their proxied Instances (and so on).
+constructs proxies _around_ the returned values. These proxies then do
+the same for their proxied instances (and so on).
 
-Proxys are only constructed for methods (i.e. their returned values)
-that have interface typed declared return types.
+Proxies are only constructed for methods (i.e. their returned values)
+that have interface-typed declared return types.
 
-__Not implemented yet!__
-
-_Buttle_ proxys create _events_ for every method invocation and
+_Buttle_ proxies create _events_ for every method invocation and
 completion incl. when an `Exception` is thrown. These events include
 info about
 
 * timestamp of the event
 * duration (for completion/`Exception`)
-* invocation stacktrace
+* stacktrace (for exceptions)
 * invoked class/method
 * arguments
 * returned value/`Exception`
@@ -42,7 +40,34 @@ Use it for
 
 ## How to extend?
 
-__TBD__
+There are two ways to _hook into_:
+
+__events__: you can receive events from _Buttle_ like this:
+
+	(let [ch (clojure.core.async/chan)]
+	  (clojure.core.async/tap buttle.event/event-mult ch)
+	  (clojure.core.async/go
+	   (loop []
+		 (when-let [e (clojure.core.async/<! ch)]
+		   (println e) ;; do something with the event
+		   (recur)))))
+
+__multi method__: you can _install_ your own proxy for _target_
+interfaces/methods that. This acts like a AOP advice/proxy. Note that
+in this case you have to take care to send events if you need that
+(see `buttle.proxy/handle-default`).
+
+You can (re-) register the `buttle.proxy/handle :default`. 
+
+	(defmethod buttle.proxy/handle :default [the-method target-obj the-args]
+	  (do-some-thing-with-call the-method target-obj the-args))
+
+And you can register method implementation for just specific
+interfaces, methods or a combination (see `test/buttle/proxy_test.clj`
+for more examples):
+
+    (proxy/def-handle [java.sql.Connection :buttle/getCatalog] [the-method target-obj the-args]
+      (str "Connection/getCatalog: intercepted " (.getName the-method)))
 
 ## Examples
 
@@ -56,6 +81,11 @@ __Note:__ Adding the _Buttle_ UBERJAR via _Driver_ / _Extra Class Path_
   did not work for me due to classloading handling in
   Clojure. So I really had to add it to the JVMs classpath as shown
   here.
+
+If you want to see events in the squirrel log:
+
+	set BUTTLE_USER_FORM="-Dbuttle.user-form=(load-file ""C:/buttle-workspace/examples/buttle/examples/event_channel.clj"")"
+	java %BUTTLE_USER_FORM% [...]
 
 __(2)__ Add a _Driver_ with class `buttle.jdbc.Driver`. 
 
@@ -72,8 +102,6 @@ __Note:__ Should work without `register-driver` via
 	C:>java -cp buttle-0.1.0-SNAPSHOT-standalone.jar;postgresql-9.4.1212.jar clojure.main -r
 	Clojure 1.8.0
 	user=> (use 'buttle.driver-manager)
-	;;--> nil
-	user=> (register-driver (buttle.jdbc.Driver.))
 	;;--> nil
 	(-> (get-connection "jdbc:buttle:{:user \"<user>\" :password \"<password>\" :target-url \"jdbc:postgresql://127.0.0.1:6632/postgres?\"}" nil nil)
 		.createStatement

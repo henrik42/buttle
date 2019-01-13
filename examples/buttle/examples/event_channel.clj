@@ -1,6 +1,5 @@
 (ns buttle.examples.event-channel
-  (:require [buttle.proxy :as proxy]
-            [clojure.core.async :as a]
+  (:require [clojure.core.async :as a]
             [buttle.event :as event]))
 
 ;; When this file/namespace is loaded it will start a go-loop which
