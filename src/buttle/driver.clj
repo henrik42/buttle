@@ -6,10 +6,18 @@
   `services/java.sql.Driver`. Note that this class has implementations
   for `acceptsURL` and `connect` only.
 
-  The `-init` function will register a _Buttle_ `Driver` proxy with
-  the `java.sql.DriverManager`. So whenever an instance of
+  The `-init` constructor function will register a _Buttle_ `Driver`
+  proxy with the `java.sql.DriverManager`. So whenever an instance of
   `buttle.jdbc.Driver` is created, a proxy ( __not__ the
   `buttle.jdbc.Driver`!) is registered.
+
+  When this namespace is loaded `eval-buttle-user-form` will be
+  executed.
+
+  __WARNING:__ this means that anyone who controls the system
+  properties of the hosting JVM can run any Clojure code (but then
+  again --- if someone controls the system properties he/she is
+  probably able to run any command anyway).
 
   Functions in this namespace deliver all the functionality needed for
   the `java.sql.Driver` interface/contract. Things for connections,
@@ -139,5 +147,6 @@
       (catch Throwable t
         (.println System/err (format "(eval-buttle-user-form %s) failed: %s" (pr-str user-form) t))))))
 
-;; invoke function when namespace is loaded.
+;; invoke `eval-buttle-user-form` when namespace is loaded. See
+;; example in `examples/buttle/examples/event_channel.clj`
 (eval-buttle-user-form)

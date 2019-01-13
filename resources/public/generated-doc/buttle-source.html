@@ -2873,10 +2873,18 @@ net.brehaut.ClojureTools = (function (SH) {
   <code>services/java.sql.Driver</code>. Note that this class has implementations
   for <code>acceptsURL</code> and <code>connect</code> only.</p>
 
-<p>  The <code>-init</code> function will register a <em>Buttle</em> <code>Driver</code> proxy with
-  the <code>java.sql.DriverManager</code>. So whenever an instance of
+<p>  The <code>-init</code> constructor function will register a <em>Buttle</em> <code>Driver</code>
+  proxy with the <code>java.sql.DriverManager</code>. So whenever an instance of
   <code>buttle.jdbc.Driver</code> is created, a proxy ( <strong>not</strong> the
   <code>buttle.jdbc.Driver</code>!) is registered.</p>
+
+<p>  When this namespace is loaded <code>eval-buttle-user-form</code> will be
+  executed.</p>
+
+<p>  <strong>WARNING:</strong> this means that anyone who controls the system
+  properties of the hosting JVM can run any Clojure code (but then
+  again --- if someone controls the system properties he/she is
+  probably able to run any command anyway).</p>
 
 <p>  Functions in this namespace deliver all the functionality needed for
   the <code>java.sql.Driver</code> interface/contract. Things for connections,
@@ -2981,7 +2989,8 @@ net.brehaut.ClojureTools = (function (SH) {
     (try 
       (eval (read-string user-form))
       (catch Throwable t
-        (.println System/err (format &quot;(eval-buttle-user-form %s) failed: %s&quot; (pr-str user-form) t))))))</pre></td></tr><tr><td class="docs"><p>invoke function when namespace is loaded.</p>
+        (.println System/err (format &quot;(eval-buttle-user-form %s) failed: %s&quot; (pr-str user-form) t))))))</pre></td></tr><tr><td class="docs"><p>invoke <code>eval-buttle-user-form</code> when namespace is loaded. See
+example in <code>examples/buttle/examples/event_channel.clj</code></p>
 </td><td class="codes"><pre class="brush: clojure">(eval-buttle-user-form)</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.driver-manager" name="buttle.driver-manager"><h1 class="project-name">buttle.driver-manager</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>A thin/simple Clojure API around <code>java.sql.DriverManager</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns buttle.driver-manager
   (:import [java.sql DriverManager]))</pre></td></tr><tr><td class="docs"><p>Registers the <code>driver</code> (see
