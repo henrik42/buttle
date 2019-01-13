@@ -3,11 +3,16 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
-class ButtleTest {
+public class ButtleTest {
+
+	public static void processEvent(Object e) {
+		System.out.println("event : " + e);
+	}
 
 	public static void main(String[] args) throws Exception {
 
-		System.setProperty("buttle.user-form", "(load-file \"examples/buttle/examples/event_channel.clj\")");
+		// System.setProperty("buttle.user-form", "(load-file \"examples/buttle/examples/event_channel.clj\")");
+		System.setProperty("buttle.user-form", "(load-file \"examples/buttle/examples/java_events.clj\")");
 
 		String user = System.getProperty("buttle_user");
 		String password = System.getProperty("buttle_password");
