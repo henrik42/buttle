@@ -62,7 +62,6 @@ java %BUTTLE_USER_FORM% [...]
 <pre><code>jdbc:buttle:{:user "&lt;user&gt;" :password "&lt;password&gt;" :target-url "jdbc:postgresql://127.0.0.1:6632/postgres"}
 </code></pre>
 <p><strong>Clojure</strong></p>
-<p><strong>Note:</strong> Should work without <code>register-driver</code> via <code>META-INF/services/java.sql.Driver</code> – must be fixed.</p>
 <pre><code>C:&gt;java -cp buttle-0.1.0-SNAPSHOT-standalone.jar;postgresql-9.4.1212.jar clojure.main -r
 Clojure 1.8.0
 user=&gt; (use 'buttle.driver-manager)
