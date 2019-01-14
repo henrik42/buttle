@@ -42,7 +42,8 @@ Use it for
 
 There are two ways to _hook into_:
 
-__events__: you can receive events from _Buttle_ like this:
+__events__: receive events from _Buttle_ through
+  `buttle.event/event-mult` like this:
 
 	(let [ch (clojure.core.async/chan)]
 	  (clojure.core.async/tap buttle.event/event-mult ch)
@@ -52,21 +53,21 @@ __events__: you can receive events from _Buttle_ like this:
 		   (println e) ;; do something with the event
 		   (recur)))))
 
-__multi method__: you can _install_ your own proxy for _target_
-interfaces/methods that. This acts like a AOP advice/proxy. Note that
-in this case you have to take care to send events if you need that
-(see `buttle.proxy/handle-default`).
+__multi method__: _install_ your own proxy for _target_
+  interfaces/methods. This acts like an AOP advice/proxy. Note that in
+  this case you have to take care to send events if you need that (see
+  `buttle.proxy/handle-default`).
 
 You can (re-) register the `buttle.proxy/handle :default`. 
 
 	(defmethod buttle.proxy/handle :default [the-method target-obj the-args]
 	  (do-some-thing-with-call the-method target-obj the-args))
 
-And you can register method implementation for just specific
+And you can register multi method implementation for just specific
 interfaces, methods or a combination (see `test/buttle/proxy_test.clj`
 for more examples):
 
-    (proxy/def-handle [java.sql.Connection :buttle/getCatalog] [the-method target-obj the-args]
+    (buttle.proxy/def-handle [java.sql.Connection :buttle/getCatalog] [the-method target-obj the-args]
       (str "Connection/getCatalog: intercepted " (.getName the-method)))
 
 ## Examples
@@ -107,7 +108,50 @@ __Clojure__
 
 __Java__
 
-	__TBD__
+	import java.sql.Connection;
+	import java.sql.DriverManager;
+	import java.sql.ResultSet;
+	import java.sql.Statement;
+
+	public class ButtleTest {
+
+		public static void processEvent(Object e) {
+			System.out.println("event : " + e);
+		}
+
+		public static void main(String[] args) throws Exception {
+
+			System.setProperty("buttle.user-form", "(load-file \"examples/buttle/examples/java_events.clj\")");
+
+			String user = System.getProperty("buttle_user");
+			String password = System.getProperty("buttle_password");
+
+			String jdbcUrl = "jdbc:postgresql://127.0.0.1:6632/postgres";
+			String buttleUrl = String.format("jdbc:buttle:{:user \"%s\" :password \"%s\" :target-url \"%s\"}", user,
+					password, jdbcUrl);
+
+			Connection conn = DriverManager.getConnection(buttleUrl, user, password);
+
+			Statement stmt = conn.createStatement();
+			ResultSet rs = stmt.executeQuery("select * from pg_catalog.pg_tables where schemaname = 'pg_catalog'");
+
+			for (int cc = rs.getMetaData().getColumnCount(); rs.next();) {
+				for (int i = 1; i <= cc; i++) {
+					System.out.print(i == 1 ? "" : ",");
+					System.out.print(rs.getObject(i));
+				}
+				System.out.println();
+			}
+		}
+	}
+
+Build to `target/` dir:
+
+	C:\>javac -d target java\ButtleTest.java
+
+And run (adjust paths as needed):
+
+	C:\>java -cp buttle-0.1.0-SNAPSHOT-standalone.jar;postgresql-9.4.1212.jar;target -Dbuttle_user=<user> -Dbuttle_password=<password> ButtleTest
 
 ## Tests
 
