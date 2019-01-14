@@ -2,8 +2,8 @@
   "Send events to consumers via core.async/channel.
 
   Consumers can `tap` on `event-mult` to receive events that are
-  produced through `send-event`` (`buttle.proxy/handle-default` is
-  such a producer)."
+  produced through `send-event` (`buttle.proxy/handle-default` is such
+  a producer)."
   
   (:require [clojure.core.async :as a]))
 
@@ -19,12 +19,15 @@
   [e]
   (a/>!! event-ch e))
 
-(defn send-event [e]
+(defn send-event 
   "Sends event `e` to `event-ch`."
+
+  [e]
   (put-event e))
 
 (def event-mult
-  "API for consumers which want to receive events."
+  "API/`clojure.core.async/mult` for consumers which want to receive
+  events."
 
   (a/mult event-ch))
 

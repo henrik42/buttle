@@ -2963,19 +2963,19 @@ net.brehaut.ClojureTools = (function (SH) {
       true)
     ;; Logger getParentLogger()
     (getParentLogger []
-      (java.util.logging.Logger/getLogger &quot;buttle&quot;))))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn -init []
-  &quot;Registers a _Buttle_ `Driver` proxy with the
-  `java.sql.DriverManager`. This function is the _constructor_ of
-  `buttle.jdbc.Driver`. So whenever an instance of
-  `buttle.jdbc.Driver` is created, a proxy ( __not__ the
-  `buttle.jdbc.Driver`!) is registered.&quot;
+      (java.util.logging.Logger/getLogger &quot;buttle&quot;))))</pre></td></tr><tr><td class="docs"><p>Registers a <em>Buttle</em> <code>Driver</code> proxy with the
+  <code>java.sql.DriverManager</code>. This function is the <em>constructor</em> of
+  <code>buttle.jdbc.Driver</code>. So whenever an instance of
+  <code>buttle.jdbc.Driver</code> is created, a proxy ( <strong>not</strong> the
+  <code>buttle.jdbc.Driver</code>!) is registered.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn -init
+  []
   (mgr/register-driver (make-driver))
   [[] nil])</pre></td></tr><tr><td class="docs"><p>Implements <code>java.sql.Driver.connect(String, Properties)</code>. Just
-  delegates to <code>(connect-fn url)</code>.</p>
+  call <code>(connect-fn url)</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn -connect
   [this url info]
-  (connect-fn url))</pre></td></tr><tr><td class="docs"><p>Implements <code>java.sql.Driver.acceptsURL(String)</code>. Just delegates
+  (connect-fn url))</pre></td></tr><tr><td class="docs"><p>Implements <code>java.sql.Driver.acceptsURL(String)</code>. Just calls
   to <code>(boolean (accepts-url-fn url))</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn -acceptsURL
   [this url]
@@ -2983,6 +2983,10 @@ net.brehaut.ClojureTools = (function (SH) {
   eval)` to evaluate that string. This function is called when
   namespace <code>buttle.driver</code> is loaded. This happens for example when
   die <em>Buttle</em> JDBC driver is loaded.</p>
+
+<p>  Use this function to load your own code when you do not control the
+  main program flow (like when using <em>Buttle</em> in tools like
+  SQuirreL).</p>
 </td><td class="codes"><pre class="brush: clojure">(defn eval-buttle-user-form
   []
   (when-let [user-form (System/getProperty &quot;buttle.user-form&quot;)]
@@ -3024,8 +3028,8 @@ example in <code>examples/buttle/examples/event_channel.clj</code></p>
         d)))))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.event" name="buttle.event"><h1 class="project-name">buttle.event</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Send events to consumers via core.async/channel.</p>
 
 <p>  Consumers can <code>tap</code> on <code>event-mult</code> to receive events that are
-  produced through <code>send-event`` (</code>buttle.proxy/handle-default` is
-  such a producer).</p>
+  produced through <code>send-event</code> (<code>buttle.proxy/handle-default</code> is such
+  a producer).</p>
 </td><td class="codes"><pre class="brush: clojure">(ns buttle.event
   (:require [clojure.core.async :as a]))</pre></td></tr><tr><td class="docs"><p>The channel through which events are sent. Is the input for
   <code>event-mult</code>.</p>
@@ -3033,10 +3037,11 @@ example in <code>examples/buttle/examples/event_channel.clj</code></p>
   (a/chan))</pre></td></tr><tr><td class="docs"><p>For internal use only. Sends event <code>e</code> to <code>event-ch</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn put-event
   [e]
-  (a/&gt;!! event-ch e))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn send-event [e]
-  &quot;Sends event `e` to `event-ch`.&quot;
-  (put-event e))</pre></td></tr><tr><td class="docs"><p>API for consumers which want to receive events.</p>
+  (a/&gt;!! event-ch e))</pre></td></tr><tr><td class="docs"><p>Sends event <code>e</code> to <code>event-ch</code>.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn send-event 
+  [e]
+  (put-event e))</pre></td></tr><tr><td class="docs"><p>API/<code>clojure.core.async/mult</code> for consumers which want to receive
+  events.</p>
 </td><td class="codes"><pre class="brush: clojure">(def event-mult
   (a/mult event-ch))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.proxy" name="buttle.proxy"><h1 class="project-name">buttle.proxy</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>A proxy factory.</p>
 
@@ -3053,8 +3058,9 @@ example in <code>examples/buttle/examples/event_channel.clj</code></p>
 <p>   In order to hook your own code into the delegation you may use
    <code>def-handle</code> to register your functions for certain method calls.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns buttle.proxy
-  (:require [buttle.event :as event]))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn -&gt;invoke-event [the-method target-obj the-args]
+  (:require [buttle.event :as event]))</pre></td></tr><tr><td class="docs"><p>Returns an <em>invoke-event-map</em>.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn -&gt;invoke-event
+  [the-method target-obj the-args]
   {:type :invoke
    :invoke (keyword
             (-&gt; the-method .getDeclaringClass .getName str)
@@ -3063,15 +3069,17 @@ example in <code>examples/buttle/examples/event_channel.clj</code></p>
    :thread (let [t (Thread/currentThread)]
              {:name (.getName t)
               :id (.getId t)})
-   :ts (System/currentTimeMillis)})</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn -&gt;throw-event [invoke-evt t]
+   :ts (System/currentTimeMillis)})</pre></td></tr><tr><td class="docs"><p>Returns a <em>throw-event-map</em>.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn -&gt;throw-event
+  [invoke-evt t]
   (let [now (System/currentTimeMillis)]
     {:type :throw
      :invoke invoke-evt
      :throw t
      :ts now
-     :dur-msec (- now (:ts invoke-evt))}))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn -&gt;return-event [invoke-evt r]
+     :dur-msec (- now (:ts invoke-evt))}))</pre></td></tr><tr><td class="docs"><p>Returns a <em>return-event-map</em>.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn -&gt;return-event
+  [invoke-evt r]
   (let [now (System/currentTimeMillis)]
     {:type :return
      :invoke invoke-evt

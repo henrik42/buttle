@@ -77,6 +77,29 @@
     (is (= {:type :invoke :ts "TS"}
            (project-event i-evt)))))
 
+(deftest event-factory-test
+  (let [i-evt (proxy/->invoke-event (.getMethod java.sql.Connection "getCatalog" nil) "foo" nil)
+        r-evt (proxy/->return-event i-evt "foo")
+        t-evt (proxy/->throw-event i-evt (RuntimeException. "oops"))]
+    (is (= (project-event i-evt)
+           {:type :invoke,
+            :invoke :java.sql.Connection/getCatalog,
+            :args [],
+            :thread "THREAD"
+            :ts "TS"}))
+    (is (= (project-event r-evt)
+           {:type :return,
+            :invoke "INVOKE",
+            :return "foo",
+            :ts "TS",
+            :dur-msec "DUR-MSEC"}))
+    (is (= (project-event t-evt)
+           {:type :throw,
+            :invoke "INVOKE",
+            :throw "THROW",
+            :ts "TS",
+            :dur-msec "DUR-MSEC"}))))
+
 ;; ----------------------------------------------------------------------------------
 ;; Helper function that pulls events out of event/event-mult and
 ;; conjoins them to bag ref until :done event. Returns the channel.

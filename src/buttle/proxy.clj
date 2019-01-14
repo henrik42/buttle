@@ -16,7 +16,10 @@
   
   (:require [buttle.event :as event]))
 
-(defn ->invoke-event [the-method target-obj the-args]
+(defn ->invoke-event
+  "Returns an _invoke-event-map_."
+  
+  [the-method target-obj the-args]
   {:type :invoke
    :invoke (keyword
             (-> the-method .getDeclaringClass .getName str)
@@ -27,7 +30,10 @@
               :id (.getId t)})
    :ts (System/currentTimeMillis)})
 
-(defn ->throw-event [invoke-evt t]
+(defn ->throw-event
+  "Returns a _throw-event-map_."
+
+  [invoke-evt t]
   (let [now (System/currentTimeMillis)]
     {:type :throw
      :invoke invoke-evt
@@ -35,7 +41,10 @@
      :ts now
      :dur-msec (- now (:ts invoke-evt))}))
 
-(defn ->return-event [invoke-evt r]
+(defn ->return-event
+  "Returns a _return-event-map_."
+
+  [invoke-evt r]
   (let [now (System/currentTimeMillis)]
     {:type :return
      :invoke invoke-evt

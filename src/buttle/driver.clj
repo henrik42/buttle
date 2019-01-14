@@ -110,25 +110,26 @@
     (getParentLogger []
       (java.util.logging.Logger/getLogger "buttle"))))
 
-(defn -init []
+(defn -init
   "Registers a _Buttle_ `Driver` proxy with the
   `java.sql.DriverManager`. This function is the _constructor_ of
   `buttle.jdbc.Driver`. So whenever an instance of
   `buttle.jdbc.Driver` is created, a proxy ( __not__ the
   `buttle.jdbc.Driver`!) is registered."
-
+  
+  []
   (mgr/register-driver (make-driver))
   [[] nil])
 
 (defn -connect
   "Implements `java.sql.Driver.connect(String, Properties)`. Just
-  delegates to `(connect-fn url)`."
+  call `(connect-fn url)`."
 
   [this url info]
   (connect-fn url))
 
 (defn -acceptsURL
-  "Implements `java.sql.Driver.acceptsURL(String)`. Just delegates
+  "Implements `java.sql.Driver.acceptsURL(String)`. Just calls
   to `(boolean (accepts-url-fn url))`."
 
   [this url]
@@ -138,7 +139,11 @@
   "If system property `buttle.user-form` is set, uses `(-> read-string
   eval)` to evaluate that string. This function is called when
   namespace `buttle.driver` is loaded. This happens for example when
-  die _Buttle_ JDBC driver is loaded."
+  die _Buttle_ JDBC driver is loaded.
+
+  Use this function to load your own code when you do not control the
+  main program flow (like when using _Buttle_ in tools like
+  SQuirreL)."
 
   []
   (when-let [user-form (System/getProperty "buttle.user-form")]
