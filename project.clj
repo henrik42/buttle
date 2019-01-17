@@ -7,7 +7,7 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   
-  :dependencies [[org.clojure/clojure "1.8.0"]
+  :dependencies [[org.clojure/clojure "1.9.0"]
                  [org.clojure/core.async "0.4.490"]]
   
   :plugins [[lein-swank "1.4.5"]
@@ -29,6 +29,12 @@
                         :dependencies [[codox-theme-rdash "0.1.2"]]
                         :clean-targets ^{:protect false} ["resources/public/generated-doc"]}
 
-             :test {:dependencies [[org.postgresql/postgresql "9.4.1212"]]}}
+             :jaeger {:dependencies [[opentracing-clj "0.1.2"]
+                                     [io.jaegertracing/jaeger-client "0.33.1"]]}
+             
+             :test {:dependencies [[org.postgresql/postgresql "9.4.1212"]
+                                   [opentracing-clj "0.1.2"]
+                                   [io.jaegertracing/jaeger-client "0.33.1"]
+                                   [org.slf4j/slf4j-jdk14 "1.7.25"]]}}
 
   :aot [buttle.driver])
