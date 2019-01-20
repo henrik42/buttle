@@ -7,9 +7,10 @@
   for `acceptsURL` and `connect` only.
 
   The `-init` constructor function will register a _Buttle_ `Driver`
-  proxy with the `java.sql.DriverManager`. So whenever an instance of
-  `buttle.jdbc.Driver` is created, a proxy ( __not__ the
-  `buttle.jdbc.Driver`!) is registered.
+  proxy (see `make-driver`) with the `java.sql.DriverManager`. So
+  whenever an instance of `buttle.jdbc.Driver` is created, a new
+  proxy ( __not__ the `buttle.jdbc.Driver`!) is registered. This will
+  probably change to just ever registering one proxy.
 
   When this namespace is loaded `eval-buttle-user-form` will be
   executed.
@@ -25,6 +26,7 @@
   
   (:gen-class
    :init init
+   :state state
    :name buttle.jdbc.Driver
    :implements [java.sql.Driver])
   (:require [buttle.driver-manager :as mgr]
@@ -67,18 +69,19 @@
   `accepts-url-fn`). Else opens a JDBC `Connection` to `:target-url`
   with `:user` and `:password` via
   `buttle.driver-manager/get-connection`. If that throws then this
-  function throws. Otherwise a _Buttle_ `Connection` proxy for the
-  opened `Connection` with `buttle.proxy/handle` is returned."
+  function throws. Otherwise the connection is returned."
 
   [url]
   (when-let [{:keys [target-url user password] :as args} (accepts-url-fn url)]
-    (proxy/make-proxy
-     java.sql.Connection
-     (mgr/get-connection target-url user password)
-     #'proxy/handle)))
+    (mgr/get-connection target-url user password)))
 
 (defn make-driver
   "Creates and returns a _Buttle_ `java.sql.Driver`.
+
+   Note that the underlying driver is a Clojure `proxy` (not an
+   instance of `buttle.jdbc.Driver`) which is wrapped by a
+   `buttle.proxy/make-proxy`. So calls to this driver can be
+   intercepted by `buttle.proxy/def-handle`.
 
    This driver can be registered with the
    `java.sql.DriverManager`. There are two important methods that this
@@ -87,53 +90,61 @@
    _Buttle_ driver can be _picked up_ for _Buttle_ urls."
 
   []
-  (proxy [java.sql.Driver] []
-    ;; java.sql.Driver.connect(String url, Properties info)
-    (connect [url info]
-      (connect-fn url))
-    ;; boolean acceptsURL(String url)
-    (acceptsURL [url]
-      (boolean (accepts-url-fn url)))
-    ;; DriverPropertyInfo[] getPropertyInfo(String url, java.util.Properties info)
-    (getPropertyInfo [url info]
-      (make-array java.sql.DriverPropertyInfo 0))
-    ;; int getMajorVersion();
-    (getMajorVersion []
-      47)
-    ;; int getMinorVersion();
-    (getMinorVersion []
-      11)
-    ;; boolean jdbcCompliant();
-    (jdbcCompliant []
-      true)
-    ;; Logger getParentLogger()
-    (getParentLogger []
-      (java.util.logging.Logger/getLogger "buttle"))))
+  (proxy/make-proxy
+   java.sql.Driver
+   (proxy [java.sql.Driver] []
+     ;; java.sql.Driver.connect(String url, Properties info)
+     (connect [url info]
+       (connect-fn url))
+     ;; boolean acceptsURL(String url)
+     (acceptsURL [url]
+       (boolean (accepts-url-fn url)))
+     ;; DriverPropertyInfo[] getPropertyInfo(String url, java.util.Properties info)
+     (getPropertyInfo [url info]
+       (make-array java.sql.DriverPropertyInfo 0))
+     ;; int getMajorVersion();
+     (getMajorVersion []
+       47)
+     ;; int getMinorVersion();
+     (getMinorVersion []
+       11)
+     ;; boolean jdbcCompliant();
+     (jdbcCompliant []
+       true)
+     ;; Logger getParentLogger()
+     (getParentLogger []
+       (java.util.logging.Logger/getLogger "buttle")))
+   proxy/handle))
 
 (defn -init
-  "Registers a _Buttle_ `Driver` proxy with the
-  `java.sql.DriverManager`. This function is the _constructor_ of
-  `buttle.jdbc.Driver`. So whenever an instance of
-  `buttle.jdbc.Driver` is created, a proxy ( __not__ the
-  `buttle.jdbc.Driver`!) is registered."
+  "Registers a _Buttle_ `Driver` (see `make-driver`) with the
+  `java.sql.DriverManager`.
+
+   This function is the _constructor_ of `buttle.jdbc.Driver`. So
+  whenever an instance of `buttle.jdbc.Driver` is created, a proxy (
+  __not__ the `buttle.jdbc.Driver`!) is registered.
+
+  This instance keeps a reference to the driver in its internal state
+  and uses it for `connect`."
   
   []
-  (mgr/register-driver (make-driver))
-  [[] nil])
+  (let [driver (make-driver)]
+    (mgr/register-driver driver)
+    [[] driver]))
 
 (defn -connect
   "Implements `java.sql.Driver.connect(String, Properties)`. Just
-  call `(connect-fn url)`."
+  delegates to the referenced driver (see `-init`)."
 
   [this url info]
-  (connect-fn url))
+  (.connect (.state this) url info))
 
 (defn -acceptsURL
-  "Implements `java.sql.Driver.acceptsURL(String)`. Just calls
-  to `(boolean (accepts-url-fn url))`."
+  "Implements `java.sql.Driver.acceptsURL(String)`. Just delegates to
+  the referenced driver (see `-init`)."
 
   [this url]
-  (boolean (accepts-url-fn url)))
+  (.acceptsURL (.state this) url))
 
 (defn eval-buttle-user-form
   "If system property `buttle.user-form` is set, uses `(-> read-string

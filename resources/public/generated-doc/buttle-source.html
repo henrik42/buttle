@@ -2874,9 +2874,10 @@ net.brehaut.ClojureTools = (function (SH) {
   for <code>acceptsURL</code> and <code>connect</code> only.</p>
 
 <p>  The <code>-init</code> constructor function will register a <em>Buttle</em> <code>Driver</code>
-  proxy with the <code>java.sql.DriverManager</code>. So whenever an instance of
-  <code>buttle.jdbc.Driver</code> is created, a proxy ( <strong>not</strong> the
-  <code>buttle.jdbc.Driver</code>!) is registered.</p>
+  proxy (see <code>make-driver</code>) with the <code>java.sql.DriverManager</code>. So
+  whenever an instance of <code>buttle.jdbc.Driver</code> is created, a new
+  proxy ( <strong>not</strong> the <code>buttle.jdbc.Driver</code>!) is registered. This will
+  probably change to just ever registering one proxy.</p>
 
 <p>  When this namespace is loaded <code>eval-buttle-user-form</code> will be
   executed.</p>
@@ -2892,6 +2893,7 @@ net.brehaut.ClojureTools = (function (SH) {
 </td><td class="codes"><pre class="brush: clojure">(ns buttle.driver
   (:gen-class
    :init init
+   :state state
    :name buttle.jdbc.Driver
    :implements [java.sql.Driver])
   (:require [buttle.driver-manager :as mgr]
@@ -2925,15 +2927,16 @@ net.brehaut.ClojureTools = (function (SH) {
   <code>accepts-url-fn</code>). Else opens a JDBC <code>Connection</code> to <code>:target-url</code>
   with <code>:user</code> and <code>:password</code> via
   <code>buttle.driver-manager/get-connection</code>. If that throws then this
-  function throws. Otherwise a <em>Buttle</em> <code>Connection</code> proxy for the
-  opened <code>Connection</code> with <code>buttle.proxy/handle</code> is returned.</p>
+  function throws. Otherwise the connection is returned.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn connect-fn
   [url]
   (when-let [{:keys [target-url user password] :as args} (accepts-url-fn url)]
-    (proxy/make-proxy
-     java.sql.Connection
-     (mgr/get-connection target-url user password)
-     #'proxy/handle)))</pre></td></tr><tr><td class="docs"><p>Creates and returns a <em>Buttle</em> <code>java.sql.Driver</code>.</p>
+    (mgr/get-connection target-url user password)))</pre></td></tr><tr><td class="docs"><p>Creates and returns a <em>Buttle</em> <code>java.sql.Driver</code>.</p>
+
+<p>   Note that the underlying driver is a Clojure <code>proxy</code> (not an
+   instance of <code>buttle.jdbc.Driver</code>) which is wrapped by a
+   <code>buttle.proxy/make-proxy</code>. So calls to this driver can be
+   intercepted by <code>buttle.proxy/def-handle</code>.</p>
 
 <p>   This driver can be registered with the
    <code>java.sql.DriverManager</code>. There are two important methods that this
@@ -2942,44 +2945,52 @@ net.brehaut.ClojureTools = (function (SH) {
    <em>Buttle</em> driver can be <em>picked up</em> for <em>Buttle</em> urls.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn make-driver
   []
-  (proxy [java.sql.Driver] []
-    ;; java.sql.Driver.connect(String url, Properties info)
-    (connect [url info]
-      (connect-fn url))
-    ;; boolean acceptsURL(String url)
-    (acceptsURL [url]
-      (boolean (accepts-url-fn url)))
-    ;; DriverPropertyInfo[] getPropertyInfo(String url, java.util.Properties info)
-    (getPropertyInfo [url info]
-      (make-array java.sql.DriverPropertyInfo 0))
-    ;; int getMajorVersion();
-    (getMajorVersion []
-      47)
-    ;; int getMinorVersion();
-    (getMinorVersion []
-      11)
-    ;; boolean jdbcCompliant();
-    (jdbcCompliant []
-      true)
-    ;; Logger getParentLogger()
-    (getParentLogger []
-      (java.util.logging.Logger/getLogger &quot;buttle&quot;))))</pre></td></tr><tr><td class="docs"><p>Registers a <em>Buttle</em> <code>Driver</code> proxy with the
-  <code>java.sql.DriverManager</code>. This function is the <em>constructor</em> of
-  <code>buttle.jdbc.Driver</code>. So whenever an instance of
-  <code>buttle.jdbc.Driver</code> is created, a proxy ( <strong>not</strong> the
-  <code>buttle.jdbc.Driver</code>!) is registered.</p>
+  (proxy/make-proxy
+   java.sql.Driver
+   (proxy [java.sql.Driver] []
+     ;; java.sql.Driver.connect(String url, Properties info)
+     (connect [url info]
+       (connect-fn url))
+     ;; boolean acceptsURL(String url)
+     (acceptsURL [url]
+       (boolean (accepts-url-fn url)))
+     ;; DriverPropertyInfo[] getPropertyInfo(String url, java.util.Properties info)
+     (getPropertyInfo [url info]
+       (make-array java.sql.DriverPropertyInfo 0))
+     ;; int getMajorVersion();
+     (getMajorVersion []
+       47)
+     ;; int getMinorVersion();
+     (getMinorVersion []
+       11)
+     ;; boolean jdbcCompliant();
+     (jdbcCompliant []
+       true)
+     ;; Logger getParentLogger()
+     (getParentLogger []
+       (java.util.logging.Logger/getLogger &quot;buttle&quot;)))
+   proxy/handle))</pre></td></tr><tr><td class="docs"><p>Registers a <em>Buttle</em> <code>Driver</code> (see <code>make-driver</code>) with the
+  <code>java.sql.DriverManager</code>.</p>
+
+<p>   This function is the <em>constructor</em> of <code>buttle.jdbc.Driver</code>. So
+  whenever an instance of <code>buttle.jdbc.Driver</code> is created, a proxy (
+  <strong>not</strong> the <code>buttle.jdbc.Driver</code>!) is registered.</p>
+
+<p>  This instance keeps a reference to the driver in its internal state
+  and uses it for <code>connect</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn -init
   []
-  (mgr/register-driver (make-driver))
-  [[] nil])</pre></td></tr><tr><td class="docs"><p>Implements <code>java.sql.Driver.connect(String, Properties)</code>. Just
-  call <code>(connect-fn url)</code>.</p>
+  (let [driver (make-driver)]
+    (mgr/register-driver driver)
+    [[] driver]))</pre></td></tr><tr><td class="docs"><p>Implements <code>java.sql.Driver.connect(String, Properties)</code>. Just
+  delegates to the referenced driver (see <code>-init</code>).</p>
 </td><td class="codes"><pre class="brush: clojure">(defn -connect
   [this url info]
-  (connect-fn url))</pre></td></tr><tr><td class="docs"><p>Implements <code>java.sql.Driver.acceptsURL(String)</code>. Just calls
-  to <code>(boolean (accepts-url-fn url))</code>.</p>
+  (.connect (.state this) url info))</pre></td></tr><tr><td class="docs"><p>Implements <code>java.sql.Driver.acceptsURL(String)</code>. Just delegates to
+  the referenced driver (see <code>-init</code>).</p>
 </td><td class="codes"><pre class="brush: clojure">(defn -acceptsURL
   [this url]
-  (boolean (accepts-url-fn url)))</pre></td></tr><tr><td class="docs"><p>If system property <code>buttle.user-form</code> is set, uses `(-> read-string
+  (.acceptsURL (.state this) url))</pre></td></tr><tr><td class="docs"><p>If system property <code>buttle.user-form</code> is set, uses `(-> read-string
   eval)` to evaluate that string. This function is called when
   namespace <code>buttle.driver</code> is loaded. This happens for example when
   die <em>Buttle</em> JDBC driver is loaded.</p>
