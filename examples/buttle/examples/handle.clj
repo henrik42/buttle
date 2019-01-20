@@ -33,3 +33,11 @@
 (defmethod proxy/handle :default [the-method target-obj the-args]
   (invoke-with-logging the-method target-obj the-args))
 
+#_
+(proxy/def-handle [java.sql.Driver :buttle/default] [the-method target-obj the-args]
+  (invoke-with-logging the-method target-obj the-args))
+
+#_
+(proxy/def-handle [java.sql.Connection :buttle/default] [the-method target-obj the-args]
+  (invoke-with-logging the-method target-obj the-args))
+
