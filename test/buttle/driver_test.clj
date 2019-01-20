@@ -95,3 +95,10 @@
       (finally 
         (java.sql.DriverManager/deregisterDriver foo-driver)))))
 
+#_ ;; this will be removed.
+(let [driver (buttle.jdbc.Driver.)]
+  (proxy/def-handle [java.sql.Driver :buttle/acceptsURL] [the-method target-obj the-args]
+    (do 
+      (.println System/out "bar")
+      (proxy/handle-default the-method target-obj the-args)))
+  (.acceptsURL driver "jdbc:buttle:42"))

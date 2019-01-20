@@ -40,10 +40,14 @@
                     (throw t))))]
         r))))
 
-#_ ;; trace all/any class/method
+;; trace all/any class/method
 (defmethod proxy/handle :default [the-method target-obj the-args]
   (invoke-with-tracing the-method target-obj the-args))
 
+#_
 (proxy/def-handle [java.sql.Connection :buttle/default] [the-method target-obj the-args]
   (invoke-with-tracing the-method target-obj the-args))
 
+#_
+(proxy/def-handle [java.sql.Driver :buttle/default] [the-method target-obj the-args]
+  (invoke-with-tracing the-method target-obj the-args))

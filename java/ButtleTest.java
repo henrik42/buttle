@@ -12,7 +12,9 @@ public class ButtleTest {
 	public static void main(String[] args) throws Exception {
 
 		// System.setProperty("buttle.user-form", "(load-file \"examples/buttle/examples/event_channel.clj\")");
-		System.setProperty("buttle.user-form", "(load-file \"examples/buttle/examples/java_events.clj\")");
+		// System.setProperty("buttle.user-form", "(load-file \"examples/buttle/examples/java_events.clj\")");
+		// System.setProperty("buttle.user-form", "(load-file \"examples/buttle/examples/handle.clj\")");
+		System.setProperty("buttle.user-form", "(load-file \"examples/buttle/examples/open_tracing.clj\")");
 
 		String user = System.getProperty("buttle_user");
 		String password = System.getProperty("buttle_password");
