@@ -103,6 +103,8 @@
 ;; ----------------------------------------------------------------------------------
 ;; Helper function that pulls events out of event/event-mult and
 ;; conjoins them to bag ref until :done event. Returns the channel.
+;;
+;; See invoke-return-test (possible bug here).
 ;; ----------------------------------------------------------------------------------
 
 (defn consume-until-done [prms bag]
@@ -116,7 +118,13 @@
            (deliver prms e))
          (recur))))
     ch))
-    
+
+;; Note: this test once failed because consume-until-done collected
+;; into bag an :return event (Driver/connect). I do not know how that
+;; could happened! I assume some race-condition which I haven't
+;; tracked down yet. Possible fix: consume-until-done should consume
+;; and ignore any event until it sees an :start event. Thus we could
+;; make it chew up any event that might have been put onto the mult.
 (deftest invoke-return-test
   (let [bag (atom [])
         p (promise)

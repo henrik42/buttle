@@ -37,7 +37,6 @@
 (deftest test-connect-fn
   (is (= nil (drv/connect-fn "foobar")))
   (is (= nil (drv/connect-fn "jdbc:buttle:")))
-  (is (= true (-> (drv/connect-fn buttle-url) .getClass java.lang.reflect.Proxy/isProxyClass)))
   (is (thrown-with-msg? Throwable #"The url cannot be null" (drv/connect-fn "jdbc:buttle:42"))))
 
 (deftest test-make-driver
