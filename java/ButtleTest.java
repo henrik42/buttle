@@ -14,8 +14,11 @@ public class ButtleTest {
 		// System.setProperty("buttle.user-form", "(load-file \"examples/buttle/examples/event_channel.clj\")");
 		// System.setProperty("buttle.user-form", "(load-file \"examples/buttle/examples/java_events.clj\")");
 		// System.setProperty("buttle.user-form", "(load-file \"examples/buttle/examples/handle.clj\")");
+		
+		// needs -Dbuttle_jaeger_agent_host=<buttle_jaeger_agent_host>
 		System.setProperty("buttle.user-form", "(load-file \"examples/buttle/examples/open_tracing.clj\")");
 
+		// -Dbuttle_user=<buttle_user> -Dbuttle_password=<buttle_password>
 		String user = System.getProperty("buttle_user");
 		String password = System.getProperty("buttle_password");
 

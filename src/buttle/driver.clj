@@ -78,9 +78,10 @@
 (defn make-driver
   "Creates and returns a _Buttle_ `java.sql.Driver`.
 
-   Note that the underlying driver is a Clojure `proxy` (not an
-   instance of `buttle.jdbc.Driver`) which is wrapped by a
-   `buttle.proxy/make-proxy`. So calls to this driver can be
+   Note that the underlying driver (which delegates to the real
+   driver) is a Clojure `proxy` (not an instance of
+   `buttle.jdbc.Driver`) which is wrapped by a
+   `buttle.proxy/make-proxy`. So calls to retured driver can be
    intercepted by `buttle.proxy/def-handle`.
 
    This driver can be registered with the
@@ -116,6 +117,7 @@
        (java.util.logging.Logger/getLogger "buttle")))
    proxy/handle))
 
+#_
 (defn -init
   "Registers a _Buttle_ `Driver` (see `make-driver`) with the
   `java.sql.DriverManager`.
@@ -132,16 +134,36 @@
     (mgr/register-driver driver)
     [[] driver]))
 
+(def -init
+  "Constructor function of `buttle.jdbc.Driver`.
+
+   On first invokation creates a _Buttle_ `Driver` (see
+   `make-driver`), caches it and registers it with the
+   `java.sql.DriverManager`.
+
+   This _Buttle_ driver becomes the internal `state` of the
+   `buttle.jdbc.Driver`. `-connect` and `-acceptsURL` delegate to this
+   internal driver."
+  
+  (let [driver (atom nil)]
+    (fn []
+      (if-let [r @driver]
+        [[] r]
+        (let [r (make-driver)]
+          (mgr/register-driver r)
+          (reset! driver r)
+          [[] r])))))
+
 (defn -connect
   "Implements `java.sql.Driver.connect(String, Properties)`. Just
-  delegates to the referenced driver (see `-init`)."
+  delegates to the referenced/internal driver (see `-init`)."
 
   [this url info]
   (.connect (.state this) url info))
 
 (defn -acceptsURL
   "Implements `java.sql.Driver.acceptsURL(String)`. Just delegates to
-  the referenced driver (see `-init`)."
+  the referenced/internal driver (see `-init`)."
 
   [this url]
   (.acceptsURL (.state this) url))
