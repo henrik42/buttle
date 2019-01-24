@@ -29,17 +29,24 @@
 (def jaeger-tracer
   (build-jaeger-tracer
    (System/getProperty "buttle_jaeger_agent_host")
-   "buttle-trace-2"))
+   
+   ;; this will be presented as "Service" in the Jaeger GUI -- Service
+   ;; is the top-most (and mandatory -- no "all" option) qualification
+   ;; when searching for data/spans in the Jager GUI
+   "buttle-trace"))
 
-;; this will be presented as "Operation" in the Jaeger GUI
+;; this will be presented as "Operation" in the Jaeger GUI --
+;; Operation is a secondary (and optional -- "all" option)
+;; qualification when searching for data/spans in the Jager GUI
 (defn method->operation [m]
   (format "%s/%s"
           (-> (.getDeclaringClass m)
               .getName)
           (.getName m)))
 
-;; tags for all spans
-(defn ->tags [the-method target-obj the-args]
+;; tags for all spans - search in Jaeger GUI with for example
+;; `class-name=ResultSet method-name=wasNull`
+(defn invocation->tags [the-method target-obj the-args]
   {:method-name (.getName the-method)
    :method (format "%s/%s"
                    (-> (.getDeclaringClass the-method)
@@ -49,20 +56,25 @@
                    .getSimpleName)
    :class (-> (.getDeclaringClass the-method)
                    .getName)
-   :args (into [] the-args)})
+   :args (into [] the-args)
+   ;; our app may have different _layers_ (like database, business-logic)
+   :layer "database"})
 
 (defn throwable->tags [t]
-  {:type 'throw
-   :throw t})
+  (loop [t t]
+    (if-not (instance? java.lang.reflect.InvocationTargetException t)
+      {:type 'throw
+       :throw (pr-str t)}
+      (recur (.getTargetException t)))))
 
 (defn result->tags [r]
   {:type 'return
-   :return r})
+   :return (pr-str r)})
 
 (defn invoke-with-tracing [the-method target-obj the-args]
   (binding [tracing/*tracer* jaeger-tracer]
     (tracing/with-span [s {:name (method->operation the-method)}]
-      (tracing/set-tags (->tags the-method target-obj the-args))
+      (tracing/set-tags (invocation->tags the-method target-obj the-args))
       (let [r (try
                 (proxy/handle-default the-method target-obj the-args)
                 (catch Throwable t
