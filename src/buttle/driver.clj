@@ -117,23 +117,6 @@
        (java.util.logging.Logger/getLogger "buttle")))
    proxy/handle))
 
-#_
-(defn -init
-  "Registers a _Buttle_ `Driver` (see `make-driver`) with the
-  `java.sql.DriverManager`.
-
-   This function is the _constructor_ of `buttle.jdbc.Driver`. So
-  whenever an instance of `buttle.jdbc.Driver` is created, a proxy (
-  __not__ the `buttle.jdbc.Driver`!) is registered.
-
-  This instance keeps a reference to the driver in its internal state
-  and uses it for `connect`."
-  
-  []
-  (let [driver (make-driver)]
-    (mgr/register-driver driver)
-    [[] driver]))
-
 (def -init
   "Constructor function of `buttle.jdbc.Driver`.
 

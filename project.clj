@@ -31,10 +31,13 @@
 
              :jaeger {:dependencies [[opentracing-clj "0.1.2"]
                                      [io.jaegertracing/jaeger-client "0.33.1"]]}
-             
+
+             :swank {:dependencies [[swank-clojure/swank-clojure "1.4.3"]
+                                    [org.clojure/tools.nrepl "0.2.12"]]}
+
              :test {:dependencies [[org.postgresql/postgresql "9.4.1212"]
                                    [opentracing-clj "0.1.2"]
                                    [io.jaegertracing/jaeger-client "0.33.1"]
                                    [org.slf4j/slf4j-jdk14 "1.7.25"]]}}
 
-  :aot [buttle.driver])
+  :aot [buttle.driver buttle.data-source])
