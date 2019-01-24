@@ -71,18 +71,30 @@
   {:type 'return
    :return (pr-str r)})
 
+
+(defn parse->vector [s]
+  (try
+    (read-string s)
+    (catch Throwable t
+      [(format "not a vector: '%s'" s)])))
+
 (defn invoke-with-tracing [the-method target-obj the-args]
   (binding [tracing/*tracer* jaeger-tracer]
-    (tracing/with-span [s {:name (method->operation the-method)}]
-      (tracing/set-tags (invocation->tags the-method target-obj the-args))
-      (let [r (try
-                (proxy/handle-default the-method target-obj the-args)
-                (catch Throwable t
-                  (do
-                    (tracing/set-tags (throwable->tags t))
-                    (throw t))))]
-        (tracing/set-tags (result->tags r))
-        r))))
+    (let [parent-path (parse->vector
+                       (or (some-> (.activeSpan tracing/*tracer*)
+                                   (.getBaggageItem "path"))
+                           "[]"))]
+      (tracing/with-span [s {:name (method->operation the-method)}]
+        (tracing/set-tags (invocation->tags the-method target-obj the-args))
+        (tracing/set-baggage-item "path" (pr-str (conj parent-path (str s))))
+        (let [r (try
+                  (proxy/handle-default the-method target-obj the-args)
+                  (catch Throwable t
+                    (do
+                      (tracing/set-tags (throwable->tags t))
+                      (throw t))))]
+          (tracing/set-tags (result->tags r))
+          r)))))
 
 #_ ;; trace all/any class/method
 (defmethod proxy/handle :default [the-method target-obj the-args]
