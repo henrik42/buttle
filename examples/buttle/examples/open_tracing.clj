@@ -31,12 +31,12 @@
    (System/getProperty "buttle_jaeger_agent_host")
    
    ;; this will be presented as "Service" in the Jaeger GUI -- Service
-   ;; is the top-most (and mandatory -- no "all" option) qualification
-   ;; when searching for data/spans in the Jager GUI
+   ;; is the top-most (and mandatory -- no "all" option available)
+   ;; qualification when searching for data/spans in the Jager GUI
    "buttle-trace"))
 
 ;; this will be presented as "Operation" in the Jaeger GUI --
-;; Operation is a secondary (and optional -- "all" option)
+;; Operation is a secondary (and optional -- "all" option available)
 ;; qualification when searching for data/spans in the Jager GUI
 (defn method->operation [m]
   (format "%s/%s"
@@ -57,7 +57,8 @@
    :class (-> (.getDeclaringClass the-method)
                    .getName)
    :args (into [] the-args)
-   ;; our app may have different _layers_ (like database, business-logic)
+   ;; our app may have different _layers_ (like database,
+   ;; business-logic) that we want to be able to do a search on.
    :layer "database"})
 
 (defn throwable->tags [t]
@@ -70,7 +71,6 @@
 (defn result->tags [r]
   {:type 'return
    :return (pr-str r)})
-
 
 (defn parse->vector [s]
   (try
@@ -109,3 +109,29 @@
 (proxy/def-handle [java.sql.Statement :buttle/default] [the-method target-obj the-args]
   (invoke-with-tracing the-method target-obj the-args))
 
+;; Note that there are two interfaces that javax.sql.DataSource
+;; extends (javax.sql.CommonDataSource, java.sql.Wrapper), so we have
+;; to name them
+
+(proxy/def-handle [javax.sql.DataSource :buttle/default] [the-method target-obj the-args]
+  (invoke-with-tracing the-method target-obj the-args))
+
+;; Note: getConnection is defined in CommonDataSource *and* Wrapper!
+;; For some reason we get the following exception when calling
+;; javax.sql.DataSource/getConnection:
+;;
+;; Multiple methods in multimethod 'handle' match dispatch value:
+;; [javax.sql.DataSource :buttle/getConnection] ->
+;; [javax.sql.CommonDataSource :buttle/default]
+;; [java.sql.Wrapper :buttle/default], 
+;;
+;; There must be a bug in buttle.proxy. For now we workaround this by
+;; def-handling this invocation key explicitly.
+(proxy/def-handle [javax.sql.DataSource :buttle/getConnection] [the-method target-obj the-args]
+  (invoke-with-tracing the-method target-obj the-args))
+
+(proxy/def-handle [javax.sql.CommonDataSource :buttle/default] [the-method target-obj the-args]
+  (invoke-with-tracing the-method target-obj the-args))
+
+(proxy/def-handle [java.sql.Wrapper :buttle/default] [the-method target-obj the-args]
+  (invoke-with-tracing the-method target-obj the-args))
