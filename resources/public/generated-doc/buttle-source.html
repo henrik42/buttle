@@ -2875,49 +2875,19 @@ net.brehaut.ClojureTools = (function (SH) {
    :implements [javax.sql.DataSource]
    :methods [[setUrl [String] void]
              [setJndi [String] void]])
-  (:import [java.sql SQLException]
+  (:import [javax.naming InitialContext]
+           [javax.sql DataSource]
+           [java.sql SQLException]
            [java.sql SQLFeatureNotSupportedException])
   (:require [buttle.proxy :as proxy]))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">#_
-(defn create-initial-context-factory []
-  (proxy [org.osjava.sj.MemoryContextFactory] []
-    (getInitialContext [env]
-      (proxy-super
-       getInitialContext
-       (doto (.clone env)
-         (.put &quot;org.osjava.sj.jndi.ignoreClose&quot; &quot;true&quot;)
-         (.put &quot;org.osjava.sj.jndi.shared&quot; &quot;true&quot;))))))
-#_
-(javax.naming.spi.NamingManager/setInitialContextFactoryBuilder
- (proxy [javax.naming.spi.InitialContextFactoryBuilder] []
-   (createInitialContextFactory [_]
-     (create-initial-context-factory))))
-#_
-(let [env (doto (java.util.Hashtable.)
-            #_ (.put &quot;org.osjava.sj.jndi.ignoreClose&quot; &quot;true&quot;)
-            #_ (.put &quot;org.osjava.sj.jndi.shared&quot; &quot;true&quot;))]
-  (with-open [ctx (javax.naming.InitialContext. env)]
-    (.rebind ctx &quot;foo&quot; &quot;bar&quot;))
-  (with-open [ctx (javax.naming.InitialContext. env)]
-    (.lookup ctx &quot;foo&quot;)))
-#_ ;; (lookup-data-source &quot;data-source&quot;)
-(with-open [ctx (javax.naming.InitialContext.)]
-  (.rebind ctx &quot;data-source&quot;
-           (proxy [javax.sql.DataSource] [])))
-;; https://docs.oracle.com/javase/8/docs/api/javax/naming/InitialContext.html
-;; https://www.javacodegeeks.com/2012/04/jndi-and-jpa-without-j2ee-container.html
-(defn lookup-data-source [jndi]
-  (when-not jndi
-    (throw (RuntimeException. &quot;No `jndi` property set.&quot;)))
-  (with-open [ctx (javax.naming.InitialContext.)]
-    (or
-     (-&gt; ctx
-         (.lookup jndi))
-     (throw
-      (RuntimeException. (format &quot;Could not find JNDI '%s'.&quot; jndi))))))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(definterface ButtleDataSource
   (setUrl [^String url])
   (setJndi [^String jndi]))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn lookup-data-source [jndi]
+  (when-not jndi
+    (throw (RuntimeException. &quot;No `jndi` property set.&quot;)))
+  (with-open [ctx (InitialContext.)]
+    (.lookup ctx jndi)))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defn make-data-source []
   (let [ds (atom nil)
         url (atom nil) 
@@ -2928,10 +2898,11 @@ net.brehaut.ClojureTools = (function (SH) {
                    ds
                    (lookup-data-source @jndi))))]
     (proxy/make-proxy
-     [javax.sql.DataSource ButtleDataSource]
-     (proxy [javax.sql.DataSource ButtleDataSource] []
-       (setUrl [url])
-       (setJndi [jndi])
+     [DataSource ButtleDataSource]
+     (proxy [DataSource ButtleDataSource] []
+       ;; TODO (setUrl [url])
+       (setJndi [x]
+         (reset! jndi x))
        (getConnection [&amp; [user password :as xs]]
          (if-not xs (-&gt; (ds!) .getConnection)
                  (-&gt; (ds!) (.getConnection user password))))

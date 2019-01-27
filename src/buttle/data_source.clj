@@ -6,55 +6,21 @@
    :implements [javax.sql.DataSource]
    :methods [[setUrl [String] void]
              [setJndi [String] void]])
-  (:import [java.sql SQLException]
+  (:import [javax.naming InitialContext]
+           [javax.sql DataSource]
+           [java.sql SQLException]
            [java.sql SQLFeatureNotSupportedException])
   (:require [buttle.proxy :as proxy]))
-
-#_
-(defn create-initial-context-factory []
-  (proxy [org.osjava.sj.MemoryContextFactory] []
-    (getInitialContext [env]
-      (proxy-super
-       getInitialContext
-       (doto (.clone env)
-         (.put "org.osjava.sj.jndi.ignoreClose" "true")
-         (.put "org.osjava.sj.jndi.shared" "true"))))))
-
-#_
-(javax.naming.spi.NamingManager/setInitialContextFactoryBuilder
- (proxy [javax.naming.spi.InitialContextFactoryBuilder] []
-   (createInitialContextFactory [_]
-     (create-initial-context-factory))))
-
-#_
-(let [env (doto (java.util.Hashtable.)
-            #_ (.put "org.osjava.sj.jndi.ignoreClose" "true")
-            #_ (.put "org.osjava.sj.jndi.shared" "true"))]
-  (with-open [ctx (javax.naming.InitialContext. env)]
-    (.rebind ctx "foo" "bar"))
-  (with-open [ctx (javax.naming.InitialContext. env)]
-    (.lookup ctx "foo")))
-
-#_ ;; (lookup-data-source "data-source")
-(with-open [ctx (javax.naming.InitialContext.)]
-  (.rebind ctx "data-source"
-           (proxy [javax.sql.DataSource] [])))
-
-;; https://docs.oracle.com/javase/8/docs/api/javax/naming/InitialContext.html
-;; https://www.javacodegeeks.com/2012/04/jndi-and-jpa-without-j2ee-container.html
-(defn lookup-data-source [jndi]
-  (when-not jndi
-    (throw (RuntimeException. "No `jndi` property set.")))
-  (with-open [ctx (javax.naming.InitialContext.)]
-    (or
-     (-> ctx
-         (.lookup jndi))
-     (throw
-      (RuntimeException. (format "Could not find JNDI '%s'." jndi))))))
 
 (definterface ButtleDataSource
   (setUrl [^String url])
   (setJndi [^String jndi]))
+
+(defn lookup-data-source [jndi]
+  (when-not jndi
+    (throw (RuntimeException. "No `jndi` property set.")))
+  (with-open [ctx (InitialContext.)]
+    (.lookup ctx jndi)))
 
 (defn make-data-source []
   (let [ds (atom nil)
@@ -66,10 +32,11 @@
                    ds
                    (lookup-data-source @jndi))))]
     (proxy/make-proxy
-     [javax.sql.DataSource ButtleDataSource]
-     (proxy [javax.sql.DataSource ButtleDataSource] []
-       (setUrl [url])
-       (setJndi [jndi])
+     [DataSource ButtleDataSource]
+     (proxy [DataSource ButtleDataSource] []
+       ;; TODO (setUrl [url])
+       (setJndi [x]
+         (reset! jndi x))
        (getConnection [& [user password :as xs]]
          (if-not xs (-> (ds!) .getConnection)
                  (-> (ds!) (.getConnection user password))))
