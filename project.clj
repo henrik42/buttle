@@ -37,6 +37,12 @@
 
              :test {:dependencies [[org.postgresql/postgresql "9.4.1212"]
                                    [opentracing-clj "0.1.2"]
+                                   
+                                   ;; https://github.com/h-thurow/Simple-JNDI/tree/master
+                                   ;; https://github.com/hen/osjava/tree/master/simple-jndi
+                                   [com.github.h-thurow/simple-jndi "0.17.2"]
+                                   ;;[simple-jndi "0.11.4.1"]
+                                   
                                    [io.jaegertracing/jaeger-client "0.33.1"]
                                    [org.slf4j/slf4j-jdk14 "1.7.25"]]}}
 

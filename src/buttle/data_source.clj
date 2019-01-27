@@ -3,50 +3,73 @@
    :init init
    :state state
    :name buttle.jdbc.DataSource
-   :implements [javax.sql.DataSource])
+   :implements [javax.sql.DataSource]
+   :methods [[setUrl [String] void]
+             [setJndi [String] void]])
   (:import [java.sql SQLException]
            [java.sql SQLFeatureNotSupportedException])
   (:require [buttle.proxy :as proxy]))
 
 #_
-(def ds (make-data-source))
+(defn create-initial-context-factory []
+  (proxy [org.osjava.sj.MemoryContextFactory] []
+    (getInitialContext [env]
+      (proxy-super
+       getInitialContext
+       (doto (.clone env)
+         (.put "org.osjava.sj.jndi.ignoreClose" "true")
+         (.put "org.osjava.sj.jndi.shared" "true"))))))
 
 #_
-(def dsx (buttle.jdbc.DataSource.))
+(javax.naming.spi.NamingManager/setInitialContextFactoryBuilder
+ (proxy [javax.naming.spi.InitialContextFactoryBuilder] []
+   (createInitialContextFactory [_]
+     (create-initial-context-factory))))
 
-;; Problem: unsere Datasource ist nur ein Proxy um eine "echte"
-;; DataSource, an die wir alle Methodenaufrufe deligieren
-;; (Alternative: wir bieten eine DataSource, die auf den DriverManager
-;; zurückgreift). Diese echte DataSource müssen wir uns aus dem JNDI
-;; holen.
-;;
-;; Es ist aber gar nicht klar, in welcher Reihenfolge dies
-;; geschieht. D.h. wir müssen davon ausgehen, dass unsere DataSource
-;; erzeugt und ggf. sogar *verwendet* wird, bevor die "echte"
-;; DataSource im JNDI registriert wurde. Daher müssen wir den
-;; Zeitpunkt, an dem wir uns die "echte" DataSource aus dem JNDI
-;; holen, so weit wie möglich nach hinten verschieben.
-;;
-;; Sollten wir die "echte" DataSource brauchen und finden sie aber
-;; nicht im JNDI, bleibt uns nichts anderes übrig, als eine Exception
-;; zu werfen.
+#_
+(let [env (doto (java.util.Hashtable.)
+            #_ (.put "org.osjava.sj.jndi.ignoreClose" "true")
+            #_ (.put "org.osjava.sj.jndi.shared" "true"))]
+  (with-open [ctx (javax.naming.InitialContext. env)]
+    (.rebind ctx "foo" "bar"))
+  (with-open [ctx (javax.naming.InitialContext. env)]
+    (.lookup ctx "foo")))
 
-(defn lookup-data-source []
-  (proxy [javax.sql.DataSource] []
-    (getConnection [& xs]
-      (.println System/out
-                (format "lookup-data-source : %s" xs)))))
+#_ ;; (lookup-data-source "data-source")
+(with-open [ctx (javax.naming.InitialContext.)]
+  (.rebind ctx "data-source"
+           (proxy [javax.sql.DataSource] [])))
+
+;; https://docs.oracle.com/javase/8/docs/api/javax/naming/InitialContext.html
+;; https://www.javacodegeeks.com/2012/04/jndi-and-jpa-without-j2ee-container.html
+(defn lookup-data-source [jndi]
+  (when-not jndi
+    (throw (RuntimeException. "No `jndi` property set.")))
+  (with-open [ctx (javax.naming.InitialContext.)]
+    (or
+     (-> ctx
+         (.lookup jndi))
+     (throw
+      (RuntimeException. (format "Could not find JNDI '%s'." jndi))))))
+
+(definterface ButtleDataSource
+  (setUrl [^String url])
+  (setJndi [^String jndi]))
 
 (defn make-data-source []
   (let [ds (atom nil)
+        url (atom nil) 
+        jndi (atom nil)
         ds! (fn []
               (or @ds
                   (reset!
                    ds
-                   (lookup-data-source))))]
+                   (lookup-data-source @jndi))))]
     (proxy/make-proxy
-     javax.sql.DataSource
-     (proxy [javax.sql.DataSource] []
+     [javax.sql.DataSource ButtleDataSource]
+     (proxy [javax.sql.DataSource ButtleDataSource] []
+       (setUrl [url])
+       (setJndi [jndi])
        (getConnection [& [user password :as xs]]
          (if-not xs (-> (ds!) .getConnection)
                  (-> (ds!) (.getConnection user password))))
@@ -68,6 +91,12 @@
 
 (defn -init []
   [[] (make-data-source)])
+
+(defn -setUrl [this url]
+  (.setUrl (.state this) url))
+
+(defn -setJndi [this jndi]
+  (.setJndi (.state this) jndi))
 
 (defn -getConnection
   ([this]

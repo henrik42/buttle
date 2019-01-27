@@ -103,7 +103,9 @@
   [proxy-type target-obj handler-fn]
   (java.lang.reflect.Proxy/newProxyInstance
    (.. target-obj getClass getClassLoader)
-   (into-array [proxy-type])
+   (if (vector? proxy-type)
+     (into-array proxy-type)
+     (into-array [proxy-type]))
    (proxy [java.lang.reflect.InvocationHandler] []
      (invoke [the-proxy the-method the-args]
        (invoke-fn proxy-type target-obj handler-fn the-proxy the-method the-args)))))
