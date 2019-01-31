@@ -9,19 +9,26 @@
   
   :dependencies [[org.clojure/clojure "1.9.0"]
                  [org.clojure/core.async "0.4.490"]]
+
+  ;; we need buttle.SetContextClassLoaderInStaticInitializer as a base
+  ;; class for buttle.jdbc.Driver/driver.clj - so we'll compile Java
+  ;; classes first and then Clojure files
+  :java-source-paths ["java"]
   
   :plugins [[lein-swank "1.4.5"]
             [lein-codox "0.10.3"]
             [lein-marginalia "0.9.1"]]
-  
-  :aliases {"make-doc" ["with-profile" "+make-doc" "do"
+
+  ;; uberjar will contain clojure RT!!
+  :aliases {"make-uberjar" ["do" "clean," "uberjar"]
+            "make-doc" ["with-profile" "+make-doc" "do"
                         ["clean"]
                         ["codox"]
                         ["marg"
                          "-d" "resources/public/generated-doc/"
                          "-f" "buttle-source.html"
                          "src"]]}
-  
+
   :profiles {:make-doc {:codox {:metadata {:doc/format :markdown}
                                 :themes [:rdash]
                                 :doc-files ["README.md" "doc/intro_de.md"]

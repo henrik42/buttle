@@ -28,6 +28,7 @@
    :init init
    :state state
    :name buttle.jdbc.Driver
+   :extends buttle.SetContextClassLoaderInStaticInitializer
    :implements [java.sql.Driver])
   (:require [buttle.driver-manager :as mgr]
             [buttle.util :as util]
@@ -88,7 +89,13 @@
    `java.sql.DriverManager`. There are two important methods that this
    driver (proxy) implements: `connect` and `acceptsURL`. These are
    needed for interaction with the `DriverManager` so that the
-   _Buttle_ driver can be _picked up_ for _Buttle_ urls."
+   _Buttle_ driver can be _picked up_ for _Buttle_ urls.
+
+   Note: the _Buttle_ proxy will set the current thread's context
+   classloader to the classloader of `clojure.lang.RT`'s class. This
+   is needed for cases when _Buttle_ is used as a data-source in
+   Wildfly application server. At the moment you cannot configure this
+   feature."
 
   []
   (proxy/make-proxy
@@ -115,7 +122,9 @@
      ;; Logger getParentLogger()
      (getParentLogger []
        (java.util.logging.Logger/getLogger "buttle")))
-   proxy/handle))
+   (fn [the-method target-obj the-args]
+     (util/with-tccl (.getClassLoader clojure.lang.RT)
+       (proxy/handle the-method target-obj the-args)))))
 
 (def -init
   "Constructor function of `buttle.jdbc.Driver`.
@@ -151,6 +160,21 @@
   [this url]
   (.acceptsURL (.state this) url))
 
+(defn -getPropertyInfo [this url info]
+  (.getPropertyInfo (.state this) url info))
+  
+(defn -getMajorVersion [this]
+  (.getMajorVersion (.state this)))
+
+(defn -getMinorVersion [this]
+  (.getMinorVersion (.state this)))
+
+(defn -jdbcCompliant [this]
+  (.jdbcCompliant (.state this)))
+
+(defn -getParentLogger [this]
+  (.getParentLogger (.state this)))
+  
 (defn eval-buttle-user-form
   "If system property `buttle.user-form` is set, uses `(-> read-string
   eval)` to evaluate that string. This function is called when

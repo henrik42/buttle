@@ -6,8 +6,8 @@ _Buttle_ is a proxying JDBC driver which wraps _real_ JDBC drivers.
 
 _Buttle_ supplies a `java.sql.Driver` which delegates calls to a
 backing `Driver` (like `org.postgresql.Driver`). _Buttle_ then
-constructs proxies _around_ the returned values. These proxies then do
-the same for their proxied instances (and so on).
+constructs proxies _around_ the returned `Connection`. These proxies
+then do the same for their proxied instances (and so on).
 
 Proxies are only constructed for methods (i.e. their returned values)
 that have interface-typed declared return types.
