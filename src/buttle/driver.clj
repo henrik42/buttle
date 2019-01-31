@@ -175,23 +175,22 @@
 (defn -getParentLogger [this]
   (.getParentLogger (.state this)))
   
-(defn eval-buttle-user-form
-  "If system property `buttle.user-form` is set, uses `(-> read-string
-  eval)` to evaluate that string. This function is called when
-  namespace `buttle.driver` is loaded. This happens for example when
-  die _Buttle_ JDBC driver is loaded.
+(defn eval-buttle-user-file
+  "If system property `buttle.user-file` is set, uses `load-file` to
+  evaluate that file. This function is called when namespace
+  `buttle.driver` is loaded. This happens for example when die
+  _Buttle_ JDBC driver is loaded.
 
   Use this function to load your own code when you do not control the
-  main program flow (like when using _Buttle_ in tools like
-  SQuirreL)."
-
+  main program flow (like when using _Buttle_ in tools like SQuirreL
+  or in a Java application server)."
+  
   []
-  (when-let [user-form (System/getProperty "buttle.user-form")]
+  (when-let [user-file (System/getProperty "buttle.user-file")]
     (try 
-      (eval (read-string user-form))
+      (load-file user-file)
       (catch Throwable t
-        (.println System/err (format "(eval-buttle-user-form %s) failed: %s" (pr-str user-form) t))))))
+        (.println System/err (format "(eval-buttle-user-file %s) failed: %s" (pr-str user-file) t))))))
 
-;; invoke `eval-buttle-user-form` when namespace is loaded. See
-;; example in `examples/buttle/examples/event_channel.clj`
-(eval-buttle-user-form)
+(eval-buttle-user-file)
+

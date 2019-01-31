@@ -3093,23 +3093,22 @@ net.brehaut.ClojureTools = (function (SH) {
 </td><td class="codes"><pre class="brush: clojure">(defn -jdbcCompliant [this]
   (.jdbcCompliant (.state this)))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defn -getParentLogger [this]
-  (.getParentLogger (.state this)))</pre></td></tr><tr><td class="docs"><p>If system property <code>buttle.user-form</code> is set, uses `(-> read-string
-  eval)` to evaluate that string. This function is called when
-  namespace <code>buttle.driver</code> is loaded. This happens for example when
-  die <em>Buttle</em> JDBC driver is loaded.</p>
+  (.getParentLogger (.state this)))</pre></td></tr><tr><td class="docs"><p>If system property <code>buttle.user-file</code> is set, uses <code>load-file</code> to
+  evaluate that file. This function is called when namespace
+  <code>buttle.driver</code> is loaded. This happens for example when die
+  <em>Buttle</em> JDBC driver is loaded.</p>
 
 <p>  Use this function to load your own code when you do not control the
-  main program flow (like when using <em>Buttle</em> in tools like
-  SQuirreL).</p>
-</td><td class="codes"><pre class="brush: clojure">(defn eval-buttle-user-form
+  main program flow (like when using <em>Buttle</em> in tools like SQuirreL
+  or in a Java application server).</p>
+</td><td class="codes"><pre class="brush: clojure">(defn eval-buttle-user-file
   []
-  (when-let [user-form (System/getProperty &quot;buttle.user-form&quot;)]
+  (when-let [user-file (System/getProperty &quot;buttle.user-file&quot;)]
     (try 
-      (eval (read-string user-form))
+      (load-file user-file)
       (catch Throwable t
-        (.println System/err (format &quot;(eval-buttle-user-form %s) failed: %s&quot; (pr-str user-form) t))))))</pre></td></tr><tr><td class="docs"><p>invoke <code>eval-buttle-user-form</code> when namespace is loaded. See
-example in <code>examples/buttle/examples/event_channel.clj</code></p>
-</td><td class="codes"><pre class="brush: clojure">(eval-buttle-user-form)</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.driver-manager" name="buttle.driver-manager"><h1 class="project-name">buttle.driver-manager</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>A thin/simple Clojure API around <code>java.sql.DriverManager</code>.</p>
+        (.println System/err (format &quot;(eval-buttle-user-file %s) failed: %s&quot; (pr-str user-file) t))))))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(eval-buttle-user-file)</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.driver-manager" name="buttle.driver-manager"><h1 class="project-name">buttle.driver-manager</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>A thin/simple Clojure API around <code>java.sql.DriverManager</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns buttle.driver-manager
   (:import [java.sql DriverManager]))</pre></td></tr><tr><td class="docs"><p>Registers the <code>driver</code> (see
   <code>java.sql.DriverManager.registerDriver(Driver)</code>).</p>
