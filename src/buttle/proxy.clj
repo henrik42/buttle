@@ -163,6 +163,13 @@
         _ (event/send-event (->return-event invoke-evt r))
         rt (and r (.getReturnType the-method))]
     (if (and rt (.isInterface rt))
+      ;; TDB: should use (util/with-tccl (.getClassLoader
+      ;; clojure.lang.RT) as is buttle.driver/make-driver. Testcase:
+      ;; define a def-handle that triggers a load/compile of a
+      ;; namespace that has not been aot compiled with _Buttle_. That
+      ;; should fail without with-tccl because RT/core will not see
+      ;; the source since the tccl will not be _Buttle_'s classloader
+      ;; and RT/core usese the tccl.
       (make-proxy rt r handle)
       r)))
 

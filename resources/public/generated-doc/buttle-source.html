@@ -2949,8 +2949,7 @@ net.brehaut.ClojureTools = (function (SH) {
 
 <p>  This namespace delivers <code>buttle.jdbc.Driver</code> via <code>:gen-class</code>. This
   named class can be used by tools (like SQuirreL) and the SPI
-  <code>services/java.sql.Driver</code>. Note that this class has implementations
-  for <code>acceptsURL</code> and <code>connect</code> only.</p>
+  <code>services/java.sql.Driver</code>.</p>
 
 <p>  The <code>-init</code> constructor function will register a <em>Buttle</em> <code>Driver</code>
   proxy (see <code>make-driver</code>) with the <code>java.sql.DriverManager</code>. So
@@ -3026,10 +3025,17 @@ net.brehaut.ClojureTools = (function (SH) {
    <em>Buttle</em> driver can be <em>picked up</em> for <em>Buttle</em> urls.</p>
 
 <p>   Note: the <em>Buttle</em> proxy will set the current thread's context
-   classloader to the classloader of <code>clojure.lang.RT</code>'s class. This
-   is needed for cases when <em>Buttle</em> is used as a data-source in
-   Wildfly application server. At the moment you cannot configure this
-   feature.</p>
+   classloader to <em>Buttle</em>'s classloader when delegating to
+   <code>buttle.proxy/handle</code>. This is needed for cases when <em>Buttle</em> is
+   used as a data-source and deployed as a <em>module</em> in Wildfly/JBoss
+   application server. In this case <code>clojure.lang.RT</code> tries to load
+   <code>clojure/core.clj</code> which it can't because it uses the current
+   thread's context classloader and for Wildfly that will not be the
+   <em>Buttle</em> module's classloader. So we explicitly set the tccl and
+   things work. In non-application-server cases this usually does not
+   hurt (but it may some day..)</p>
+
+<p>   At the moment you cannot configure this feature.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn make-driver
   []
   (proxy/make-proxy
@@ -3057,16 +3063,16 @@ net.brehaut.ClojureTools = (function (SH) {
      (getParentLogger []
        (java.util.logging.Logger/getLogger &quot;buttle&quot;)))
    (fn [the-method target-obj the-args]
-     (util/with-tccl (.getClassLoader clojure.lang.RT)
+     (util/with-tccl (.getClassLoader buttle.jdbc.Driver)
        (proxy/handle the-method target-obj the-args)))))</pre></td></tr><tr><td class="docs"><p>Constructor function of <code>buttle.jdbc.Driver</code>.</p>
 
 <p>   On first invokation creates a <em>Buttle</em> <code>Driver</code> (see
-   <code>make-driver</code>), caches it and registers it with the
+   <code>make-driver</code>), keeps a reference to it and registers it with the
    <code>java.sql.DriverManager</code>.</p>
 
 <p>   This <em>Buttle</em> driver becomes the internal <code>state</code> of the
-   <code>buttle.jdbc.Driver</code>. <code>-connect</code> and <code>-acceptsURL</code> delegate to this
-   internal driver.</p>
+   <code>buttle.jdbc.Driver</code>. All <code>Driver</code> method implemenations of this
+   class delegate to this internal driver.</p>
 </td><td class="codes"><pre class="brush: clojure">(def -init
   (let [driver (atom nil)]
     (fn []
@@ -3083,32 +3089,40 @@ net.brehaut.ClojureTools = (function (SH) {
   the referenced/internal driver (see <code>-init</code>).</p>
 </td><td class="codes"><pre class="brush: clojure">(defn -acceptsURL
   [this url]
-  (.acceptsURL (.state this) url))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn -getPropertyInfo [this url info]
-  (.getPropertyInfo (.state this) url info))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn -getMajorVersion [this]
-  (.getMajorVersion (.state this)))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn -getMinorVersion [this]
-  (.getMinorVersion (.state this)))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn -jdbcCompliant [this]
-  (.jdbcCompliant (.state this)))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn -getParentLogger [this]
+  (.acceptsURL (.state this) url))</pre></td></tr><tr><td class="docs"><p>Just delegates to the referenced/internal driver (see <code>-init</code>).</p>
+</td><td class="codes"><pre class="brush: clojure">(defn -getPropertyInfo
+  [this url info]
+  (.getPropertyInfo (.state this) url info))</pre></td></tr><tr><td class="docs"><p>Just delegates to the referenced/internal driver (see <code>-init</code>).</p>
+</td><td class="codes"><pre class="brush: clojure">(defn -getMajorVersion
+  [this]
+  (.getMajorVersion (.state this)))</pre></td></tr><tr><td class="docs"><p>Just delegates to the referenced/internal driver (see <code>-init</code>).</p>
+</td><td class="codes"><pre class="brush: clojure">(defn -getMinorVersion
+  [this]
+  (.getMinorVersion (.state this)))</pre></td></tr><tr><td class="docs"><p>Just delegates to the referenced/internal driver (see <code>-init</code>).</p>
+</td><td class="codes"><pre class="brush: clojure">(defn -jdbcCompliant
+  [this]
+  (.jdbcCompliant (.state this)))</pre></td></tr><tr><td class="docs"><p>Just delegates to the referenced/internal driver (see <code>-init</code>).</p>
+</td><td class="codes"><pre class="brush: clojure">(defn -getParentLogger
+  [this]
   (.getParentLogger (.state this)))</pre></td></tr><tr><td class="docs"><p>If system property <code>buttle.user-file</code> is set, uses <code>load-file</code> to
-  evaluate that file. This function is called when namespace
-  <code>buttle.driver</code> is loaded. This happens for example when die
-  <em>Buttle</em> JDBC driver is loaded.</p>
+  evaluate that file.</p>
+
+<p>  This function is called when namespace <code>buttle.driver</code> is
+  loaded. This happens for example when die <em>Buttle</em> JDBC driver is
+  loaded.</p>
 
 <p>  Use this function to load your own code when you do not control the
   main program flow (like when using <em>Buttle</em> in tools like SQuirreL
-  or in a Java application server).</p>
-</td><td class="codes"><pre class="brush: clojure">(defn eval-buttle-user-file
+  or in a Java application server when you do not control/own the main
+  application).</p>
+</td><td class="codes"><pre class="brush: clojure">(defn eval-buttle-user-file!
   []
   (when-let [user-file (System/getProperty &quot;buttle.user-file&quot;)]
     (try 
       (load-file user-file)
       (catch Throwable t
-        (.println System/err (format &quot;(eval-buttle-user-file %s) failed: %s&quot; (pr-str user-file) t))))))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(eval-buttle-user-file)</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.driver-manager" name="buttle.driver-manager"><h1 class="project-name">buttle.driver-manager</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>A thin/simple Clojure API around <code>java.sql.DriverManager</code>.</p>
+        (.println System/err (format &quot;(eval-buttle-user-file! %s) failed: %s&quot; (pr-str user-file) t))))))</pre></td></tr><tr><td class="docs"><p>Note - this will execute when lein compiling, but should do no harm</p>
+</td><td class="codes"><pre class="brush: clojure">(eval-buttle-user-file!)</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.driver-manager" name="buttle.driver-manager"><h1 class="project-name">buttle.driver-manager</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>A thin/simple Clojure API around <code>java.sql.DriverManager</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns buttle.driver-manager
   (:import [java.sql DriverManager]))</pre></td></tr><tr><td class="docs"><p>Registers the <code>driver</code> (see
   <code>java.sql.DriverManager.registerDriver(Driver)</code>).</p>
@@ -3294,6 +3308,13 @@ net.brehaut.ClojureTools = (function (SH) {
         _ (event/send-event (-&gt;return-event invoke-evt r))
         rt (and r (.getReturnType the-method))]
     (if (and rt (.isInterface rt))
+      ;; TDB: should use (util/with-tccl (.getClassLoader
+      ;; clojure.lang.RT) as is buttle.driver/make-driver. Testcase:
+      ;; define a def-handle that triggers a load/compile of a
+      ;; namespace that has not been aot compiled with _Buttle_. That
+      ;; should fail without with-tccl because RT/core will not see
+      ;; the source since the tccl will not be _Buttle_'s classloader
+      ;; and RT/core usese the tccl.
       (make-proxy rt r handle)
       r)))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defmethod handle :default [the-method target-obj the-args]

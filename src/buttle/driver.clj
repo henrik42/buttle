@@ -3,8 +3,7 @@
 
   This namespace delivers `buttle.jdbc.Driver` via `:gen-class`. This
   named class can be used by tools (like SQuirreL) and the SPI
-  `services/java.sql.Driver`. Note that this class has implementations
-  for `acceptsURL` and `connect` only.
+  `services/java.sql.Driver`.
 
   The `-init` constructor function will register a _Buttle_ `Driver`
   proxy (see `make-driver`) with the `java.sql.DriverManager`. So
@@ -92,10 +91,17 @@
    _Buttle_ driver can be _picked up_ for _Buttle_ urls.
 
    Note: the _Buttle_ proxy will set the current thread's context
-   classloader to the classloader of `clojure.lang.RT`'s class. This
-   is needed for cases when _Buttle_ is used as a data-source in
-   Wildfly application server. At the moment you cannot configure this
-   feature."
+   classloader to _Buttle_'s classloader when delegating to
+   `buttle.proxy/handle`. This is needed for cases when _Buttle_ is
+   used as a data-source and deployed as a _module_ in Wildfly/JBoss
+   application server. In this case `clojure.lang.RT` tries to load
+   `clojure/core.clj` which it can't because it uses the current
+   thread's context classloader and for Wildfly that will not be the
+   _Buttle_ module's classloader. So we explicitly set the tccl and
+   things work. In non-application-server cases this usually does not
+   hurt (but it may some day..)
+
+   At the moment you cannot configure this feature."
 
   []
   (proxy/make-proxy
@@ -123,19 +129,19 @@
      (getParentLogger []
        (java.util.logging.Logger/getLogger "buttle")))
    (fn [the-method target-obj the-args]
-     (util/with-tccl (.getClassLoader clojure.lang.RT)
+     (util/with-tccl (.getClassLoader buttle.jdbc.Driver)
        (proxy/handle the-method target-obj the-args)))))
 
 (def -init
   "Constructor function of `buttle.jdbc.Driver`.
 
    On first invokation creates a _Buttle_ `Driver` (see
-   `make-driver`), caches it and registers it with the
+   `make-driver`), keeps a reference to it and registers it with the
    `java.sql.DriverManager`.
 
    This _Buttle_ driver becomes the internal `state` of the
-   `buttle.jdbc.Driver`. `-connect` and `-acceptsURL` delegate to this
-   internal driver."
+   `buttle.jdbc.Driver`. All `Driver` method implemenations of this
+   class delegate to this internal driver."
   
   (let [driver (atom nil)]
     (fn []
@@ -160,37 +166,55 @@
   [this url]
   (.acceptsURL (.state this) url))
 
-(defn -getPropertyInfo [this url info]
+(defn -getPropertyInfo
+  "Just delegates to the referenced/internal driver (see `-init`)."
+  
+  [this url info]
   (.getPropertyInfo (.state this) url info))
   
-(defn -getMajorVersion [this]
+(defn -getMajorVersion
+  "Just delegates to the referenced/internal driver (see `-init`)."
+
+  [this]
   (.getMajorVersion (.state this)))
 
-(defn -getMinorVersion [this]
+(defn -getMinorVersion
+  "Just delegates to the referenced/internal driver (see `-init`)."
+  
+  [this]
   (.getMinorVersion (.state this)))
 
-(defn -jdbcCompliant [this]
+(defn -jdbcCompliant
+  "Just delegates to the referenced/internal driver (see `-init`)."
+
+  [this]
   (.jdbcCompliant (.state this)))
 
-(defn -getParentLogger [this]
+(defn -getParentLogger
+  "Just delegates to the referenced/internal driver (see `-init`)."
+  
+  [this]
   (.getParentLogger (.state this)))
   
-(defn eval-buttle-user-file
+(defn eval-buttle-user-file!
   "If system property `buttle.user-file` is set, uses `load-file` to
-  evaluate that file. This function is called when namespace
-  `buttle.driver` is loaded. This happens for example when die
-  _Buttle_ JDBC driver is loaded.
+  evaluate that file.
+
+  This function is called when namespace `buttle.driver` is
+  loaded. This happens for example when die _Buttle_ JDBC driver is
+  loaded.
 
   Use this function to load your own code when you do not control the
   main program flow (like when using _Buttle_ in tools like SQuirreL
-  or in a Java application server)."
+  or in a Java application server when you do not control/own the main
+  application)."
   
   []
   (when-let [user-file (System/getProperty "buttle.user-file")]
     (try 
       (load-file user-file)
       (catch Throwable t
-        (.println System/err (format "(eval-buttle-user-file %s) failed: %s" (pr-str user-file) t))))))
+        (.println System/err (format "(eval-buttle-user-file! %s) failed: %s" (pr-str user-file) t))))))
 
-(eval-buttle-user-file)
-
+;; Note - this will execute when lein compiling, but should do no harm
+(eval-buttle-user-file!)
