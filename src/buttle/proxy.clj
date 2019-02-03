@@ -14,7 +14,8 @@
    In order to hook your own code into the delegation you may use
    `def-handle` to register your functions for certain method calls."
   
-  (:require [buttle.event :as event]))
+  (:require [buttle.event :as event]
+            [buttle.util :as util]))
 
 (defn ->invoke-event
   "Returns an _invoke-event-map_."
@@ -163,14 +164,15 @@
         _ (event/send-event (->return-event invoke-evt r))
         rt (and r (.getReturnType the-method))]
     (if (and rt (.isInterface rt))
-      ;; TDB: should use (util/with-tccl (.getClassLoader
-      ;; clojure.lang.RT) as is buttle.driver/make-driver. Testcase:
-      ;; define a def-handle that triggers a load/compile of a
-      ;; namespace that has not been aot compiled with _Buttle_. That
-      ;; should fail without with-tccl because RT/core will not see
-      ;; the source since the tccl will not be _Buttle_'s classloader
-      ;; and RT/core usese the tccl.
-      (make-proxy rt r handle)
+      ;; see comment for buttle.driver/make-driver -- need
+      ;; Class/forName because when using class literal
+      ;; buttle.jdbc.Driver the compiler complains about a cyclic
+      ;; dependency driver/proxy/driver.
+      (make-proxy rt r
+                  (fn [the-method target-obj the-args]
+                    (util/with-tccl (.getClassLoader
+                                     (Class/forName "buttle.jdbc.Driver"))
+                      (handle the-method target-obj the-args))))
       r)))
 
 (defmethod handle :default [the-method target-obj the-args]

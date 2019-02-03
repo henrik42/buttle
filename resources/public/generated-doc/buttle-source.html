@@ -3185,7 +3185,8 @@ net.brehaut.ClojureTools = (function (SH) {
 <p>   In order to hook your own code into the delegation you may use
    <code>def-handle</code> to register your functions for certain method calls.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns buttle.proxy
-  (:require [buttle.event :as event]))</pre></td></tr><tr><td class="docs"><p>Returns an <em>invoke-event-map</em>.</p>
+  (:require [buttle.event :as event]
+            [buttle.util :as util]))</pre></td></tr><tr><td class="docs"><p>Returns an <em>invoke-event-map</em>.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn -&gt;invoke-event
   [the-method target-obj the-args]
   {:type :invoke
@@ -3308,14 +3309,15 @@ net.brehaut.ClojureTools = (function (SH) {
         _ (event/send-event (-&gt;return-event invoke-evt r))
         rt (and r (.getReturnType the-method))]
     (if (and rt (.isInterface rt))
-      ;; TDB: should use (util/with-tccl (.getClassLoader
-      ;; clojure.lang.RT) as is buttle.driver/make-driver. Testcase:
-      ;; define a def-handle that triggers a load/compile of a
-      ;; namespace that has not been aot compiled with _Buttle_. That
-      ;; should fail without with-tccl because RT/core will not see
-      ;; the source since the tccl will not be _Buttle_'s classloader
-      ;; and RT/core usese the tccl.
-      (make-proxy rt r handle)
+      ;; see comment for buttle.driver/make-driver -- need
+      ;; Class/forName because when using class literal
+      ;; buttle.jdbc.Driver the compiler complains about a cyclic
+      ;; dependency driver/proxy/driver.
+      (make-proxy rt r
+                  (fn [the-method target-obj the-args]
+                    (util/with-tccl (.getClassLoader
+                                     (Class/forName &quot;buttle.jdbc.Driver&quot;))
+                      (handle the-method target-obj the-args))))
       r)))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defmethod handle :default [the-method target-obj the-args]
   (handle-default the-method target-obj the-args))</pre></td></tr><tr><td class="docs"><p>Registers a <code>handle</code> method implementation for dispatch (as of

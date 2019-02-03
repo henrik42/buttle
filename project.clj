@@ -22,8 +22,10 @@
             [lein-codox "0.10.3"]
             [lein-marginalia "0.9.1"]]
 
-  ;; uberjar will contain clojure RT!!
-  :aliases {"make-uberjar" ["do" "clean," "uberjar"]
+  :aliases {;; uberjar will contain clojure RT!!
+            "make-uberjar" ["do" "clean," "uberjar"]
+
+            ;; make documenation which is kept in git repo
             "make-doc" ["with-profile" "+make-doc" "do"
                         ["clean"]
                         ["codox"]
