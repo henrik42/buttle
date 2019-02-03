@@ -9,14 +9,14 @@
   proxy (see `make-driver`) with the `java.sql.DriverManager`. So
   whenever an instance of `buttle.jdbc.Driver` is created, a new
   proxy ( __not__ the `buttle.jdbc.Driver`!) is registered. This will
-  probably change to just ever registering one proxy.
+  probably change to just ever only registering one proxy.
 
-  When this namespace is loaded `eval-buttle-user-form` will be
+  When this namespace is loaded `eval-buttle-user-file!` will be
   executed.
 
   __WARNING:__ this means that anyone who controls the system
   properties of the hosting JVM can run any Clojure code (but then
-  again --- if someone controls the system properties he/she is
+  again --- when someone controls the system properties he/she is
   probably able to run any command anyway).
 
   Functions in this namespace deliver all the functionality needed for
@@ -34,10 +34,10 @@
             [buttle.proxy :as proxy]))
 
 (defn parse-jdbc-url
-  "Parses a _Buttle_ JDBC url.
+  "Parses a _Buttle_ JDBC URL.
 
-   A _Buttle_ JDBC url has the format `#\"jdbc:buttle:(.+)\"`. Any
-   text after `jdbc:buttle:` will be `read-string-eval'ed` and should
+   A _Buttle_ JDBC URL has the format `#\"jdbc:buttle:(.+)\"`. Any
+   text after `jdbc:buttle:` will be `read-string-eval`'ed and should
    yield a map with keys `:target-url`, `:user` and `:password`. The
    `eval`'ed value is returned (even if not a map). If `url` does not
    match the pattern `nil` is returned. If `read-string-eval` throws
@@ -50,7 +50,7 @@
             read-string
             eval)
     (catch Throwable t
-      (throw (ex-info "Could not parse url" {:url url} t)))))
+      (throw (ex-info "Could not parse URL" {:url url} t)))))
 
 (defn accepts-url-fn
   "Parses `url` via `parse-jdbc-url` and retrieves the keys
@@ -65,7 +65,7 @@
      :password password}))
 
 (defn connect-fn
-  "Returns `nil` if `url` is not a _Buttle_ url (as of
+  "Returns `nil` if `url` is not a _Buttle_ URL (as of
   `accepts-url-fn`). Else opens a JDBC `Connection` to `:target-url`
   with `:user` and `:password` via
   `buttle.driver-manager/get-connection`. If that throws then this
@@ -88,20 +88,18 @@
    `java.sql.DriverManager`. There are two important methods that this
    driver (proxy) implements: `connect` and `acceptsURL`. These are
    needed for interaction with the `DriverManager` so that the
-   _Buttle_ driver can be _picked up_ for _Buttle_ urls.
+   _Buttle_ driver can be _picked up_ for _Buttle_ URLs.
 
    Note: the _Buttle_ proxy will set the current thread's context
-   classloader to _Buttle_'s classloader when delegating to
+   classloader (TCCL) to _Buttle_'s classloader when delegating to
    `buttle.proxy/handle`. This is needed for cases when _Buttle_ is
    used as a data-source and deployed as a _module_ in Wildfly/JBoss
    application server. In this case `clojure.lang.RT` tries to load
    `clojure/core.clj` which it can't because it uses the current
    thread's context classloader and for Wildfly that will not be the
-   _Buttle_ module's classloader. So we explicitly set the tccl and
+   _Buttle_ module's classloader. So we explicitly set the TCCL and
    things work. In non-application-server cases this usually does not
-   hurt (but it may some day..)
-
-   At the moment you cannot configure this feature."
+   hurt. At the moment you cannot configure this feature."
 
   []
   (proxy/make-proxy

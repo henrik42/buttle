@@ -125,6 +125,26 @@
 ;; tracked down yet. Possible fix: consume-until-done should consume
 ;; and ignore any event until it sees an :start event. Thus we could
 ;; make it chew up any event that might have been put onto the mult.
+;;
+;; Here's the outcome for reference. Ah, ok, I see. There are two
+;; events that had not been consumed and thus show up in the wrong
+;; test! Fix: chew them up before collecting data into bag like I said
+;; above.
+;;
+;; lein test :only buttle.event-test/invoke-return-test
+;; 
+;; FAIL in (invoke-return-test) (event_test.clj:141)
+;; expected: (= [{:type :invoke, :invoke :java.sql.Connection/getCatalog, :args [], :thread "THREAD", :ts "TS"}
+;;   {:type :return, :invoke "INVOKE", :return "bar", :ts "TS", :dur-msec "DUR-MSEC"} :done]
+;;   (project-event (clojure.core/deref bag)))
+;; actual: (not (= [{:type :invoke, :invoke :java.sql.Connection/getCatalog, :args [], :thread "THREAD", :ts "TS"}
+;;   {:type :return, :invoke "INVOKE", :return "bar", :ts "TS", :dur-msec "DUR-MSEC"} :done]
+;;   [{:type :return, :invoke "INVOKE",
+;;     :return #object[buttle.driver_test.proxy$java.lang.Object$Connection$1d5212e 0x294bdeb4 "foo-connection"],
+;;     :ts "TS", :dur-msec "DUR-MSEC"}
+;;    {:type :invoke, :invoke :java.sql.Connection/getCatalog, :args [], :thread "THREAD", :ts "TS"}
+;;    {:type :return, :invoke "INVOKE", :return "bar", :ts "TS", :dur-msec "DUR-MSEC"} :done]))
+;; 
 (deftest invoke-return-test
   (let [bag (atom [])
         p (promise)

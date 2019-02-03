@@ -19,14 +19,14 @@
   (is (= nil (drv/parse-jdbc-url "foobar")))
   (is (= nil (drv/parse-jdbc-url "jdbc:buttle:")))
   (is (= 42 (drv/parse-jdbc-url "jdbc:buttle:42")))
-  (is (thrown-with-msg? Throwable #"Could not parse url" (drv/parse-jdbc-url "jdbc:buttle:("))))
+  (is (thrown-with-msg? Throwable #"Could not parse URL" (drv/parse-jdbc-url "jdbc:buttle:("))))
     
 (deftest test-accepts-url-fn
   (is (= nil (drv/accepts-url-fn "foobar")))
   (is (= nil (drv/accepts-url-fn "jdbc:buttle:")))
   (is (= {:target-url nil, :user nil, :password nil}
          (drv/accepts-url-fn "jdbc:buttle:42")))
-  (is (thrown-with-msg? Throwable #"Could not parse url" (drv/accepts-url-fn "jdbc:buttle:("))))
+  (is (thrown-with-msg? Throwable #"Could not parse URL" (drv/accepts-url-fn "jdbc:buttle:("))))
 
 (def postgres-url "jdbc:postgresql://127.0.0.1:6632/postgres")
 (def buttle-url (format "jdbc:buttle:{:user %s :password %s :target-url %s}"

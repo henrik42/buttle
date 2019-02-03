@@ -2955,14 +2955,14 @@ net.brehaut.ClojureTools = (function (SH) {
   proxy (see <code>make-driver</code>) with the <code>java.sql.DriverManager</code>. So
   whenever an instance of <code>buttle.jdbc.Driver</code> is created, a new
   proxy ( <strong>not</strong> the <code>buttle.jdbc.Driver</code>!) is registered. This will
-  probably change to just ever registering one proxy.</p>
+  probably change to just ever only registering one proxy.</p>
 
-<p>  When this namespace is loaded <code>eval-buttle-user-form</code> will be
+<p>  When this namespace is loaded <code>eval-buttle-user-file!</code> will be
   executed.</p>
 
 <p>  <strong>WARNING:</strong> this means that anyone who controls the system
   properties of the hosting JVM can run any Clojure code (but then
-  again --- if someone controls the system properties he/she is
+  again --- when someone controls the system properties he/she is
   probably able to run any command anyway).</p>
 
 <p>  Functions in this namespace deliver all the functionality needed for
@@ -2977,10 +2977,10 @@ net.brehaut.ClojureTools = (function (SH) {
    :implements [java.sql.Driver])
   (:require [buttle.driver-manager :as mgr]
             [buttle.util :as util]
-            [buttle.proxy :as proxy]))</pre></td></tr><tr><td class="docs"><p>Parses a <em>Buttle</em> JDBC url.</p>
+            [buttle.proxy :as proxy]))</pre></td></tr><tr><td class="docs"><p>Parses a <em>Buttle</em> JDBC URL.</p>
 
-<p>   A <em>Buttle</em> JDBC url has the format <code>#"jdbc:buttle:(.+)"</code>. Any
-   text after <code>jdbc:buttle:</code> will be <code>read-string-eval'ed</code> and should
+<p>   A <em>Buttle</em> JDBC URL has the format <code>#"jdbc:buttle:(.+)"</code>. Any
+   text after <code>jdbc:buttle:</code> will be <code>read-string-eval</code>'ed and should
    yield a map with keys <code>:target-url</code>, <code>:user</code> and <code>:password</code>. The
    <code>eval</code>'ed value is returned (even if not a map). If <code>url</code> does not
    match the pattern <code>nil</code> is returned. If <code>read-string-eval</code> throws
@@ -2993,7 +2993,7 @@ net.brehaut.ClojureTools = (function (SH) {
             read-string
             eval)
     (catch Throwable t
-      (throw (ex-info &quot;Could not parse url&quot; {:url url} t)))))</pre></td></tr><tr><td class="docs"><p>Parses <code>url</code> via <code>parse-jdbc-url</code> and retrieves the keys
+      (throw (ex-info &quot;Could not parse URL&quot; {:url url} t)))))</pre></td></tr><tr><td class="docs"><p>Parses <code>url</code> via <code>parse-jdbc-url</code> and retrieves the keys
   <code>:target-url</code>, <code>:user</code> and <code>:password</code> from the returned
   value (assuming that it is a map). Returns a map with <code>:target-url</code>,
   <code>:user</code> and <code>:password</code>.</p>
@@ -3002,7 +3002,7 @@ net.brehaut.ClojureTools = (function (SH) {
   (when-let [{:keys [target-url user password]} (parse-jdbc-url url)]
     {:target-url target-url
      :user user
-     :password password}))</pre></td></tr><tr><td class="docs"><p>Returns <code>nil</code> if <code>url</code> is not a <em>Buttle</em> url (as of
+     :password password}))</pre></td></tr><tr><td class="docs"><p>Returns <code>nil</code> if <code>url</code> is not a <em>Buttle</em> URL (as of
   <code>accepts-url-fn</code>). Else opens a JDBC <code>Connection</code> to <code>:target-url</code>
   with <code>:user</code> and <code>:password</code> via
   <code>buttle.driver-manager/get-connection</code>. If that throws then this
@@ -3022,20 +3022,18 @@ net.brehaut.ClojureTools = (function (SH) {
    <code>java.sql.DriverManager</code>. There are two important methods that this
    driver (proxy) implements: <code>connect</code> and <code>acceptsURL</code>. These are
    needed for interaction with the <code>DriverManager</code> so that the
-   <em>Buttle</em> driver can be <em>picked up</em> for <em>Buttle</em> urls.</p>
+   <em>Buttle</em> driver can be <em>picked up</em> for <em>Buttle</em> URLs.</p>
 
 <p>   Note: the <em>Buttle</em> proxy will set the current thread's context
-   classloader to <em>Buttle</em>'s classloader when delegating to
+   classloader (TCCL) to <em>Buttle</em>'s classloader when delegating to
    <code>buttle.proxy/handle</code>. This is needed for cases when <em>Buttle</em> is
    used as a data-source and deployed as a <em>module</em> in Wildfly/JBoss
    application server. In this case <code>clojure.lang.RT</code> tries to load
    <code>clojure/core.clj</code> which it can't because it uses the current
    thread's context classloader and for Wildfly that will not be the
-   <em>Buttle</em> module's classloader. So we explicitly set the tccl and
+   <em>Buttle</em> module's classloader. So we explicitly set the TCCL and
    things work. In non-application-server cases this usually does not
-   hurt (but it may some day..)</p>
-
-<p>   At the moment you cannot configure this feature.</p>
+   hurt. At the moment you cannot configure this feature.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn make-driver
   []
   (proxy/make-proxy
