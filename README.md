@@ -39,6 +39,14 @@ channel/mult so that users can consume `buttle.event/event-mult` to
 receive the events. See usage example in
 `examples/buttle/examples/event_channel.clj`.
 
+Similar things have been done before:
+
+* https://www.javaspecialists.eu/archive/Issue136.html  
+* https://jaxenter.de/jdbc-treiber-selbstgebaut-java-trickkiste-636  
+* http://jamonapi.sourceforge.net/jamon_sql.html  
+* https://github.com/arthurblake/log4jdbc  
+* https://p6spy.readthedocs.io/en/latest/index.html  
+
 ## What to use it for?
 
 Use it for
