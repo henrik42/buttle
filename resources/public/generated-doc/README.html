@@ -6,7 +6,8 @@
 <p><em>Buttle</em> supplies a <code>java.sql.Driver</code> (see <code>driver.clj</code>) which delegates <code>connect</code> calls to a backing <code>Driver</code> (like <code>org.postgresql.Driver</code>). <em>Buttle</em> then constructs proxies <em>around</em> the returned <code>Connection</code>. These proxies (see <code>proxy.clj</code>) then recursivly do the same for their proxied instances (e.g. for <code>Statement</code> and <code>ResultSet</code> return values).</p>
 <p>Proxies are only constructed for methods (i.e. their returned values) that have interface-typed declared return types.</p>
 <p><em>Buttle</em> proxies delegate calls to the backing JDBC driver’s instances through <code>buttle.proxy/handle</code> multi method. Using <code>buttle.proxy/def-handle</code> users can <em>inject</em> their own method implemenations (per interface/method) into the delegation. See usage example in <code>examples/buttle/examples/open_tracing.clj</code> and <code>examples/buttle/examples/handle.clj</code>.</p>
-<p><em>Buttle</em> proxies also create <em>events</em> for every method invocation and completion incl. when an <code>Exception</code> is thrown (see <code>buttle.proxy/handle-default</code>). These events include info about</p>
+<p><em>Buttle</em> proxies also create <em>events</em> for every method invocation and completion incl. when an <code>Exception</code> is thrown (see <code>buttle.proxy/handle-default</code>).</p>
+<p>These events include info about</p>
 <ul>
   <li>timestamp of the event</li>
   <li>duration (for completion/<code>Exception</code>)</li>
@@ -20,6 +21,8 @@
 <p>Use it for</p>
 <ul>
   <li>
+  <p>testing</p></li>
+  <li>
   <p>troubleshooting</p></li>
   <li>
   <p>debugging</p></li>
@@ -28,8 +31,9 @@
   <li>
   <p>application monitoring</p></li>
 </ul>
+<p><strong>Note</strong>: I haven’t done any measurements on how much <em>Buttle</em> hurts the performance.</p>
 <h2><a href="#how-to-extend-" name="how-to-extend-"></a>How to extend?</h2>
-<p>There are two ways to <em>hook into</em>:</p>
+<p>There are two ways to <em>hook into Buttle</em>:</p>
 <p><strong>events</strong>: receive events from <em>Buttle</em> through  <code>buttle.event/event-mult</code> like this:</p>
 <pre><code>(let [ch (clojure.core.async/chan)]
   (clojure.core.async/tap buttle.event/event-mult ch)
@@ -46,7 +50,7 @@
 </code></pre>
 <p>And you can register multi method implementation for just specific interfaces, methods or a combination of these (see <code>test/buttle/proxy_test.clj</code>, <code>examples/buttle/examples/open_tracing.clj</code> and <code>examples/buttle/examples/handle.clj</code> for more examples):</p>
 <pre><code>(buttle.proxy/def-handle [java.sql.Connection :buttle/getCatalog] [the-method target-obj the-args]
-  (str "Connection/getCatalog: intercepted " (.getName the-method)))
+  (do-some-thing-with-call the-method target-obj the-args))
 </code></pre>
 <h2><a href="#examples" name="examples"></a>Examples</h2>
 <h3><a href="#squirrel" name="squirrel"></a>SQuirreL</h3>
@@ -58,6 +62,50 @@ java [...] %BUTTLE% [...]
 <p><strong>(3)</strong> Add <em>Alias</em> with URL (replace <code>&lt;user&gt;</code> and <code>&lt;password&gt;</code>). Text  following <code>jdbc:buttle:</code> will be read as Clojure map form.</p>
 <pre><code>jdbc:buttle:{:user "&lt;user&gt;" :password "&lt;password&gt;" :target-url "jdbc:postgresql://127.0.0.1:6632/postgres"}
 </code></pre>
+<h3><a href="#wildfly" name="wildfly"></a>Wildfly</h3>
+<p>When using <em>Buttle</em> in Wildfly (either <em>domain</em> mode oder <em>standalone</em>) you can either include it in your application (but usually JDBC drivers are not included in the main app) or you can deploy it as a <em>module</em> (tested with Wildfly 12.0.0.Final).</p>
+<p>For this you have to:</p>
+<ul>
+  <li>define a <code>module</code></li>
+  <li>define a <code>driver</code></li>
+  <li>define a <code>datasource</code></li>
+</ul>
+<p><strong>(1)</strong> Define <code>module</code>: put this into  <code>&lt;wildfly-root&gt;/modules/buttle/main/module.xml</code>. You may have to  adjust <code>path</code> to <em>Buttle</em>’s JAR filename. Note that you have to  include <code>dependencies</code> for the <code>javax.api</code> base module and the JDBC  driver you want to wrap. Otherwise <em>Buttle</em> won’t be able to <em>see</em>  the JDBC driver’s classes.</p>
+<pre><code>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;module xmlns="urn:jboss:module:1.1" name="buttle"&gt;
+
+  &lt;resources&gt;
+    &lt;resource-root path="buttle-standalone.jar"/&gt;
+  &lt;/resources&gt;
+
+  &lt;dependencies&gt;
+    &lt;module name="postgres"/&gt;
+    &lt;module name="javax.api"/&gt; 
+  &lt;/dependencies&gt;
+
+&lt;/module&gt; 
+</code></pre>
+<p><strong>(2)</strong> Define <code>driver</code>: here we also define the Postgres driver we  want to wrap with <em>Buttle</em>. Note that Wildfly does not need to know  <em>Buttle</em>’s driver class (<code>buttle.jdbc.Driver</code>). It relies on  <em>Buttle</em> being loaded via SPI  (<code>META-INF/services/java.sql.Driver</code>). Wildfly then finds the  <em>Buttle</em> driver via <code>DriverManager/getConnection</code>.</p>
+<pre><code>&lt;drivers&gt;
+  &lt;driver name="buttle-driver" module="buttle"/&gt;
+  &lt;driver name="postgresql" module="postgres"/&gt;
+&lt;/drivers&gt;
+</code></pre>
+<p><strong>(3)</strong> Define <code>datasource</code>: </p>
+<pre><code>&lt;datasource jndi-name="java:/jdbc/buttle-ds" pool-name="buttle-pool" use-java-context="true"&gt;
+    &lt;driver&gt;buttle-driver&lt;/driver&gt;
+    &lt;connection-url&gt;jdbc:buttle:{:user "&lt;user&gt;" :password "&lt;password&gt;"
+                                 :target-url "jdbc:postgresql://&lt;host&gt;:&lt;port&gt;/&lt;db-name&gt;"}
+    &lt;/connection-url&gt;
+&lt;/datasource&gt;
+</code></pre>
+<p>Since <em>Buttle</em> itself doesn’t give you much functionality you probably want to define <code>buttle.user-file</code> system property to have <em>Buttle</em> load your <em>hook code</em>:</p>
+<pre><code>&lt;system-properties&gt;
+  &lt;property name="buttle.user-file" value="&lt;path-to&gt;/buttle-user-file.clj" boot-time="true"/&gt;
+&lt;/system-properties&gt;
+</code></pre>
+<h3><a href="#websphere" name="websphere"></a>Websphere</h3>
+<p><strong>TBD</strong></p>
 <h3><a href="#clojure" name="clojure"></a>Clojure</h3>
 <pre><code>C:&gt;java -cp buttle-0.1.0-SNAPSHOT-standalone.jar;postgresql-9.4.1212.jar clojure.main -r
 Clojure 1.8.0
@@ -121,4 +169,20 @@ public class ButtleTest {
 </code></pre>
 <p><strong>Linux</strong></p>
 <pre><code>$ buttle_user=&lt;user&gt; buttle_password=&lt;password&gt; lein test
-</code></pre></div></div></div></body></html>
+</code></pre>
+<h2><a href="#building" name="building"></a>Building</h2>
+<p>Use <code>lein make-doc</code> to build documenation to <code>resources/public/generated-doc</code>.</p>
+<p>Use <code>lein make-uberjar</code> to build the minimum <em>Buttle</em> UBERJAR. It’ll contain <em>Buttle</em>, Clojure and <code>core.async</code>. It won’t contain the Open Tracing API and no Jaeger.</p>
+<p>Use <code>lein with-profile +jaeger,+wildfly uberjar</code> to build an UBERJAR incl. Open Tracing and Jaeger and suitable for usage in Wildfly.</p>
+<p>You can use <em>Buttle</em> as a library (<code>buttle.proxy</code> could probably be used for proxying other APIs like LDAP und JMS) but I usually use it like you would use a self-contained JDBC driver. If you have problems using <em>Buttle</em> in Clojure environments then you may have to fix the <code>make-</code> aliases.</p>
+<h2><a href="#todos" name="todos"></a>TODOS</h2>
+<ul>
+  <li>
+  <p>add optional loading of <code>buttle-user-file.clj</code> via classloader to  <code>driver</code>. With that you don’t even need to set the system property  <code>buttle.user-file</code> to load your own code. You just need a dir that  the classpath/classloader of your app points to.</p></li>
+  <li>
+  <p>add <code>:class-for-name</code> option to <em>Buttle</em> JDBC-URL so that <em>Buttle</em>  can be used to load JDBC drives when the SPI doesn’t work.</p></li>
+  <li>
+  <p>add <code>:driver-class</code> option to <em>Buttle</em> JDBC-URL so that <em>Buttle</em>  directly instanciates and uses that driver to delegate to (and not  indirectly delegate to the driver by calling DriverManager/connect).</p></li>
+  <li>
+  <p>add <code>:datasource-jndi-name</code> option to <em>Buttle</em> JDBC-URL so that  <em>Buttle</em> fetches a <code>DataSource</code> (not a <code>Driver</code>) from JNDI and  delegates to that.</p></li>
+</ul></div></div></div></body></html>

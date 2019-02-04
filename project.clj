@@ -1,6 +1,6 @@
 (defproject buttle "0.1.0-SNAPSHOT"
   
-  :description "Buttle is a proxying JDBC driver which wraps real JDBC drivers."
+  :description "Buttle is a proxying JDBC driver with hooks."
   
   :url "https://github.com/henrik42/buttle/"
   
@@ -48,10 +48,10 @@
              ;; If you want to deliver the Open Tracing und Jaeger
              ;; things with the UBERJAR you can do:
              ;;
-             ;; lein with-profile jaeger make-uberjar
+             ;; lein with-profile +jaeger make-uberjar
              ;;
              ;; Note that if you're targeting an application server
-             ;; you will probably have to use :wildfly profile as
+             ;; you will probably have to use +wildfly profile as
              ;; well.
              :jaeger {:dependencies [[opentracing-clj "0.1.2"]
                                      [io.jaegertracing/jaeger-client "0.33.1"]]}

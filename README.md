@@ -23,7 +23,9 @@ example in `examples/buttle/examples/open_tracing.clj` and
 
 _Buttle_ proxies also create _events_ for every method invocation and
 completion incl. when an `Exception` is thrown (see
-`buttle.proxy/handle-default`). These events include info about
+`buttle.proxy/handle-default`).
+
+These events include info about
 
 * timestamp of the event
 * duration (for completion/`Exception`)
@@ -41,6 +43,8 @@ receive the events. See usage example in
 
 Use it for
 
+* testing
+
 * troubleshooting
 
 * debugging
@@ -49,9 +53,12 @@ Use it for
 
 * application monitoring
 
+__Note__: I haven't done any measurements on how much _Buttle_ hurts
+the performance.
+
 ## How to extend?
 
-There are two ways to _hook into_:
+There are two ways to _hook into Buttle_:
 
 __events__: receive events from _Buttle_ through
   `buttle.event/event-mult` like this:
@@ -81,7 +88,7 @@ interfaces, methods or a combination of these (see
 `examples/buttle/examples/handle.clj` for more examples):
 
     (buttle.proxy/def-handle [java.sql.Connection :buttle/getCatalog] [the-method target-obj the-args]
-      (str "Connection/getCatalog: intercepted " (.getName the-method)))
+	  (do-some-thing-with-call the-method target-obj the-args))
 
 ## Examples
 
@@ -99,6 +106,73 @@ __(3)__ Add _Alias_ with URL (replace `<user>` and `<password>`). Text
   following `jdbc:buttle:` will be read as Clojure map form.
 
 	jdbc:buttle:{:user "<user>" :password "<password>" :target-url "jdbc:postgresql://127.0.0.1:6632/postgres"}
+
+### Wildfly
+
+When using _Buttle_ in Wildfly (either _domain_ mode oder
+_standalone_) you can either include it in your application (but
+usually JDBC drivers are not included in the main app) or you can
+deploy it as a _module_ (tested with Wildfly 12.0.0.Final).
+
+For this you have to:
+
+* define a `module`
+* define a `driver`
+* define a `datasource`
+
+__(1)__ Define `module`: put this into
+  `<wildfly-root>/modules/buttle/main/module.xml`. You may have to
+  adjust `path` to _Buttle_'s JAR filename. Note that you have to
+  include `dependencies` for the `javax.api` base module and the JDBC
+  driver you want to wrap. Otherwise _Buttle_ won't be able to _see_
+  the JDBC driver's classes.
+
+	<?xml version="1.0" encoding="UTF-8"?>
+	<module xmlns="urn:jboss:module:1.1" name="buttle">
+
+	  <resources>
+		<resource-root path="buttle-standalone.jar"/>
+	  </resources>
+
+	  <dependencies>
+		<module name="postgres"/>
+		<module name="javax.api"/> 
+	  </dependencies>
+
+	</module> 
+
+__(2)__ Define `driver`: here we also define the Postgres driver we
+  want to wrap with _Buttle_. Note that Wildfly does not need to know
+  _Buttle_'s driver class (`buttle.jdbc.Driver`). It relies on
+  _Buttle_ being loaded via SPI
+  (`META-INF/services/java.sql.Driver`). Wildfly then finds the
+  _Buttle_ driver via `DriverManager/getConnection`.
+
+    <drivers>
+      <driver name="buttle-driver" module="buttle"/>
+      <driver name="postgresql" module="postgres"/>
+    </drivers>
+
+__(3)__ Define `datasource`: 
+
+    <datasource jndi-name="java:/jdbc/buttle-ds" pool-name="buttle-pool" use-java-context="true">
+        <driver>buttle-driver</driver>
+        <connection-url>jdbc:buttle:{:user "<user>" :password "<password>"
+		                             :target-url "jdbc:postgresql://<host>:<port>/<db-name>"}
+		</connection-url>
+    </datasource>
+
+Since _Buttle_ itself doesn't give you much functionality you probably
+want to define `buttle.user-file` system property to have _Buttle_
+load your _hook code_:
+
+    <system-properties>
+      <property name="buttle.user-file" value="<path-to>/buttle-user-file.clj" boot-time="true"/>
+    </system-properties>
+
+### Websphere
+
+__TBD__
 
 ### Clojure
 
@@ -173,3 +247,38 @@ __Linux__
 
 	$ buttle_user=<user> buttle_password=<password> lein test
 
+## Building
+
+Use `lein make-doc` to build documenation to
+`resources/public/generated-doc`.
+
+Use `lein make-uberjar` to build the minimum _Buttle_ UBERJAR. It'll
+contain _Buttle_, Clojure and `core.async`. It won't contain the Open
+Tracing API and no Jaeger.
+
+Use `lein with-profile +jaeger,+wildfly uberjar` to build an UBERJAR
+incl. Open Tracing and Jaeger and suitable for usage in Wildfly.
+
+You can use _Buttle_ as a library (`buttle.proxy` could probably be
+used for proxying other APIs like LDAP und JMS) but I usually use it
+like you would use a self-contained JDBC driver. If you have problems
+using _Buttle_ in Clojure environments then you may have to fix the
+`make-` aliases.
+
+## TODOS
+
+* add optional loading of `buttle-user-file.clj` via classloader to
+  `driver`. With that you don't even need to set the system property
+  `buttle.user-file` to load your own code. You just need a dir that
+  the classpath/classloader of your app points to.
+
+* add `:class-for-name` option to _Buttle_ JDBC-URL so that _Buttle_
+  can be used to load JDBC drives when the SPI doesn't work.
+
+* add `:driver-class` option to _Buttle_ JDBC-URL so that _Buttle_
+  directly instanciates and uses that driver to delegate to (and not
+  indirectly delegate to the driver by calling DriverManager/connect).
+
+* add `:datasource-jndi-name` option to _Buttle_ JDBC-URL so that
+  _Buttle_ fetches a `DataSource` (not a `Driver`) from JNDI and
+  delegates to that.
