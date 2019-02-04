@@ -40,7 +40,7 @@
              ;; way.
              :make-doc {:codox {:metadata {:doc/format :markdown}
                                 :themes [:rdash]
-                                :doc-files ["README.md" "doc/intro_de.md"]
+                                :doc-files ["README.md"]
                                 :output-path "resources/public/generated-doc/"}
                         :dependencies [[codox-theme-rdash "0.1.2"]]
                         :clean-targets ^{:protect false} ["resources/public/generated-doc"]}

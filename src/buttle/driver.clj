@@ -8,8 +8,7 @@
   The `-init` constructor function will register a _Buttle_ `Driver`
   proxy (see `make-driver`) with the `java.sql.DriverManager`. So
   whenever an instance of `buttle.jdbc.Driver` is created, a new
-  proxy ( __not__ the `buttle.jdbc.Driver`!) is registered. This will
-  probably change to just ever only registering one proxy.
+  proxy ( __not__ the `buttle.jdbc.Driver`!) is registered.
 
   When this namespace is loaded `eval-buttle-user-file!` will be
   executed.

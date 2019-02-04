@@ -1,4 +1,10 @@
 (ns buttle.data-source
+  "The _Buttle_ `javax.sql.DataSource`.
+
+  This namespace delivers `buttle.jdbc.DataSource` via
+  `:gen-class`. This named class can be used as a datasource class for
+  application servers."
+  
   (:gen-class
    :init init
    :state state
@@ -16,13 +22,19 @@
   (setUrl [^String url])
   (setJndi [^String jndi]))
 
-(defn lookup-data-source [jndi]
+(defn lookup-data-source
+  "Looks up JNDI entry `jndi` and returns it."
+
+  [jndi]
   (when-not jndi
     (throw (RuntimeException. "No `jndi` property set.")))
   (with-open [ctx (InitialContext.)]
     (.lookup ctx jndi)))
 
-(defn make-data-source []
+(defn make-data-source
+  "Creates the _Buttle_ datasource."
+
+  []
   (let [ds (atom nil)
         url (atom nil) 
         jndi (atom nil)
@@ -56,38 +68,73 @@
          (-> (ds!) (.isWrapperFor ifc))))
      proxy/handle)))
 
-(defn -init []
-  [[] (make-data-source)])
+(defn -init
+  "Constructor function of `buttle.jdbc.DataSource`."
 
-(defn -setUrl [this url]
+    []
+    [[] (make-data-source)])
+
+(defn -setUrl
+  [this url]
   (.setUrl (.state this) url))
 
 (defn -setJndi [this jndi]
   (.setJndi (.state this) jndi))
 
 (defn -getConnection
+  "Implements `javax.sql.DataSource/getConnection`. Just delegates to
+  the referenced/internal datasource (see `-init`)."
+
   ([this]
      (.getConnection (.state this)))
   ([this username password]
      (.getConnection (.state this) username password)))
 
-(defn -getLogWriter [this]
+(defn -getLogWriter
+  "Implements `javax.sql.CommonDataSource/getLogWriter`. Just
+  delegates to the referenced/internal datasource (see `-init`)."
+
+  [this]
   (.getLogWriter (.state this)))
 
-(defn -setLogWriter [this pr-wrt]
+(defn -setLogWriter
+  "Implements `javax.sql.CommonDataSource/setLogWriter`. Just
+  delegates to the referenced/internal datasource (see `-init`)."
+
+  [this pr-wrt]
   (.setLogWriter (.state this) pr-wrt))
 
-(defn -setLoginTimeout [this sec]
+(defn -setLoginTimeout
+  "Implements `javax.sql.CommonDataSource/setLoginTimeout`. Just
+  delegates to the referenced/internal datasource (see `-init`)."
+
+  [this sec]
   (.setLoginTimeout (.state this) sec))
 
-(defn -getLoginTimeout [this]
+(defn -getLoginTimeout
+  "Implements `javax.sql.CommonDataSource/getLoginTimeout`. Just
+  delegates to the referenced/internal datasource (see `-init`)."
+  
+  [this]
   (.getLoginTimeout (.state this)))
 
-(defn -getParentLogger [this]
+(defn -getParentLogger
+  "Implements `javax.sql.CommonDataSource/getParentLogger`. Just
+  delegates to the referenced/internal datasource (see `-init`)."
+
+  [this]
   (.getParentLogger (.state this)))
   
-(defn -unwrap [this ifc]
+(defn -unwrap
+  "Implements `java.sql.Wrapper/unwrap`. Just delegates to the
+  referenced/internal datasource (see `-init`)."
+
+  [this ifc]
   (.unwrap (.state this) ifc))
 
-(defn -isWrapperFor [this ifc]
+(defn -isWrapperFor
+  "Implements `java.sql.Wrapper/isWrapperFor`. Just delegates to the
+  referenced/internal datasource (see `-init`)."
+
+  [this ifc]
   (.isWrapperFor (.state this) ifc))

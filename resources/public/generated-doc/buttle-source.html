@@ -2866,7 +2866,11 @@ net.brehaut.ClojureTools = (function (SH) {
   };
 })(SyntaxHighlighter);
 </script><title>buttle -- Marginalia</title></head><body><table><tr><td class="docs"><div class="header"><h1 class="project-name"><a href="https://github.com/henrik42/buttle/">buttle</a></h1><h2 class="project-version">0.1.0-SNAPSHOT</h2><br /><p>Buttle is a proxying JDBC driver with hooks.</p>
-</div><div class="dependencies"><h3>dependencies</h3><table><tr><td class="dep-name">org.clojure/clojure</td><td class="dotted"><hr /></td><td class="dep-version">1.9.0</td></tr><tr><td class="dep-name">org.clojure/core.async</td><td class="dotted"><hr /></td><td class="dep-version">0.4.490</td></tr></table></div></td><td class="codes" style="text-align: center; vertical-align: middle;color: #666;padding-right:20px"><br /><br /><br />(this space intentionally left almost blank)</td></tr><tr><td class="docs"><div class="toc"><a name="toc"><h3>namespaces</h3></a><ul><li><a href="#buttle.data-source">buttle.data-source</a></li><li><a href="#buttle.driver">buttle.driver</a></li><li><a href="#buttle.driver-manager">buttle.driver-manager</a></li><li><a href="#buttle.event">buttle.event</a></li><li><a href="#buttle.proxy">buttle.proxy</a></li><li><a href="#buttle.util">buttle.util</a></li></ul></div></td><td class="codes">&nbsp;</td></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.data-source" name="buttle.data-source"><h1 class="project-name">buttle.data-source</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs">
+</div><div class="dependencies"><h3>dependencies</h3><table><tr><td class="dep-name">org.clojure/clojure</td><td class="dotted"><hr /></td><td class="dep-version">1.9.0</td></tr><tr><td class="dep-name">org.clojure/core.async</td><td class="dotted"><hr /></td><td class="dep-version">0.4.490</td></tr></table></div></td><td class="codes" style="text-align: center; vertical-align: middle;color: #666;padding-right:20px"><br /><br /><br />(this space intentionally left almost blank)</td></tr><tr><td class="docs"><div class="toc"><a name="toc"><h3>namespaces</h3></a><ul><li><a href="#buttle.data-source">buttle.data-source</a></li><li><a href="#buttle.driver">buttle.driver</a></li><li><a href="#buttle.driver-manager">buttle.driver-manager</a></li><li><a href="#buttle.event">buttle.event</a></li><li><a href="#buttle.proxy">buttle.proxy</a></li><li><a href="#buttle.util">buttle.util</a></li></ul></div></td><td class="codes">&nbsp;</td></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.data-source" name="buttle.data-source"><h1 class="project-name">buttle.data-source</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>The <em>Buttle</em> <code>javax.sql.DataSource</code>.</p>
+
+<p>  This namespace delivers <code>buttle.jdbc.DataSource</code> via
+  <code>:gen-class</code>. This named class can be used as a datasource class for
+  application servers.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns buttle.data-source
   (:gen-class
    :init init
@@ -2882,13 +2886,15 @@ net.brehaut.ClojureTools = (function (SH) {
   (:require [buttle.proxy :as proxy]))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(definterface ButtleDataSource
   (setUrl [^String url])
-  (setJndi [^String jndi]))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn lookup-data-source [jndi]
+  (setJndi [^String jndi]))</pre></td></tr><tr><td class="docs"><p>Looks up JNDI entry <code>jndi</code> and returns it.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn lookup-data-source
+  [jndi]
   (when-not jndi
     (throw (RuntimeException. &quot;No `jndi` property set.&quot;)))
   (with-open [ctx (InitialContext.)]
-    (.lookup ctx jndi)))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn make-data-source []
+    (.lookup ctx jndi)))</pre></td></tr><tr><td class="docs"><p>Creates the <em>Buttle</em> datasource.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn make-data-source
+  []
   (let [ds (atom nil)
         url (atom nil) 
         jndi (atom nil)
@@ -2920,31 +2926,48 @@ net.brehaut.ClojureTools = (function (SH) {
          (-&gt; (ds!) (.unwrap ifc)))
        (isWrapperFor [ifc]
          (-&gt; (ds!) (.isWrapperFor ifc))))
-     proxy/handle)))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn -init []
-  [[] (make-data-source)])</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn -setUrl [this url]
+     proxy/handle)))</pre></td></tr><tr><td class="docs"><p>Constructor function of <code>buttle.jdbc.DataSource</code>.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn -init
+    []
+    [[] (make-data-source)])</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn -setUrl
+  [this url]
   (.setUrl (.state this) url))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defn -setJndi [this jndi]
-  (.setJndi (.state this) jndi))</pre></td></tr><tr><td class="docs">
+  (.setJndi (.state this) jndi))</pre></td></tr><tr><td class="docs"><p>Implements <code>javax.sql.DataSource/getConnection</code>. Just delegates to
+  the referenced/internal datasource (see <code>-init</code>).</p>
 </td><td class="codes"><pre class="brush: clojure">(defn -getConnection
   ([this]
      (.getConnection (.state this)))
   ([this username password]
-     (.getConnection (.state this) username password)))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn -getLogWriter [this]
-  (.getLogWriter (.state this)))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn -setLogWriter [this pr-wrt]
-  (.setLogWriter (.state this) pr-wrt))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn -setLoginTimeout [this sec]
-  (.setLoginTimeout (.state this) sec))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn -getLoginTimeout [this]
-  (.getLoginTimeout (.state this)))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn -getParentLogger [this]
-  (.getParentLogger (.state this)))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn -unwrap [this ifc]
-  (.unwrap (.state this) ifc))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn -isWrapperFor [this ifc]
+     (.getConnection (.state this) username password)))</pre></td></tr><tr><td class="docs"><p>Implements <code>javax.sql.CommonDataSource/getLogWriter</code>. Just
+  delegates to the referenced/internal datasource (see <code>-init</code>).</p>
+</td><td class="codes"><pre class="brush: clojure">(defn -getLogWriter
+  [this]
+  (.getLogWriter (.state this)))</pre></td></tr><tr><td class="docs"><p>Implements <code>javax.sql.CommonDataSource/setLogWriter</code>. Just
+  delegates to the referenced/internal datasource (see <code>-init</code>).</p>
+</td><td class="codes"><pre class="brush: clojure">(defn -setLogWriter
+  [this pr-wrt]
+  (.setLogWriter (.state this) pr-wrt))</pre></td></tr><tr><td class="docs"><p>Implements <code>javax.sql.CommonDataSource/setLoginTimeout</code>. Just
+  delegates to the referenced/internal datasource (see <code>-init</code>).</p>
+</td><td class="codes"><pre class="brush: clojure">(defn -setLoginTimeout
+  [this sec]
+  (.setLoginTimeout (.state this) sec))</pre></td></tr><tr><td class="docs"><p>Implements <code>javax.sql.CommonDataSource/getLoginTimeout</code>. Just
+  delegates to the referenced/internal datasource (see <code>-init</code>).</p>
+</td><td class="codes"><pre class="brush: clojure">(defn -getLoginTimeout
+  [this]
+  (.getLoginTimeout (.state this)))</pre></td></tr><tr><td class="docs"><p>Implements <code>javax.sql.CommonDataSource/getParentLogger</code>. Just
+  delegates to the referenced/internal datasource (see <code>-init</code>).</p>
+</td><td class="codes"><pre class="brush: clojure">(defn -getParentLogger
+  [this]
+  (.getParentLogger (.state this)))</pre></td></tr><tr><td class="docs"><p>Implements <code>java.sql.Wrapper/unwrap</code>. Just delegates to the
+  referenced/internal datasource (see <code>-init</code>).</p>
+</td><td class="codes"><pre class="brush: clojure">(defn -unwrap
+  [this ifc]
+  (.unwrap (.state this) ifc))</pre></td></tr><tr><td class="docs"><p>Implements <code>java.sql.Wrapper/isWrapperFor</code>. Just delegates to the
+  referenced/internal datasource (see <code>-init</code>).</p>
+</td><td class="codes"><pre class="brush: clojure">(defn -isWrapperFor
+  [this ifc]
   (.isWrapperFor (.state this) ifc))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.driver" name="buttle.driver"><h1 class="project-name">buttle.driver</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>The <em>Buttle</em> <code>java.sql.Driver</code>.</p>
 
 <p>  This namespace delivers <code>buttle.jdbc.Driver</code> via <code>:gen-class</code>. This
@@ -2954,8 +2977,7 @@ net.brehaut.ClojureTools = (function (SH) {
 <p>  The <code>-init</code> constructor function will register a <em>Buttle</em> <code>Driver</code>
   proxy (see <code>make-driver</code>) with the <code>java.sql.DriverManager</code>. So
   whenever an instance of <code>buttle.jdbc.Driver</code> is created, a new
-  proxy ( <strong>not</strong> the <code>buttle.jdbc.Driver</code>!) is registered. This will
-  probably change to just ever only registering one proxy.</p>
+  proxy ( <strong>not</strong> the <code>buttle.jdbc.Driver</code>!) is registered.</p>
 
 <p>  When this namespace is loaded <code>eval-buttle-user-file!</code> will be
   executed.</p>
@@ -3170,11 +3192,6 @@ net.brehaut.ClojureTools = (function (SH) {
 </td><td class="codes"><pre class="brush: clojure">(def event-mult
   (a/mult event-ch))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.proxy" name="buttle.proxy"><h1 class="project-name">buttle.proxy</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>A proxy factory.</p>
 
-<p>   <strong>Note:</strong> You cannot use Clojure's built-in <code>proxy</code> for
-   creating/registering <code>java.sql.Driver</code> instances due to
-   classloader/caller checks in <code>java.sql.DriverManger</code>. See
-   <code>test/buttle/driver_test.clj</code> for more details.</p>
-
 <p>   This namespace delivers all functions needed to (generically)
    create proxys for JDBC related interfaces and to implement the
    delegation logic for these proxys that is needed to route method
@@ -3379,13 +3396,19 @@ net.brehaut.ClojureTools = (function (SH) {
       ;; MUTATION/SIDEEFFECT!!!!
       (prefer-method handle
                      [clss :buttle/default]
-                     [java.lang.Object m]))))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.util" name="buttle.util"><h1 class="project-name">buttle.util</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs">
+                     [java.lang.Object m]))))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.util" name="buttle.util"><h1 class="project-name">buttle.util</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Just some helpers.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns buttle.util)</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defn log [&amp; xs]
   (let [s (apply pr-str xs)]
     (.println System/out (str &quot;buttle: &quot; s))
-    s))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defmacro with-tccl [cl &amp; body]
+    s))</pre></td></tr><tr><td class="docs"><p>Thread-locally binds <code>clojure.core/*use-context-classloader*</code> to
+  <code>true</code>, sets the current thread's context classloader to <code>cl</code> and
+  executes <code>body</code> within that context. On completion restores the
+  context classloader and pops
+  <code>clojure.core/*use-context-classloader*</code> to the previous
+  value. Returns value of <code>body</code> evaluation.</p>
+</td><td class="codes"><pre class="brush: clojure">(defmacro with-tccl
+  [cl &amp; body]
   `(binding [*use-context-classloader* true]
      (let [tccl# (.getContextClassLoader (Thread/currentThread))]
        (try (.setContextClassLoader (Thread/currentThread) ~cl)

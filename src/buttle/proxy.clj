@@ -1,11 +1,6 @@
 (ns buttle.proxy
   "A proxy factory.
 
-   __Note:__ You cannot use Clojure's built-in `proxy` for
-   creating/registering `java.sql.Driver` instances due to
-   classloader/caller checks in `java.sql.DriverManger`. See
-   `test/buttle/driver_test.clj` for more details.
-
    This namespace delivers all functions needed to (generically)
    create proxys for JDBC related interfaces and to implement the
    delegation logic for these proxys that is needed to route method
