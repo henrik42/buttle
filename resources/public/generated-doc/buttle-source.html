@@ -2865,7 +2865,7 @@ net.brehaut.ClojureTools = (function (SH) {
     build_tree: build_tree
   };
 })(SyntaxHighlighter);
-</script><title>buttle -- Marginalia</title></head><body><table><tr><td class="docs"><div class="header"><h1 class="project-name"><a href="https://github.com/henrik42/buttle/">buttle</a></h1><h2 class="project-version">0.1.0-SNAPSHOT</h2><br /><p>Buttle is a proxying JDBC driver with hooks.</p>
+</script><title>buttle/buttle -- Marginalia</title></head><body><table><tr><td class="docs"><div class="header"><h1 class="project-name"><a href="https://github.com/henrik42/buttle/">buttle/buttle</a></h1><h2 class="project-version">0.1.0-SNAPSHOT</h2><br /><p>Buttle is a proxying JDBC driver with hooks.</p>
 </div><div class="dependencies"><h3>dependencies</h3><table><tr><td class="dep-name">org.clojure/clojure</td><td class="dotted"><hr /></td><td class="dep-version">1.9.0</td></tr><tr><td class="dep-name">org.clojure/core.async</td><td class="dotted"><hr /></td><td class="dep-version">0.4.490</td></tr></table></div></td><td class="codes" style="text-align: center; vertical-align: middle;color: #666;padding-right:20px"><br /><br /><br />(this space intentionally left almost blank)</td></tr><tr><td class="docs"><div class="toc"><a name="toc"><h3>namespaces</h3></a><ul><li><a href="#buttle.data-source">buttle.data-source</a></li><li><a href="#buttle.driver">buttle.driver</a></li><li><a href="#buttle.driver-manager">buttle.driver-manager</a></li><li><a href="#buttle.event">buttle.event</a></li><li><a href="#buttle.proxy">buttle.proxy</a></li><li><a href="#buttle.util">buttle.util</a></li></ul></div></td><td class="codes">&nbsp;</td></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.data-source" name="buttle.data-source"><h1 class="project-name">buttle.data-source</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>The <em>Buttle</em> <code>javax.sql.DataSource</code>.</p>
 
 <p>  This namespace delivers <code>buttle.jdbc.DataSource</code> via
@@ -3010,7 +3010,7 @@ net.brehaut.ClojureTools = (function (SH) {
 </td><td class="codes"><pre class="brush: clojure">(defn parse-jdbc-url
   [url]
   (try 
-    (some-&gt; (re-matches #&quot;jdbc:buttle:(.+)&quot; url)
+    (some-&gt; (re-matches #&quot;jdbc:buttle:(.+)&quot; (.replaceAll url &quot;\\n&quot; &quot; &quot;))
             second
             read-string
             eval)
@@ -3021,9 +3021,10 @@ net.brehaut.ClojureTools = (function (SH) {
   <code>:user</code> and <code>:password</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn accepts-url-fn
   [url]
-  (when-let [{:keys [target-url user password]} (parse-jdbc-url url)]
+  (when-let [{:keys [target-url user password class-for-name]} (parse-jdbc-url url)]
     {:target-url target-url
      :user user
+     :class-for-name class-for-name
      :password password}))</pre></td></tr><tr><td class="docs"><p>Returns <code>nil</code> if <code>url</code> is not a <em>Buttle</em> URL (as of
   <code>accepts-url-fn</code>). Else opens a JDBC <code>Connection</code> to <code>:target-url</code>
   with <code>:user</code> and <code>:password</code> via
@@ -3031,7 +3032,9 @@ net.brehaut.ClojureTools = (function (SH) {
   function throws. Otherwise the connection is returned.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn connect-fn
   [url]
-  (when-let [{:keys [target-url user password] :as args} (accepts-url-fn url)]
+  (when-let [{:keys [target-url user password class-for-name] :as args} (accepts-url-fn url)]
+    (when class-for-name
+      (Class/forName class-for-name))
     (mgr/get-connection target-url user password)))</pre></td></tr><tr><td class="docs"><p>Creates and returns a <em>Buttle</em> <code>java.sql.Driver</code>.</p>
 
 <p>   Note that the underlying driver (which delegates to the real

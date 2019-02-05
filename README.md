@@ -132,8 +132,8 @@ __(1)__ Define `module`: put this into
   `<wildfly-root>/modules/buttle/main/module.xml`. You may have to
   adjust `path` to _Buttle_'s JAR filename. Note that you have to
   include `dependencies` for the `javax.api` base module and the JDBC
-  driver you want to wrap. Otherwise _Buttle_ won't be able to _see_
-  the JDBC driver's classes.
+  driver you want to wrap (Postgres in this case). Otherwise _Buttle_
+  won't be able to _see_ the JDBC driver's classes.
 
 	<?xml version="1.0" encoding="UTF-8"?>
 	<module xmlns="urn:jboss:module:1.1" name="buttle">
@@ -161,13 +161,22 @@ __(2)__ Define `driver`: here we also define the Postgres driver we
       <driver name="postgresql" module="postgres"/>
     </drivers>
 
-__(3)__ Define `datasource`: 
+__(3)__ Define `datasource`: in this example there is not Postgres
+  datasource entry so Wildfly will not load the JDBC driver. Therefore
+  we put `:class-for-name "org.postgresql.Driver"` into the _Buttle_
+  URL, so _Buttlee_ will load the JDBC driver's class and usually these
+  will register themselves with the `DriverManager`. After that
+  _Buttle_ can connect to Postgres through the `DriverManager`.
 
     <datasource jndi-name="java:/jdbc/buttle-ds" pool-name="buttle-pool" use-java-context="true">
         <driver>buttle-driver</driver>
-        <connection-url>jdbc:buttle:{:user "<user>" :password "<password>"
-		                             :target-url "jdbc:postgresql://<host>:<port>/<db-name>"}
-		</connection-url>
+        <connection-url>
+	        jdbc:buttle:{
+		        :user "<user>"
+		        :password "<password>"
+		        :class-for-name "org.postgresql.Driver"
+		        :target-url "jdbc:postgresql://<host>:<port>/<db-id>"}
+	    </connection-url>
     </datasource>
 
 Since _Buttle_ itself doesn't give you much functionality you probably
@@ -260,7 +269,7 @@ __Linux__
 Use `lein make-doc` to build documenation to
 `resources/public/generated-doc`.
 
-Use `lein make-uberjar` to build the minimum _Buttle_ UBERJAR. It'll
+Use `lein uberjar` to build the minimum _Buttle_ UBERJAR. It'll
 contain _Buttle_, Clojure and `core.async`. It won't contain the Open
 Tracing API and no Jaeger.
 
@@ -279,9 +288,6 @@ using _Buttle_ in Clojure environments then you may have to fix the
   `driver`. With that you don't even need to set the system property
   `buttle.user-file` to load your own code. You just need a dir that
   the classpath/classloader of your app points to.
-
-* add `:class-for-name` option to _Buttle_ JDBC-URL so that _Buttle_
-  can be used to load JDBC drives when the SPI doesn't work.
 
 * add `:driver-class` option to _Buttle_ JDBC-URL so that _Buttle_
   directly instanciates and uses that driver to delegate to (and not

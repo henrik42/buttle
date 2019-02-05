@@ -44,7 +44,7 @@
 
   [url]
   (try 
-    (some-> (re-matches #"jdbc:buttle:(.+)" url)
+    (some-> (re-matches #"jdbc:buttle:(.+)" (.replaceAll url "\\n" " "))
             second
             read-string
             eval)
@@ -58,9 +58,10 @@
   `:user` and `:password`."
 
   [url]
-  (when-let [{:keys [target-url user password]} (parse-jdbc-url url)]
+  (when-let [{:keys [target-url user password class-for-name]} (parse-jdbc-url url)]
     {:target-url target-url
      :user user
+     :class-for-name class-for-name
      :password password}))
 
 (defn connect-fn
@@ -71,7 +72,9 @@
   function throws. Otherwise the connection is returned."
 
   [url]
-  (when-let [{:keys [target-url user password] :as args} (accepts-url-fn url)]
+  (when-let [{:keys [target-url user password class-for-name] :as args} (accepts-url-fn url)]
+    (when class-for-name
+      (Class/forName class-for-name))
     (mgr/get-connection target-url user password)))
 
 (defn make-driver
