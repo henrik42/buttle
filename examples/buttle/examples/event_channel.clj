@@ -8,12 +8,11 @@
 ;;
 ;; You can use this in cases when you're using the _Buttle_ JDBC
 ;; driver but you don't have control over the main program flow. You
-;; just need to define the system property `buttle.user-form` (see
-;; `buttle.driver/eval-buttle-user-form`) like so: (you can also use
-;; `require` if you have `examples` in your classpath).
+;; just need to define the system property `buttle.user-file` (see
+;; `buttle.driver/eval-buttle-user-file!`) like so:
 ;;
-;; set BUTTLE_USER_FORM="-Dbuttle.user-form=(load-file ""C:/buttle-workspace/examples/buttle/examples/event_channel.clj"")"
-;; java %BUTTLE_USER_FORM% [...]
+;; set BUTTLE="-Dbuttle.user-file=C:/buttle-workspace/examples/buttle/examples/event_channel.clj"
+;; java %BUTTLE% [...]
 
 (defn log [e]
   (.println System/out (str "buttle.examples.event-channel : " e)))

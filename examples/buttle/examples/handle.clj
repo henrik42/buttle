@@ -9,12 +9,11 @@
 ;;
 ;; You can use this in cases when you're using the _Buttle_ JDBC
 ;; driver but you don't have control over the main program flow. You
-;; just need to define the system property `buttle.user-form` (see
-;; `buttle.driver/eval-buttle-user-form`) like so: (you can also use
-;; `require` if you have `examples` in your classpath).
+;; just need to define the system property `buttle.user-file` (see
+;; `buttle.driver/eval-buttle-user-file!`) like so:
 ;;
-;; set BUTTLE_USER_FORM="-Dbuttle.user-form=(load-file ""C:/buttle-workspace/examples/buttle/examples/handle.clj"")"
-;; java %BUTTLE_USER_FORM% [...]
+;; set BUTTLE="-Dbuttle.user-file=C:/buttle-workspace/examples/buttle/examples/handle.clj"
+;; java %BUTTLE% [...]
 
 (defn invoke-with-logging [the-method target-obj the-args]
   (println (format "buttle.examples.handle: INVOKE %s"
@@ -30,14 +29,15 @@
                      (pr-str [the-method target-obj (into [] the-args)]) (pr-str r)))
     r))
 
+;; #_ ;; handle :default will print lots(!) of messages. 
 (defmethod proxy/handle :default [the-method target-obj the-args]
   (invoke-with-logging the-method target-obj the-args))
 
-#_
+#_ ;; just using [java.sql.Driver :buttle/default] prints only a few lines
 (proxy/def-handle [java.sql.Driver :buttle/default] [the-method target-obj the-args]
   (invoke-with-logging the-method target-obj the-args))
 
-#_
+#_ ;; using [java.sql.Connection :buttle/default] prints a few more lines
 (proxy/def-handle [java.sql.Connection :buttle/default] [the-method target-obj the-args]
   (invoke-with-logging the-method target-obj the-args))
 
