@@ -78,7 +78,7 @@ java [...] %BUTTLE% [...]
   <li>define a <code>driver</code></li>
   <li>define a <code>datasource</code></li>
 </ul>
-<p><strong>(1)</strong> Define <code>module</code>: put this into  <code>&lt;wildfly-root&gt;/modules/buttle/main/module.xml</code>. You may have to  adjust <code>path</code> to <em>Buttle</em>’s JAR filename. Note that you have to  include <code>dependencies</code> for the <code>javax.api</code> base module and the JDBC  driver you want to wrap (Postgres in this case). Otherwise <em>Buttle</em>  won’t be able to <em>see</em> the JDBC driver’s classes.</p>
+<p><strong>(1)</strong> Define <code>module</code>: put this into  <code>&lt;wildfly-root&gt;/modules/buttle/main/module.xml</code>. You may have to  adjust <code>path</code> to <em>Buttle</em>’s JAR filename. Note that you have to  include <code>&lt;dependencies&gt;</code> for the <code>javax.api</code> base module and the  JDBC driver you want to wrap (Postgres in this case). Otherwise  <em>Buttle</em> won’t be able to <em>see</em> the JDBC driver’s classes.</p>
 <pre><code>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
 &lt;module xmlns="urn:jboss:module:1.1" name="buttle"&gt;
 
@@ -99,7 +99,7 @@ java [...] %BUTTLE% [...]
   &lt;driver name="postgresql" module="postgres"/&gt;
 &lt;/drivers&gt;
 </code></pre>
-<p><strong>(3)</strong> Define <code>datasource</code>: in this example there is not Postgres  datasource entry so Wildfly will not load the JDBC driver. Therefore  we put <code>:class-for-name "org.postgresql.Driver"</code> into the <em>Buttle</em>  URL, so <em>Buttlee</em> will load the JDBC driver’s class and usually these  will register themselves with the <code>DriverManager</code>. After that  <em>Buttle</em> can connect to Postgres through the <code>DriverManager</code>.</p>
+<p><strong>(3)</strong> Define <code>datasource</code>: in this example there is no Postgres  <code>&lt;datasource&gt;</code> entry so Wildfly will not load the JDBC  driver. Therefore we put <code>:class-for-name "org.postgresql.Driver"</code>  into the <em>Buttle</em> URL, so that <em>Buttle</em> loads the JDBC driver’s  class and usually these will register themselves with the  <code>DriverManager</code>. After that <em>Buttle</em> can connect to Postgres through  the <code>DriverManager</code>.</p>
 <pre><code>&lt;datasource jndi-name="java:/jdbc/buttle-ds" pool-name="buttle-pool" use-java-context="true"&gt;
     &lt;driver&gt;buttle-driver&lt;/driver&gt;
     &lt;connection-url&gt;

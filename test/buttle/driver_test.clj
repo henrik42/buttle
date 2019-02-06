@@ -10,11 +10,6 @@
    (println [s]
      (proxy-super println (str "buttle.driver-test -- DriverManager LOG: " s)))))
 
-#_ ;; Not working! The registered driver is a proxy now!
-(deftest auto-load-buttle-driver
-  ;; buttle.jdbc.Driver is auto registered via SPI mechanism
-  (is (= buttle.jdbc.Driver (.getClass (mgr/get-driver "jdbc:buttle:42")))))
-
 (deftest test-parse-jdbc-url
   (is (= nil (drv/parse-jdbc-url "foobar")))
   (is (= nil (drv/parse-jdbc-url "jdbc:buttle:")))
@@ -24,7 +19,7 @@
 (deftest test-accepts-url-fn
   (is (= nil (drv/accepts-url-fn "foobar")))
   (is (= nil (drv/accepts-url-fn "jdbc:buttle:")))
-  (is (= {:target-url nil, :user nil, :password nil}
+  (is (= {:target-url nil, :user nil, :class-for-name nil :password nil}
          (drv/accepts-url-fn "jdbc:buttle:42")))
   (is (thrown-with-msg? Throwable #"Could not parse URL" (drv/accepts-url-fn "jdbc:buttle:("))))
 

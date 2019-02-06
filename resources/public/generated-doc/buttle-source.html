@@ -2871,6 +2871,13 @@ net.brehaut.ClojureTools = (function (SH) {
 <p>  This namespace delivers <code>buttle.jdbc.DataSource</code> via
   <code>:gen-class</code>. This named class can be used as a datasource class for
   application servers.</p>
+
+<p>  <strong>Note:</strong> This namespace has not yet been tested in an application
+  server. There are application servers (like Wildfly) which use their
+  own <code>javax.sql.DataSource</code> implementation which delegates to the
+  JDBC driver's <code>java.sql.Driver</code> implementation. So in these cases
+  the JDBC driver does not even need to deliver an implementation for
+  <code>javax.sql.DataSource</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns buttle.data-source
   (:gen-class
    :init init
@@ -3029,7 +3036,17 @@ net.brehaut.ClojureTools = (function (SH) {
   <code>accepts-url-fn</code>). Else opens a JDBC <code>Connection</code> to <code>:target-url</code>
   with <code>:user</code> and <code>:password</code> via
   <code>buttle.driver-manager/get-connection</code>. If that throws then this
-  function throws. Otherwise the connection is returned.</p>
+  function throws. Otherwise the connection is returned. Note that in
+  this case <em>Buttle</em> does not call/use the proxied JDBC driver
+  directly (but relies on the <code>DriverManager</code>).</p>
+
+<p>  If <code>:class-for-name</code> is set in the <em>Buttle</em> <code>url</code> then
+  calls <code>(Class/forName class-for-name)</code> before opening the
+  connection. This takes care of cases when the proxied driver is not
+  loaded auto-magically by the <code>DriverManager</code>. This may happen when
+  the <code>DriverManager</code> is initialized and the classloader does not
+  <em>see</em> the proxied driver classes at that point (e.g. in JEE
+  application servers when loading <em>modules</em>).</p>
 </td><td class="codes"><pre class="brush: clojure">(defn connect-fn
   [url]
   (when-let [{:keys [target-url user password class-for-name] :as args} (accepts-url-fn url)]
@@ -3105,7 +3122,8 @@ net.brehaut.ClojureTools = (function (SH) {
           (mgr/register-driver r)
           (reset! driver r)
           [[] r])))))</pre></td></tr><tr><td class="docs"><p>Implements <code>java.sql.Driver.connect(String, Properties)</code>. Just
-  delegates to the referenced/internal driver (see <code>-init</code>).</p>
+  delegates to the referenced/internal driver (see <code>-init</code>) which
+  calls <code>connect-fn</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn -connect
   [this url info]
   (.connect (.state this) url info))</pre></td></tr><tr><td class="docs"><p>Implements <code>java.sql.Driver.acceptsURL(String)</code>. Just delegates to

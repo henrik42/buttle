@@ -3,7 +3,14 @@
 
   This namespace delivers `buttle.jdbc.DataSource` via
   `:gen-class`. This named class can be used as a datasource class for
-  application servers."
+  application servers.
+
+  __Note:__ This namespace has not yet been tested in an application
+  server. There are application servers (like Wildfly) which use their
+  own `javax.sql.DataSource` implementation which delegates to the
+  JDBC driver's `java.sql.Driver` implementation. So in these cases
+  the JDBC driver does not even need to deliver an implementation for
+  `javax.sql.DataSource`."
   
   (:gen-class
    :init init

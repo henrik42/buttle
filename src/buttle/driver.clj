@@ -69,7 +69,17 @@
   `accepts-url-fn`). Else opens a JDBC `Connection` to `:target-url`
   with `:user` and `:password` via
   `buttle.driver-manager/get-connection`. If that throws then this
-  function throws. Otherwise the connection is returned."
+  function throws. Otherwise the connection is returned. Note that in
+  this case _Buttle_ does not call/use the proxied JDBC driver
+  directly (but relies on the `DriverManager`).
+
+  If `:class-for-name` is set in the _Buttle_ `url` then
+  calls `(Class/forName class-for-name)` before opening the
+  connection. This takes care of cases when the proxied driver is not
+  loaded auto-magically by the `DriverManager`. This may happen when
+  the `DriverManager` is initialized and the classloader does not
+  _see_ the proxied driver classes at that point (e.g. in JEE
+  application servers when loading _modules_)."
 
   [url]
   (when-let [{:keys [target-url user password class-for-name] :as args} (accepts-url-fn url)]
@@ -154,7 +164,8 @@
 
 (defn -connect
   "Implements `java.sql.Driver.connect(String, Properties)`. Just
-  delegates to the referenced/internal driver (see `-init`)."
+  delegates to the referenced/internal driver (see `-init`) which
+  calls `connect-fn`."
 
   [this url info]
   (.connect (.state this) url info))
