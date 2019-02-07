@@ -124,11 +124,11 @@ deploy it as a _module_ (tested with Wildfly 12.0.0.Final).
 
 For this you have to:
 
-* define a `module`
-* define a `driver`
-* define a `datasource`
+* define a `<module>`
+* define a `<driver>`
+* define a `<datasource>`
 
-__(1)__ Define `module`: put this into
+__(1)__ Define `<module>`: put this into
   `<wildfly-root>/modules/buttle/main/module.xml`. You may have to
   adjust `path` to _Buttle_'s JAR filename. Note that you have to
   include `<dependencies>` for the `javax.api` base module and the
@@ -149,8 +149,7 @@ __(1)__ Define `module`: put this into
 
 	</module> 
 
-__(2)__ Define `driver`: here we also define the Postgres driver we
-  want to wrap with _Buttle_. Note that Wildfly does not need to know
+__(2)__ Define `<driver>`: Note that Wildfly does not need to know
   _Buttle_'s driver class (`buttle.jdbc.Driver`). It relies on
   _Buttle_ being loaded via SPI
   (`META-INF/services/java.sql.Driver`). Wildfly then finds the
@@ -158,16 +157,15 @@ __(2)__ Define `driver`: here we also define the Postgres driver we
 
     <drivers>
       <driver name="buttle-driver" module="buttle"/>
-      <driver name="postgresql" module="postgres"/>
     </drivers>
 
-__(3)__ Define `datasource`: in this example there is no Postgres
-  `<datasource>` entry so Wildfly will not load the JDBC
-  driver. Therefore we put `:class-for-name "org.postgresql.Driver"`
-  into the _Buttle_ URL, so that _Buttle_ loads the JDBC driver's
-  class and usually these will register themselves with the
-  `DriverManager`. After that _Buttle_ can connect to Postgres through
-  the `DriverManager`.
+__(3)__ Define `<datasource>`: in this example there is no extra
+  Postgres `<datasource>`/`<driver>` entry so Wildfly will not load
+  the Postgres JDBC driver for us. Therefore we put `:class-for-name
+  "org.postgresql.Driver"` into the _Buttle_ URL. Now _Buttle_ loads
+  the JDBC driver's class and usually these will register themselves
+  with the `DriverManager`. After that _Buttle_ can connect to
+  Postgres through the `DriverManager`.
 
     <datasource jndi-name="java:/jdbc/buttle-ds" pool-name="buttle-pool" use-java-context="true">
         <driver>buttle-driver</driver>
@@ -179,6 +177,15 @@ __(3)__ Define `datasource`: in this example there is no Postgres
 		        :target-url "jdbc:postgresql://<host>:<port>/<db-id>"}
 	    </connection-url>
     </datasource>
+
+If you rather have Wildfly load the Postgres driver you just add a
+`<driver>` entry for Postgres. In this case you do not need the
+`:class-for-name` entry.
+
+    <drivers>
+      <driver name="buttle-driver" module="buttle"/>
+      <driver name="postgresql" module="postgres"/>
+    </drivers>
 
 Since _Buttle_ itself doesn't give you much functionality you probably
 want to define `buttle.user-file` system property to have _Buttle_
