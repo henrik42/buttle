@@ -117,6 +117,9 @@ java [...] %BUTTLE% [...]
   &lt;driver name="postgresql" module="postgres"/&gt;
 &lt;/drivers&gt;
 </code></pre>
+<p>There is yet another way to make Wildfly load Postgres JDBC driver. Instead of adding the <code>&lt;driver&gt;</code> you can add <code>services="import"</code> to the <code>module/dependencies</code>:</p>
+<pre><code>&lt;module name="postgres" services="import"/&gt;
+</code></pre>
 <p>Since <em>Buttle</em> itself doesn’t give you much functionality you probably want to define <code>buttle.user-file</code> system property to have <em>Buttle</em> load your <em>hook code</em>:</p>
 <pre><code>&lt;system-properties&gt;
   &lt;property name="buttle.user-file" value="&lt;path-to&gt;/buttle-user-file.clj" boot-time="true"/&gt;

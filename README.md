@@ -187,6 +187,12 @@ If you rather have Wildfly load the Postgres driver you just add a
       <driver name="postgresql" module="postgres"/>
     </drivers>
 
+There is yet another way to make Wildfly load Postgres JDBC
+driver. Instead of adding the `<driver>` you can add
+`services="import"` to the `module/dependencies`:
+
+	<module name="postgres" services="import"/>
+
 Since _Buttle_ itself doesn't give you much functionality you probably
 want to define `buttle.user-file` system property to have _Buttle_
 load your _hook code_:
