@@ -46,6 +46,7 @@ Similar things have been done before:
 * http://jamonapi.sourceforge.net/jamon_sql.html  
 * https://github.com/arthurblake/log4jdbc  
 * https://p6spy.readthedocs.io/en/latest/index.html  
+* http://sfleiter.github.io/blog/2013/12/08/jboss-datasource-proxy-with-log4jdbc-log4j2/
 
 ## What to use it for?
 
@@ -126,7 +127,7 @@ For this you have to:
 
 * define a `<module>`
 * define a `<driver>`
-* define a `<datasource>`
+* define a `<datasource>` (for `<xa-datasource>` see below)
 
 __(1)__ Define `<module>`: put this into
   `<wildfly-root>/modules/buttle/main/module.xml`. You may have to
@@ -200,6 +201,40 @@ load your _hook code_:
     <system-properties>
       <property name="buttle.user-file" value="<path-to>/buttle-user-file.clj" boot-time="true"/>
     </system-properties>
+
+#### XA-Datasource
+
+You define an `<xa-datasource>` like this (for Postgres):
+
+    <xa-datasource jndi-name="java:/jdbc/postgres-xa" pool-name="postgres-xa-pool">
+	  <xa-datasource-class>org.postgresql.xa.PGXADataSource</xa-datasource-class>
+      <driver>postgres-driver</driver>
+      <security>
+        <user-name>xkv</user-name>
+        <password>Waldfee</password>
+      </security>
+      <xa-datasource-property name="Url">jdbc:postgresql://127.0.0.1:6632/postgres</xa-datasource-property>
+    </xa-datasource>
+
+You can retrieve this from JNDI like this (done via nREPL into running Wildfly):
+
+	user=> (buttle.util/jndi-lookup "java:/jdbc/postgres-xa")
+    #object[org.jboss.as.connector.subsystems.datasources.WildFlyDataSource ,,,]
+
+Note though that Wildfly does __not__ give us a
+`javax.sql.XADataSource` but a `javax.sql.DataSource`:
+
+	user=> (->> (buttle.util/jndi-lookup "java:/jdbc/postgres-xa") .getClass .getInterfaces (into []))
+	[javax.sql.DataSource java.io.Serializable]
+
+Others got bitten by this [1, 2]. So _Buttle_ supports wrapping _real_
+`javax.sql.XADataSource` implemenations retrieved from JNDI (which
+won't work for Wildfly but hopefully in Websphere) and __creating__ a
+JDBC Driver's XA-Datasource directly. In this case _Buttle_ does all
+the properties setting for the XA-Datasource (see below).
+
+[1] url  
+[2] url  
 
 ### Websphere
 

@@ -1,5 +1,6 @@
 (ns buttle.util
-  "Just some helpers.")
+  "Just some helpers."
+  (:import [javax.naming InitialContext]))
 
 (defn log [& xs]
   (let [s (apply pr-str xs)]
@@ -21,4 +22,11 @@
             ~@body
             (finally
               (.setContextClassLoader (Thread/currentThread) tccl#))))))
+
+(defn jndi-lookup
+  [jndi]
+  (when-not jndi
+    (throw (RuntimeException. "No `jndi` property set.")))
+  (with-open [ctx (InitialContext.)]
+    (.lookup ctx jndi)))
 

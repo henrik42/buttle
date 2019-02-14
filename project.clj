@@ -17,7 +17,7 @@
 
   ;; Produce the "named classes" buttle.jdbc.Driver and
   ;; buttle.jdbc.DataSource that you'll be using
-  :aot [buttle.driver buttle.data-source]
+  :aot [buttle.driver buttle.data-source buttle.xa-data-source]
 
   ;; we need buttle.SetContextClassLoaderInStaticInitializer as a base
   ;; class for buttle.jdbc.Driver/driver.clj - so we'll compile Java
