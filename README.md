@@ -168,7 +168,7 @@ __(3)__ Define `<datasource>`: in this example there is no extra
   with the `DriverManager`. After that _Buttle_ can connect to
   Postgres through the `DriverManager`.
 
-    <datasource jndi-name="java:/jdbc/buttle-ds" pool-name="buttle-pool" use-java-context="true">
+    <datasource jndi-name="java:/jdbc/buttle-ds" pool-name="buttle-ds" use-java-context="true">
         <driver>buttle-driver</driver>
         <connection-url>
 	        jdbc:buttle:{
@@ -206,7 +206,7 @@ load your _hook code_:
 
 You define an `<xa-datasource>` like this (for Postgres):
 
-    <xa-datasource jndi-name="java:/jdbc/postgres-xa" pool-name="postgres-xa-pool">
+    <xa-datasource jndi-name="java:/jdbc/postgres-xa" pool-name="postgres-xa">
 	  <xa-datasource-class>org.postgresql.xa.PGXADataSource</xa-datasource-class>
       <driver>postgres-driver</driver>
       <security>
@@ -227,14 +227,45 @@ Note though that Wildfly does __not__ give us a
 	user=> (->> (buttle.util/jndi-lookup "java:/jdbc/postgres-xa") .getClass .getInterfaces (into []))
 	[javax.sql.DataSource java.io.Serializable]
 
-Others got bitten by this [1, 2]. So _Buttle_ supports wrapping _real_
+Since there is no way to implement `javax.sql.XADataSource` based on a
+`javax.sql.DataSource` _Buttle_ cannot proxy XA-Datasources retrieved
+from JNDI for Wildfly.
+
+Others got bitten by this [1, 2] and it probably won't get fixed
+[3]. So _Buttle_ only supports __(a)__ wrapping _real_
 `javax.sql.XADataSource` implemenations retrieved from JNDI (which
-won't work for Wildfly but hopefully in Websphere) and __creating__ a
-JDBC Driver's XA-Datasource directly. In this case _Buttle_ does all
-the properties setting for the XA-Datasource (see below).
+does not work for Wildfly but for Websphere; see below) and __(b)__
+__creating__ a JDBC Driver's XA-Datasource directly.
+
+__Creating a JDBC Driver's XA-Datasource directly__
+
+So for Wildfly you define a _Buttle_ XA-Datasource and specify the
+_real_ XA-Datasource by setting the `Delegate` property to a Clojure
+map form (to be exact I should say 'a form that evaluates to a map';
+line-breaks are removed so DO NOT use `;` comments other than at the
+very end). This map must have `:xa-datasource-class` giving the _real_
+XA-Datasource's class (note that it IS a class-literal!). Any other
+map key/value will be used to set the _real_ XA-Datasource's Java-Bean
+properties (note that no Bean-Property-Editor is used for converting
+to correct Java-Bean target-type. You have to supply the correct type
+through the map).
+
+    <xa-datasource jndi-name="java:/jdbc/buttle-xa" pool-name="buttle-xa-pool" spy="true">
+      <xa-datasource-class>buttle.jdbc.XADataSource</xa-datasource-class>
+      <driver>buttle-driver</driver>
+      <security>
+        <user-name>xkv</user-name>
+        <password>Waldfee</password>
+      </security>
+      <xa-datasource-property name="Delegate">
+        {:xa-datasource-class org.postgresql.xa.PGXADataSource
+         :url "jdbc:postgresql://127.0.0.1:6632/postgres"}
+      </xa-datasource-property>
+    </xa-datasource>
 
 [1] url  
 [2] url  
+[3] wont fix!  
 
 ### Websphere
 
