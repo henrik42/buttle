@@ -216,7 +216,9 @@ You define an `<xa-datasource>` like this (for Postgres):
       <xa-datasource-property name="Url">jdbc:postgresql://127.0.0.1:6632/postgres</xa-datasource-property>
     </xa-datasource>
 
-You can retrieve this from JNDI like this (done via nREPL into running Wildfly):
+You can retrieve this from JNDI like this (done via nREPL into running
+Wildfly; build UBERJAR with `lein with-profile +swank,+wildfly
+uberjar` to include nrepl and Swank):
 
 	user=> (buttle.util/jndi-lookup "java:/jdbc/postgres-xa")
     #object[org.jboss.as.connector.subsystems.datasources.WildFlyDataSource ,,,]
