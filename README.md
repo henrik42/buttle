@@ -239,18 +239,23 @@ Others got bitten by this [1, 2] and it probably won't get fixed
 does not work for Wildfly but for Websphere; see below) and __(b)__
 __creating__ a JDBC Driver's XA-Datasource directly.
 
+[1] https://stackoverflow.com/questions/52710666/exception-while-looking-up-xadatasource-using-jndi  
+[2] https://groups.google.com/forum/#!msg/ironjacamar-users/rxM1WbINnWI/RIdvEYn_iw4J  
+[3] https://issues.jboss.org/browse/JBJCA-657  
+
 __Creating a JDBC Driver's XA-Datasource directly__
 
 So for Wildfly you define a _Buttle_ XA-Datasource and specify the
-_real_ XA-Datasource by setting the `Delegate` property to a Clojure
-map form (to be exact I should say 'a form that evaluates to a map';
-line-breaks are removed so DO NOT use `;` comments other than at the
-very end). This map must have `:xa-datasource-class` giving the _real_
-XA-Datasource's class (note that it IS a class-literal!). Any other
-map key/value will be used to set the _real_ XA-Datasource's Java-Bean
-properties (note that no Bean-Property-Editor is used for converting
-to correct Java-Bean target-type. You have to supply the correct type
-through the map).
+_real_ XA-Datasource by setting the `XaDatasourceSpec` property to a
+Clojure map form (to be exact I should say 'a form that evaluates to a
+map'; line-breaks are removed so DO NOT use `;` comments other than at
+the very end). This map must have `:xa-datasource-class` giving the
+_real_ XA-Datasource's class (note that it IS a class-literal!). Any
+other map key/value will be used to set the _real_ XA-Datasource's
+Java-Bean properties (note that no Bean-Property-Editor is used for
+converting to correct Java-Bean target-type. You have to supply the
+correct type through the map. Overloaded getter-methods are not
+supported).
 
     <xa-datasource jndi-name="java:/jdbc/buttle-xa" pool-name="buttle-xa-pool" spy="true">
       <xa-datasource-class>buttle.jdbc.XADataSource</xa-datasource-class>
@@ -259,15 +264,11 @@ through the map).
         <user-name>xkv</user-name>
         <password>Waldfee</password>
       </security>
-      <xa-datasource-property name="Delegate">
+      <xa-datasource-property name="XaDatasourceSpec">
         {:xa-datasource-class org.postgresql.xa.PGXADataSource
          :url "jdbc:postgresql://127.0.0.1:6632/postgres"}
       </xa-datasource-property>
     </xa-datasource>
-
-[1] url  
-[2] url  
-[3] wont fix!  
 
 ### Websphere
 
