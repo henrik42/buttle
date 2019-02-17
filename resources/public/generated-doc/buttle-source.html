@@ -3466,8 +3466,6 @@ net.brehaut.ClojureTools = (function (SH) {
   (throw
    (RuntimeException. &quot;not implemented yet: retrieve-xa-data-soure :jndi &quot;)))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defmethod retrieve-xa-data-soure :xa-class [xa-class-spec]
-  {:pre [(util/log &quot;pre: retrieve-xa-data-soure&quot; xa-class-spec)]
-   :post [(util/log &quot;post: retrieve-xa-data-soure&quot; %)]}
   (let [xa-datasource-class (:xa-datasource-class xa-class-spec)
         xa-ds (.newInstance xa-datasource-class)
         meths (-&gt;&gt; xa-datasource-class
@@ -3488,13 +3486,13 @@ net.brehaut.ClojureTools = (function (SH) {
   []
   (let [xa-ds-spec (atom nil)
         xa-ds (atom nil)
-        xa-ds! (fn [] (or @xa-ds (reset! xa-ds (retrieve-xa-data-soure @xa-ds-spec))))]
+        xa-ds! (fn [] (or @xa-ds
+                          (reset! xa-ds
+                                  (retrieve-xa-data-soure @xa-ds-spec))))]
     (proxy/make-proxy
      [XADataSource ButtleDataSource]
      (proxy [XADataSource ButtleDataSource] []
        (setXaDatasourceSpec [spec]
-         {:pre [(util/log &quot;pre: setXaDatasourceSpec&quot; spec)]
-          :post [(util/log &quot;post: setXaDatasourceSpec&quot; @xa-ds-spec)]}
          (try
            (util/with-tccl (.getClassLoader (Class/forName &quot;buttle.jdbc.XADataSource&quot;))
              (reset! xa-ds-spec
@@ -3505,8 +3503,6 @@ net.brehaut.ClojureTools = (function (SH) {
            (catch Throwable t
              (throw (ex-info &quot;Could not parse spec&quot; {:spec spec} t)))))
        (getXAConnection [&amp; [user password :as xs]]
-         {:pre [(util/log &quot;getXAConnection&quot; user password)]
-          :post [(util/log &quot;getXAConnection&quot; user password &quot;--&gt;&quot; %)]}
          (if-not xs (-&gt; (xa-ds!) .getXAConnection)
                  (-&gt; (xa-ds!) (.getXAConnection user password))))
        (getLogWriter []

@@ -27,8 +27,6 @@
    (RuntimeException. "not implemented yet: retrieve-xa-data-soure :jndi ")))
 
 (defmethod retrieve-xa-data-soure :xa-class [xa-class-spec]
-  {:pre [(util/log "pre: retrieve-xa-data-soure" xa-class-spec)]
-   :post [(util/log "post: retrieve-xa-data-soure" %)]}
   (let [xa-datasource-class (:xa-datasource-class xa-class-spec)
         xa-ds (.newInstance xa-datasource-class)
         meths (->> xa-datasource-class
@@ -50,13 +48,13 @@
   []
   (let [xa-ds-spec (atom nil)
         xa-ds (atom nil)
-        xa-ds! (fn [] (or @xa-ds (reset! xa-ds (retrieve-xa-data-soure @xa-ds-spec))))]
+        xa-ds! (fn [] (or @xa-ds
+                          (reset! xa-ds
+                                  (retrieve-xa-data-soure @xa-ds-spec))))]
     (proxy/make-proxy
      [XADataSource ButtleDataSource]
      (proxy [XADataSource ButtleDataSource] []
        (setXaDatasourceSpec [spec]
-         {:pre [(util/log "pre: setXaDatasourceSpec" spec)]
-          :post [(util/log "post: setXaDatasourceSpec" @xa-ds-spec)]}
          (try
            (util/with-tccl (.getClassLoader (Class/forName "buttle.jdbc.XADataSource"))
              (reset! xa-ds-spec
@@ -67,8 +65,6 @@
            (catch Throwable t
              (throw (ex-info "Could not parse spec" {:spec spec} t)))))
        (getXAConnection [& [user password :as xs]]
-         {:pre [(util/log "getXAConnection" user password)]
-          :post [(util/log "getXAConnection" user password "-->" %)]}
          (if-not xs (-> (xa-ds!) .getXAConnection)
                  (-> (xa-ds!) (.getXAConnection user password))))
        (getLogWriter []

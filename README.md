@@ -4,11 +4,12 @@
 
 _Buttle_ is a proxying JDBC driver with hooks.
 
-_Buttle_ supplies a `java.sql.Driver` (see `driver.clj`) which
-delegates `connect` calls to a backing `Driver` (like
-`org.postgresql.Driver`). _Buttle_ then constructs proxies _around_
-the returned `Connection`. These proxies (see `proxy.clj`) then
-recursivly do the same for their proxied instances (e.g. for
+_Buttle_ supplies a `java.sql.Driver` (see `driver.clj`; support for
+`javax.sql.DataSource` and `javax.sql.XADataSource` is also available
+--- see below) which delegates `connect` calls to a backing `Driver`
+(like `org.postgresql.Driver`). _Buttle_ then constructs proxies
+_around_ the returned `Connection`. These proxies (see `proxy.clj`)
+then recursivly do the same for their proxied instances (e.g. for
 `Statement` and `ResultSet` return values).
 
 Proxies are only constructed for methods (i.e. their returned values)
@@ -210,8 +211,8 @@ You define an `<xa-datasource>` like this (for Postgres):
 	  <xa-datasource-class>org.postgresql.xa.PGXADataSource</xa-datasource-class>
       <driver>postgres-driver</driver>
       <security>
-        <user-name>xkv</user-name>
-        <password>Waldfee</password>
+        <user-name>postgres-user</user-name>
+        <password>postgres-password</password>
       </security>
       <xa-datasource-property name="Url">jdbc:postgresql://127.0.0.1:6632/postgres</xa-datasource-property>
     </xa-datasource>
@@ -261,8 +262,8 @@ supported).
       <xa-datasource-class>buttle.jdbc.XADataSource</xa-datasource-class>
       <driver>buttle-driver</driver>
       <security>
-        <user-name>user</user-name>
-        <password>password</password>
+        <user-name>postgres-user</user-name>
+        <password>postgres-password</password>
       </security>
       <xa-datasource-property name="XaDatasourceSpec">
         {:xa-datasource-class org.postgresql.xa.PGXADataSource
