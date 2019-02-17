@@ -257,12 +257,12 @@ converting to correct Java-Bean target-type. You have to supply the
 correct type through the map. Overloaded getter-methods are not
 supported).
 
-    <xa-datasource jndi-name="java:/jdbc/buttle-xa" pool-name="buttle-xa-pool" spy="true">
+    <xa-datasource jndi-name="java:/jdbc/buttle-xa" pool-name="buttle-xa">
       <xa-datasource-class>buttle.jdbc.XADataSource</xa-datasource-class>
       <driver>buttle-driver</driver>
       <security>
-        <user-name>xkv</user-name>
-        <password>Waldfee</password>
+        <user-name>user</user-name>
+        <password>password</password>
       </security>
       <xa-datasource-property name="XaDatasourceSpec">
         {:xa-datasource-class org.postgresql.xa.PGXADataSource
