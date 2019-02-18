@@ -44,6 +44,11 @@
       (.invoke m xa-ds (into-array [v])))
     xa-ds))
 
+(defn throwable->string [t]
+  (let [baos (java.io.ByteArrayOutputStream.)]
+    (-> t (.printStackTrace (java.io.PrintStream. baos)))
+    (.toString baos)))
+    
 (defn make-xa-data-source
   []
   (let [xa-ds-spec (atom nil)
@@ -55,6 +60,8 @@
      [XADataSource ButtleDataSource]
      (proxy [XADataSource ButtleDataSource] []
        (setXaDatasourceSpec [spec]
+         {:pre [(util/log "setXaDatasourceSpec" spec)]
+          :post [(util/log "setXaDatasourceSpec" spec "-->" %)]}
          (try
            (util/with-tccl (.getClassLoader (Class/forName "buttle.jdbc.XADataSource"))
              (reset! xa-ds-spec
@@ -65,6 +72,10 @@
            (catch Throwable t
              (throw (ex-info "Could not parse spec" {:spec spec} t)))))
        (getXAConnection [& [user password :as xs]]
+         {:pre [(util/log "getXAConnection" xs)
+                (do (.println System/out (throwable->string (RuntimeException. "STACKTRACE")))
+                    true)]
+          :post [(util/log "getXAConnection" xs "-->" %)]}
          (if-not xs (-> (xa-ds!) .getXAConnection)
                  (-> (xa-ds!) (.getXAConnection user password))))
        (getLogWriter []
@@ -77,15 +88,22 @@
          (-> (xa-ds!) .getLoginTimeout))
        (getParentLogger []
          (-> (xa-ds!) .getParentLogger)))
-     proxy/handle)))
+     (fn [the-method target-obj the-args]
+       (util/with-tccl (.getClassLoader (Class/forName "buttle.jdbc.XADataSource"))
+         (util/log "CALLING " the-method target-obj the-args)
+         (proxy/handle the-method target-obj the-args))))))
+
+;; proxy/handle)))
 
 (defn -init
   "Constructor function of `buttle.jdbc.XADataSource`."
 
-    []
-    [[] (make-xa-data-source)])
+  []
+  (util/log "-init")
+  [[] (make-xa-data-source)])
 
 (defn -setXaDatasourceSpec [this spec]
+  (util/log "-setXaDatasourceSpec" spec)
   (.setXaDatasourceSpec (.state this) spec))
 
 (defn -getXAConnection
@@ -95,6 +113,8 @@
   ([this]
      (.getXAConnection (.state this)))
   ([this username password]
+     {:pre [(util/log "-getXAConnection" username password)]
+      :post [(util/log "-getXAConnection" username password "-->" %)]}
      (.getXAConnection (.state this) username password)))
 
 (defn -getLogWriter
