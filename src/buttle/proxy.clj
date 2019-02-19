@@ -57,9 +57,9 @@
 
 (defn invoke-fn
   "Invocation handler for `make-proxy`. It delegates any method
-   invocation of `proxy-type` to `handler-fn`. Any other method
-   invocations (like `Object.toString()`) will be invoked on
-   `target-object`.
+   invocation of `proxy-type` (which may be an interface or a vector
+   of interfaces) to `handler-fn`. Any other method invocations (like
+   `Object.toString()`) will be invoked on `target-object`.
 
    Note that any
    `java.lang.reflect.InvocationTargetException` (incl. those coming
@@ -83,10 +83,11 @@
 (defn make-proxy
   "A proxy factory.
 
-   Creates and returns a __Java dynamic proxy__ with `proxy-type`. The
-   classloader for this proxy is taken from `target-obj`. The proxy
-   delegates any method invocation to `invoke-fn` which in turn
-   delegates to `handler-fn`.
+   Creates and returns a __Java dynamic proxy__ with
+   `proxy-type` (which may be an interface or a vector of
+   interfaces). The classloader for this proxy is taken from
+   `target-obj`. The proxy delegates any method invocation to
+   `invoke-fn` which in turn delegates to `handler-fn`.
 
    Example usage:
 

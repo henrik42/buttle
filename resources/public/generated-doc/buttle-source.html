@@ -3254,9 +3254,9 @@ net.brehaut.ClojureTools = (function (SH) {
   multi-method and <code>fix-prefers!</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(def function-default-hierarchy
   (atom (make-hierarchy)))</pre></td></tr><tr><td class="docs"><p>Invocation handler for <code>make-proxy</code>. It delegates any method
-   invocation of <code>proxy-type</code> to <code>handler-fn</code>. Any other method
-   invocations (like <code>Object.toString()</code>) will be invoked on
-   <code>target-object</code>.</p>
+   invocation of <code>proxy-type</code> (which may be an interface or a vector
+   of interfaces) to <code>handler-fn</code>. Any other method invocations (like
+   <code>Object.toString()</code>) will be invoked on <code>target-object</code>.</p>
 
 <p>   Note that any
    <code>java.lang.reflect.InvocationTargetException</code> (incl. those coming
@@ -3270,16 +3270,18 @@ net.brehaut.ClojureTools = (function (SH) {
 </td><td class="codes"><pre class="brush: clojure">(defn invoke-fn
   [proxy-type target-obj handler-fn the-proxy the-method the-args]
   (try
-    (if (= proxy-type (.getDeclaringClass the-method))
+    (if ((if (vector? proxy-type) (into #{} proxy-type) #{proxy-type})
+         (.getDeclaringClass the-method))
       (handler-fn the-method target-obj the-args)
       (.invoke the-method target-obj the-args))
     (catch java.lang.reflect.InvocationTargetException t
       (throw (.getCause t)))))</pre></td></tr><tr><td class="docs"><p>A proxy factory.</p>
 
-<p>   Creates and returns a <strong>Java dynamic proxy</strong> with <code>proxy-type</code>. The
-   classloader for this proxy is taken from <code>target-obj</code>. The proxy
-   delegates any method invocation to <code>invoke-fn</code> which in turn
-   delegates to <code>handler-fn</code>.</p>
+<p>   Creates and returns a <strong>Java dynamic proxy</strong> with
+   <code>proxy-type</code> (which may be an interface or a vector of
+   interfaces). The classloader for this proxy is taken from
+   <code>target-obj</code>. The proxy delegates any method invocation to
+   <code>invoke-fn</code> which in turn delegates to <code>handler-fn</code>.</p>
 
 <p>   Example usage:</p>
 
@@ -3448,20 +3450,28 @@ net.brehaut.ClojureTools = (function (SH) {
            [javax.sql XADataSource])
   (:require [buttle.proxy :as proxy]
             [buttle.util :as util]))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(definterface ButtleDataSource
+</td><td class="codes"><pre class="brush: clojure">(definterface ButtleDataSource 
   (setXaDatasourceSpec [^String spec]))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(gen-class
  :init init
  :state state
  :name buttle.jdbc.XADataSource
  :implements [javax.sql.XADataSource
-              buttle.xa_data_source.ButtleDataSource])</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn spec-&gt;type [spec]
+              buttle.xa_data_source.ButtleDataSource])</pre></td></tr><tr><td class="docs"><p>Dispatch for <code>retrieve-xa-data-soure</code>. Returns type of
+  <code>spec</code> (<code>:jndi</code> for <code>String</code>, <code>:xa-class</code> for maps).</p>
+</td><td class="codes"><pre class="brush: clojure">(defn spec-&gt;type
+  [spec]
   (cond
    (isa? spec String) :jndi
    (map? spec) :xa-class
-   :else (format &quot;Unknown spec '%s'&quot; (pr-str spec))))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defmulti retrieve-xa-data-soure #'spec-&gt;type)</pre></td></tr><tr><td class="docs">
+   :else (format &quot;Unknown spec '%s'&quot; (pr-str spec))))</pre></td></tr><tr><td class="docs"><p>Factory/lookup for <em>real</em> xa-datasource. <code>String</code> arg will be
+  expected to be JNDI name of a <code>javax.sql.XADataSource</code>. In this case
+  the xa-datasource will be looked up in JNDI. If the arg is a map the
+  <code>:xa-datasource-class</code> will be used to create an instance and then
+  all remining keys/values will be used to set the instance's
+  Java-Bean properties.</p>
+</td><td class="codes"><pre class="brush: clojure">(defmulti retrieve-xa-data-soure 
+  #'spec-&gt;type)</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defmethod retrieve-xa-data-soure :jndi [jndi-spec]
   (throw
    (RuntimeException. &quot;not implemented yet: retrieve-xa-data-soure :jndi &quot;)))</pre></td></tr><tr><td class="docs">
@@ -3481,7 +3491,12 @@ net.brehaut.ClojureTools = (function (SH) {
         (throw (RuntimeException. (format &quot;Setter not found for %s. Known methods are %s&quot;
                                           [k v mn] (keys meths)))))
       (.invoke m xa-ds (into-array [v])))
-    xa-ds))</pre></td></tr><tr><td class="docs">
+    xa-ds))</pre></td></tr><tr><td class="docs"><p>Creates and returns a <em>Buttle</em> <code>javax.sql.XADataSource</code>.</p>
+
+<p>  Use <code>setXaDatasourceSpec</code> to control what the <em>real</em> (or <em>backing</em>)
+  <code>javax.sql.XADataSource</code> is. You can use <code>String</code> to use an
+  xa-datasource from JNDI. Use a map to create an instance and set
+  properties (see <code>retrieve-xa-data-soure</code> for details).</p>
 </td><td class="codes"><pre class="brush: clojure">(defn make-xa-data-source
   []
   (let [xa-ds-spec (atom nil)
@@ -3515,11 +3530,17 @@ net.brehaut.ClojureTools = (function (SH) {
          (-&gt; (xa-ds!) .getLoginTimeout))
        (getParentLogger []
          (-&gt; (xa-ds!) .getParentLogger)))
-     proxy/handle)))</pre></td></tr><tr><td class="docs"><p>Constructor function of <code>buttle.jdbc.XADataSource</code>.</p>
+     (fn [the-method target-obj the-args]
+       (util/with-tccl (.getClassLoader (Class/forName &quot;buttle.jdbc.XADataSource&quot;))
+         (proxy/handle the-method target-obj the-args))))))</pre></td></tr><tr><td class="docs"><p>Constructor function of <code>buttle.jdbc.XADataSource</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn -init
-    []
-    [[] (make-xa-data-source)])</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn -setXaDatasourceSpec [this spec]
+  []
+  [[] (make-xa-data-source)])</pre></td></tr><tr><td class="docs"><p>Implements
+  <code>buttle.xa_data_source.ButtleDataSource/setXaDatasourceSpec</code>. Just
+  delegates to the referenced/internal <em>Buttle</em> datasource (see
+  <code>-init</code>).</p>
+</td><td class="codes"><pre class="brush: clojure">(defn -setXaDatasourceSpec
+  [this spec]
   (.setXaDatasourceSpec (.state this) spec))</pre></td></tr><tr><td class="docs"><p>Implements <code>javax.sql.XADataSource/getXAConnection</code>. Just delegates
   to the referenced/internal datasource (see <code>-init</code>).</p>
 </td><td class="codes"><pre class="brush: clojure">(defn -getXAConnection

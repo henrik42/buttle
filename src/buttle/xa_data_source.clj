@@ -1,10 +1,12 @@
 (ns buttle.xa-data-source
+  ""
+  
   (:import [javax.naming InitialContext]
            [javax.sql XADataSource])
   (:require [buttle.proxy :as proxy]
             [buttle.util :as util]))
 
-(definterface ButtleDataSource
+(definterface ButtleDataSource 
   (setXaDatasourceSpec [^String spec]))
 
 (gen-class
@@ -14,13 +16,25 @@
  :implements [javax.sql.XADataSource
               buttle.xa_data_source.ButtleDataSource])
 
-(defn spec->type [spec]
+(defn spec->type
+  "Dispatch for `retrieve-xa-data-soure`. Returns type of
+  `spec` (`:jndi` for `String`, `:xa-class` for maps)."
+
+  [spec]
   (cond
    (isa? spec String) :jndi
    (map? spec) :xa-class
    :else (format "Unknown spec '%s'" (pr-str spec))))
 
-(defmulti retrieve-xa-data-soure #'spec->type)
+(defmulti retrieve-xa-data-soure 
+  "Factory/lookup for _real_ xa-datasource. `String` arg will be
+  expected to be JNDI name of a `javax.sql.XADataSource`. In this case
+  the xa-datasource will be looked up in JNDI. If the arg is a map the
+  `:xa-datasource-class` will be used to create an instance and then
+  all remining keys/values will be used to set the instance's
+  Java-Bean properties."
+
+  #'spec->type)
 
 (defmethod retrieve-xa-data-soure :jndi [jndi-spec]
   (throw
@@ -44,12 +58,15 @@
       (.invoke m xa-ds (into-array [v])))
     xa-ds))
 
-(defn throwable->string [t]
-  (let [baos (java.io.ByteArrayOutputStream.)]
-    (-> t (.printStackTrace (java.io.PrintStream. baos)))
-    (.toString baos)))
-    
-(defn make-xa-data-source []
+(defn make-xa-data-source
+  "Creates and returns a _Buttle_ `javax.sql.XADataSource`.
+
+  Use `setXaDatasourceSpec` to control what the _real_ (or _backing_)
+  `javax.sql.XADataSource` is. You can use `String` to use an
+  xa-datasource from JNDI. Use a map to create an instance and set
+  properties (see `retrieve-xa-data-soure` for details)."
+
+  []
   (let [xa-ds-spec (atom nil)
         xa-ds (atom nil)
         xa-ds! (fn [] (or @xa-ds
@@ -59,8 +76,6 @@
      [XADataSource ButtleDataSource]
      (proxy [XADataSource ButtleDataSource] []
        (setXaDatasourceSpec [spec]
-         #_ {:pre [(util/log "setXaDatasourceSpec" spec)]
-             :post [(util/log "setXaDatasourceSpec" spec "-->" %)]}
          (try
            (util/with-tccl (.getClassLoader (Class/forName "buttle.jdbc.XADataSource"))
              (reset! xa-ds-spec
@@ -71,10 +86,6 @@
            (catch Throwable t
              (throw (ex-info "Could not parse spec" {:spec spec} t)))))
        (getXAConnection [& [user password :as xs]]
-         #_ {:pre [(util/log "getXAConnection" xs)
-                   (do (.println System/out (throwable->string (RuntimeException. "STACKTRACE")))
-                       true)]
-             :post [(util/log "getXAConnection" xs "-->" %)]}
          (if-not xs (-> (xa-ds!) .getXAConnection)
                  (-> (xa-ds!) (.getXAConnection user password))))
        (getLogWriter []
@@ -91,15 +102,19 @@
        (util/with-tccl (.getClassLoader (Class/forName "buttle.jdbc.XADataSource"))
          (proxy/handle the-method target-obj the-args))))))
 
-;; proxy/handle)))
-
 (defn -init
   "Constructor function of `buttle.jdbc.XADataSource`."
 
   []
   [[] (make-xa-data-source)])
 
-(defn -setXaDatasourceSpec [this spec]
+(defn -setXaDatasourceSpec
+  "Implements
+  `buttle.xa_data_source.ButtleDataSource/setXaDatasourceSpec`. Just
+  delegates to the referenced/internal _Buttle_ datasource (see
+  `-init`)."
+
+  [this spec]
   (.setXaDatasourceSpec (.state this) spec))
 
 (defn -getXAConnection
@@ -109,8 +124,6 @@
   ([this]
      (.getXAConnection (.state this)))
   ([this username password]
-     #_ {:pre [(util/log "-getXAConnection" username password)]
-         :post [(util/log "-getXAConnection" username password "-->" %)]}
      (.getXAConnection (.state this) username password)))
 
 (defn -getLogWriter
