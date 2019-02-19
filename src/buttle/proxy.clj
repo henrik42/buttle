@@ -73,7 +73,6 @@
 
   [proxy-type target-obj handler-fn the-proxy the-method the-args]
   (try
-;;    (if (= proxy-type (.getDeclaringClass the-method))
     (if ((if (vector? proxy-type) (into #{} proxy-type) #{proxy-type})
          (.getDeclaringClass the-method))
       (handler-fn the-method target-obj the-args)
@@ -106,7 +105,6 @@
      (into-array [proxy-type]))
    (proxy [java.lang.reflect.InvocationHandler] []
      (invoke [the-proxy the-method the-args]
-       (util/log "dynproxy invoke:" the-method the-args)
        (invoke-fn proxy-type target-obj handler-fn the-proxy the-method the-args)))))
 
 (defn invocation-key
