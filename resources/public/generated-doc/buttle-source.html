@@ -2986,6 +2986,25 @@ net.brehaut.ClojureTools = (function (SH) {
   whenever an instance of <code>buttle.jdbc.Driver</code> is created, a new
   proxy ( <strong>not</strong> the <code>buttle.jdbc.Driver</code>!) is registered.</p>
 
+<p>  <strong>Example JDBC-URL</strong>:</p>
+
+<pre><code>  jdbc:buttle:{:user "&lt;user&gt;" :password "&lt;password&gt;" :target-url "jdbc:postgresql://127.0.0.1:6632/postgres"}
+</code></pre>
+
+<p>  <strong>Example Wildfly datasource</strong> (see README for more details):</p>
+
+<pre><code>    &lt;datasource jndi-name="java:/jdbc/buttle-ds" pool-name="buttle-ds" use-java-context="true"&gt;
+        &lt;driver&gt;buttle-driver&lt;/driver&gt;
+        &lt;connection-url&gt;
+                jdbc:buttle:{
+                        :user "&lt;user&gt;"
+                        :password "&lt;password&gt;"
+                        :class-for-name "org.postgresql.Driver"
+                        :target-url "jdbc:postgresql://&lt;host&gt;:&lt;port&gt;/&lt;db-id&gt;"}
+            &lt;/connection-url&gt;
+    &lt;/datasource&gt;
+</code></pre>
+
 <p>  When this namespace is loaded <code>eval-buttle-user-file!</code> will be
   executed.</p>
 
@@ -3444,14 +3463,36 @@ net.brehaut.ClojureTools = (function (SH) {
   (when-not jndi
     (throw (RuntimeException. &quot;No `jndi` property set.&quot;)))
   (with-open [ctx (InitialContext.)]
-    (.lookup ctx jndi)))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.xa-data-source" name="buttle.xa-data-source"><h1 class="project-name">buttle.xa-data-source</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs">
+    (.lookup ctx jndi)))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.xa-data-source" name="buttle.xa-data-source"><h1 class="project-name">buttle.xa-data-source</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>The <em>Buttle</em> <code>javax.sql.XADataSource</code>.</p>
+
+<p>  This namespace delivers <code>buttle.jdbc.XADataSource</code> via
+  <code>:gen-class</code>. This named class can be used as an xa-datasource class
+  for application servers.</p>
+
+<p>  <strong>Example (Wildfly)</strong>:</p>
+
+<pre><code>    &lt;xa-datasource jndi-name="java:/jdbc/buttle-xa" pool-name="buttle-xa"&gt;
+      &lt;xa-datasource-class&gt;buttle.jdbc.XADataSource&lt;/xa-datasource-class&gt;
+      &lt;driver&gt;buttle-driver&lt;/driver&gt;
+      &lt;security&gt;
+        &lt;user-name&gt;postgres-user&lt;/user-name&gt;
+        &lt;password&gt;postgres-password&lt;/password&gt;
+      &lt;/security&gt;
+      &lt;xa-datasource-property name="XaDatasourceSpec"&gt;
+        {:xa-datasource-class org.postgresql.xa.PGXADataSource
+         :url "jdbc:postgresql://127.0.0.1:6632/postgres"}
+      &lt;/xa-datasource-property&gt;
+    &lt;/xa-datasource&gt;
+</code></pre>
 </td><td class="codes"><pre class="brush: clojure">(ns buttle.xa-data-source
   (:import [javax.naming InitialContext]
            [javax.sql XADataSource])
   (:require [buttle.proxy :as proxy]
-            [buttle.util :as util]))</pre></td></tr><tr><td class="docs">
+            [buttle.util :as util]))</pre></td></tr><tr><td class="docs"><p>Needed for -setXaDatasourceSpec. Otherwise the compile won't
+generate the method for buttle.jdbc.XADataSource</p>
 </td><td class="codes"><pre class="brush: clojure">(definterface ButtleDataSource 
-  (setXaDatasourceSpec [^String spec]))</pre></td></tr><tr><td class="docs">
+  (setXaDatasourceSpec [^String spec]))</pre></td></tr><tr><td class="docs"><p>Cannot be part of <code>ns</code> form because references
+<code>buttle.xa_data_source.ButtleDataSource</code> from above</p>
 </td><td class="codes"><pre class="brush: clojure">(gen-class
  :init init
  :state state
@@ -3468,13 +3509,16 @@ net.brehaut.ClojureTools = (function (SH) {
   expected to be JNDI name of a <code>javax.sql.XADataSource</code>. In this case
   the xa-datasource will be looked up in JNDI. If the arg is a map the
   <code>:xa-datasource-class</code> will be used to create an instance and then
-  all remining keys/values will be used to set the instance's
+  all remaining keys/values will be used to set the instance's
   Java-Bean properties.</p>
 </td><td class="codes"><pre class="brush: clojure">(defmulti retrieve-xa-data-soure 
   #'spec-&gt;type)</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defmethod retrieve-xa-data-soure :jndi [jndi-spec]
   (throw
-   (RuntimeException. &quot;not implemented yet: retrieve-xa-data-soure :jndi &quot;)))</pre></td></tr><tr><td class="docs">
+   (RuntimeException. &quot;not implemented yet: retrieve-xa-data-soure :jndi &quot;)))</pre></td></tr><tr><td class="docs"><p>Create instance of (:xa-datasource-class xa-class-spec) and call
+setters for (keys (dissoc xa-class-spec
+:xa-datasource-class)). Setter-names are derived from map keys by
+camel-casing <code>:foo-bar</code> to <code>setFooBar</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(defmethod retrieve-xa-data-soure :xa-class [xa-class-spec]
   (let [xa-datasource-class (:xa-datasource-class xa-class-spec)
         xa-ds (.newInstance xa-datasource-class)
@@ -3497,10 +3541,14 @@ net.brehaut.ClojureTools = (function (SH) {
   <code>javax.sql.XADataSource</code> is. You can use <code>String</code> to use an
   xa-datasource from JNDI. Use a map to create an instance and set
   properties (see <code>retrieve-xa-data-soure</code> for details).</p>
+
+<p>  Note: creation is done on-demand when the backing xa-datasource is
+  actually needed.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn make-xa-data-source
   []
   (let [xa-ds-spec (atom nil)
         xa-ds (atom nil)
+        ;; lazy creation and cache
         xa-ds! (fn [] (or @xa-ds
                           (reset! xa-ds
                                   (retrieve-xa-data-soure @xa-ds-spec))))]
@@ -3531,40 +3579,44 @@ net.brehaut.ClojureTools = (function (SH) {
        (getParentLogger []
          (-&gt; (xa-ds!) .getParentLogger)))
      (fn [the-method target-obj the-args]
+       ;; set TCCL so that CLojure RT/Compiler uses correct
+       ;; classloader.
        (util/with-tccl (.getClassLoader (Class/forName &quot;buttle.jdbc.XADataSource&quot;))
-         (proxy/handle the-method target-obj the-args))))))</pre></td></tr><tr><td class="docs"><p>Constructor function of <code>buttle.jdbc.XADataSource</code>.</p>
+         (proxy/handle the-method target-obj the-args))))))</pre></td></tr><tr><td class="docs"><p>Constructor function of <code>buttle.jdbc.XADataSource</code>. Calls
+  <code>make-xa-data-source</code> and initialized <code>state</code> with that (i.e. the
+  <em>Buttle</em> xa-datasource is cached).</p>
 </td><td class="codes"><pre class="brush: clojure">(defn -init
   []
   [[] (make-xa-data-source)])</pre></td></tr><tr><td class="docs"><p>Implements
   <code>buttle.xa_data_source.ButtleDataSource/setXaDatasourceSpec</code>. Just
-  delegates to the referenced/internal <em>Buttle</em> datasource (see
+  delegates to the referenced/internal <em>Buttle</em> xa-datasource (see
   <code>-init</code>).</p>
 </td><td class="codes"><pre class="brush: clojure">(defn -setXaDatasourceSpec
   [this spec]
   (.setXaDatasourceSpec (.state this) spec))</pre></td></tr><tr><td class="docs"><p>Implements <code>javax.sql.XADataSource/getXAConnection</code>. Just delegates
-  to the referenced/internal datasource (see <code>-init</code>).</p>
+  to the referenced/internal xa-datasource (see <code>-init</code>).</p>
 </td><td class="codes"><pre class="brush: clojure">(defn -getXAConnection
   ([this]
      (.getXAConnection (.state this)))
   ([this username password]
      (.getXAConnection (.state this) username password)))</pre></td></tr><tr><td class="docs"><p>Implements <code>javax.sql.CommonDataSource/getLogWriter</code>. Just
-  delegates to the referenced/internal datasource (see <code>-init</code>).</p>
+  delegates to the referenced/internal xa-datasource (see <code>-init</code>).</p>
 </td><td class="codes"><pre class="brush: clojure">(defn -getLogWriter
   [this]
   (.getLogWriter (.state this)))</pre></td></tr><tr><td class="docs"><p>Implements <code>javax.sql.CommonDataSource/setLogWriter</code>. Just
-  delegates to the referenced/internal datasource (see <code>-init</code>).</p>
+  delegates to the referenced/internal xa-datasource (see <code>-init</code>).</p>
 </td><td class="codes"><pre class="brush: clojure">(defn -setLogWriter
   [this pr-wrt]
   (.setLogWriter (.state this) pr-wrt))</pre></td></tr><tr><td class="docs"><p>Implements <code>javax.sql.CommonDataSource/setLoginTimeout</code>. Just
-  delegates to the referenced/internal datasource (see <code>-init</code>).</p>
+  delegates to the referenced/internal xa-datasource (see <code>-init</code>).</p>
 </td><td class="codes"><pre class="brush: clojure">(defn -setLoginTimeout
   [this sec]
   (.setLoginTimeout (.state this) sec))</pre></td></tr><tr><td class="docs"><p>Implements <code>javax.sql.CommonDataSource/getLoginTimeout</code>. Just
-  delegates to the referenced/internal datasource (see <code>-init</code>).</p>
+  delegates to the referenced/internal xa-datasource (see <code>-init</code>).</p>
 </td><td class="codes"><pre class="brush: clojure">(defn -getLoginTimeout
   [this]
   (.getLoginTimeout (.state this)))</pre></td></tr><tr><td class="docs"><p>Implements <code>javax.sql.CommonDataSource/getParentLogger</code>. Just
-  delegates to the referenced/internal datasource (see <code>-init</code>).</p>
+  delegates to the referenced/internal xa-datasource (see <code>-init</code>).</p>
 </td><td class="codes"><pre class="brush: clojure">(defn -getParentLogger
   [this]
   (.getParentLogger (.state this)))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr></table><div class="footer">Generated by <a href="https://github.com/gdeer81/marginalia">Marginalia</a>.&nbsp;&nbsp;Syntax highlighting provided by Alex Gorbatchev's <a href="http://alexgorbatchev.com/SyntaxHighlighter/">SyntaxHighlighter</a><div id="floating-toc"><ul><li class="floating-toc-li" id="floating-toc_buttle.data-source">buttle.data-source</li><li class="floating-toc-li" id="floating-toc_buttle.driver">buttle.driver</li><li class="floating-toc-li" id="floating-toc_buttle.driver-manager">buttle.driver-manager</li><li class="floating-toc-li" id="floating-toc_buttle.event">buttle.event</li><li class="floating-toc-li" id="floating-toc_buttle.proxy">buttle.proxy</li><li class="floating-toc-li" id="floating-toc_buttle.util">buttle.util</li><li class="floating-toc-li" id="floating-toc_buttle.xa-data-source">buttle.xa-data-source</li></ul></div></div><script type="text/javascript">SyntaxHighlighter.defaults['gutter'] = false;

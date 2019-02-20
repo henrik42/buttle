@@ -10,6 +10,23 @@
   whenever an instance of `buttle.jdbc.Driver` is created, a new
   proxy ( __not__ the `buttle.jdbc.Driver`!) is registered.
 
+  __Example JDBC-URL__:
+
+      jdbc:buttle:{:user \"<user>\" :password \"<password>\" :target-url \"jdbc:postgresql://127.0.0.1:6632/postgres\"}
+
+  __Example Wildfly datasource__ (see README for more details):
+
+        <datasource jndi-name=\"java:/jdbc/buttle-ds\" pool-name=\"buttle-ds\" use-java-context=\"true\">
+            <driver>buttle-driver</driver>
+            <connection-url>
+                    jdbc:buttle:{
+                            :user \"<user>\"
+                            :password \"<password>\"
+                            :class-for-name \"org.postgresql.Driver\"
+                            :target-url \"jdbc:postgresql://<host>:<port>/<db-id>\"}
+                </connection-url>
+        </datasource>
+
   When this namespace is loaded `eval-buttle-user-file!` will be
   executed.
 

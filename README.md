@@ -100,6 +100,22 @@ interfaces, methods or a combination of these (see
     (buttle.proxy/def-handle [java.sql.Connection :buttle/getCatalog] [the-method target-obj the-args]
 	  (do-some-thing-with-call the-method target-obj the-args))
 
+`do-some-thing-with-call` could look like this:
+
+    (defn invoke-with-logging [the-method target-obj the-args]
+      (println (format "buttle.examples.handle: INVOKE %s"
+                       (pr-str [the-method target-obj (into [] the-args)])))
+      (let [r (try
+                (proxy/handle-default the-method target-obj the-args)
+                (catch Throwable t
+                  (do
+                    (println (format "buttle.examples.handle: THROW %s : %s"
+                                     (pr-str [the-method target-obj (into [] the-args)]) (pr-str t)))
+                    (throw t))))]
+        (println (format "buttle.examples.handle: RETURN %s --> %s"
+                         (pr-str [the-method target-obj (into [] the-args)]) (pr-str r)))
+        r))
+
 ## Examples
 
 ### SQuirreL

@@ -61,6 +61,21 @@
 <pre><code>(buttle.proxy/def-handle [java.sql.Connection :buttle/getCatalog] [the-method target-obj the-args]
   (do-some-thing-with-call the-method target-obj the-args))
 </code></pre>
+<p><code>do-some-thing-with-call</code> could look like this:</p>
+<pre><code>(defn invoke-with-logging [the-method target-obj the-args]
+  (println (format "buttle.examples.handle: INVOKE %s"
+                   (pr-str [the-method target-obj (into [] the-args)])))
+  (let [r (try
+            (proxy/handle-default the-method target-obj the-args)
+            (catch Throwable t
+              (do
+                (println (format "buttle.examples.handle: THROW %s : %s"
+                                 (pr-str [the-method target-obj (into [] the-args)]) (pr-str t)))
+                (throw t))))]
+    (println (format "buttle.examples.handle: RETURN %s --&gt; %s"
+                     (pr-str [the-method target-obj (into [] the-args)]) (pr-str r)))
+    r))
+</code></pre>
 <h2><a href="#examples" name="examples"></a>Examples</h2>
 <h3><a href="#squirrel" name="squirrel"></a>SQuirreL</h3>
 <p><strong>(1)</strong> In <code>squirrel-sql.bat</code> add system property <code>buttle.user-file</code> to java call:</p>
