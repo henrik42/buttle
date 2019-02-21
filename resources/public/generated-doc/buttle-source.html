@@ -3503,7 +3503,7 @@ generate the method for buttle.jdbc.XADataSource</p>
 </td><td class="codes"><pre class="brush: clojure">(defn spec-&gt;type
   [spec]
   (cond
-   (isa? spec String) :jndi
+   (string? spec) :jndi
    (map? spec) :xa-class
    :else (format &quot;Unknown spec '%s'&quot; (pr-str spec))))</pre></td></tr><tr><td class="docs"><p>Factory/lookup for <em>real</em> xa-datasource. <code>String</code> arg will be
   expected to be JNDI name of a <code>javax.sql.XADataSource</code>. In this case

@@ -46,7 +46,7 @@
 
   [spec]
   (cond
-   (isa? spec String) :jndi
+   (string? spec) :jndi
    (map? spec) :xa-class
    :else (format "Unknown spec '%s'" (pr-str spec))))
 
