@@ -21,8 +21,7 @@
           </xa-datasource-property>
         </xa-datasource>"
   
-  (:import [javax.naming InitialContext]
-           [javax.sql XADataSource])
+  (:import [javax.sql XADataSource])
   (:require [buttle.proxy :as proxy]
             [buttle.util :as util]))
 
@@ -60,9 +59,16 @@
 
   #'spec->type)
 
+;; Retrieve xa-datasource and check that it *really IS* an
+;; xa-datasource. Else we won't be able to delegate to it.
 (defmethod retrieve-xa-data-soure :jndi [jndi-spec]
-  (throw
-   (RuntimeException. "not implemented yet: retrieve-xa-data-soure :jndi ")))
+  (let [xa-ds (util/jndi-lookup jndi-spec)]
+    (when-not (isa? (.getClass xa-ds) javax.sql.XADataSource)
+      (throw
+       (RuntimeException.
+        (format "This is not a javax.sql.XADataSource: '%s'  It implements these interfaces: '%s'"
+                xa-ds (->> xa-ds .getClass .getInterfaces (into []))))))
+    xa-ds))
 
 ;; Create instance of (:xa-datasource-class xa-class-spec) and call
 ;; setters for (keys (dissoc xa-class-spec

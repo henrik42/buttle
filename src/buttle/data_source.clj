@@ -19,24 +19,15 @@
    :implements [javax.sql.DataSource]
    :methods [[setUrl [String] void]
              [setJndi [String] void]])
-  (:import [javax.naming InitialContext]
-           [javax.sql DataSource]
+  (:import [javax.sql DataSource]
            [java.sql SQLException]
            [java.sql SQLFeatureNotSupportedException])
-  (:require [buttle.proxy :as proxy]))
+  (:require [buttle.proxy :as proxy]
+            [buttle.util :as util]))
 
 (definterface ButtleDataSource
   (setUrl [^String url])
   (setJndi [^String jndi]))
-
-(defn lookup-data-source
-  "Looks up JNDI entry `jndi` and returns it."
-
-  [jndi]
-  (when-not jndi
-    (throw (RuntimeException. "No `jndi` property set.")))
-  (with-open [ctx (InitialContext.)]
-    (.lookup ctx jndi)))
 
 (defn make-data-source
   "Creates the _Buttle_ datasource."
@@ -49,7 +40,7 @@
               (or @ds
                   (reset!
                    ds
-                   (lookup-data-source @jndi))))]
+                   (util/jndi-lookup @jndi))))]
     (proxy/make-proxy
      [DataSource ButtleDataSource]
      (proxy [DataSource ButtleDataSource] []

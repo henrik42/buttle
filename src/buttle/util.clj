@@ -24,9 +24,18 @@
               (.setContextClassLoader (Thread/currentThread) tccl#))))))
 
 (defn jndi-lookup
+  "Looks up entry in JNDI and returns it. Throws if entry cannot be
+  found."
+  
   [jndi]
   (when-not jndi
     (throw (RuntimeException. "No `jndi` property set.")))
-  (with-open [ctx (InitialContext.)]
-    (.lookup ctx jndi)))
+  (try 
+    (with-open [ctx (InitialContext.)]
+      (.lookup ctx jndi))
+    (catch Throwable t
+      (throw
+       (RuntimeException.
+        (format "JNDI lookup failed for '%s': %s" jndi t) t)))))
+              
 

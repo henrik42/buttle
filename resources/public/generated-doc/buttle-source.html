@@ -2886,20 +2886,14 @@ net.brehaut.ClojureTools = (function (SH) {
    :implements [javax.sql.DataSource]
    :methods [[setUrl [String] void]
              [setJndi [String] void]])
-  (:import [javax.naming InitialContext]
-           [javax.sql DataSource]
+  (:import [javax.sql DataSource]
            [java.sql SQLException]
            [java.sql SQLFeatureNotSupportedException])
-  (:require [buttle.proxy :as proxy]))</pre></td></tr><tr><td class="docs">
+  (:require [buttle.proxy :as proxy]
+            [buttle.util :as util]))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(definterface ButtleDataSource
   (setUrl [^String url])
-  (setJndi [^String jndi]))</pre></td></tr><tr><td class="docs"><p>Looks up JNDI entry <code>jndi</code> and returns it.</p>
-</td><td class="codes"><pre class="brush: clojure">(defn lookup-data-source
-  [jndi]
-  (when-not jndi
-    (throw (RuntimeException. &quot;No `jndi` property set.&quot;)))
-  (with-open [ctx (InitialContext.)]
-    (.lookup ctx jndi)))</pre></td></tr><tr><td class="docs"><p>Creates the <em>Buttle</em> datasource.</p>
+  (setJndi [^String jndi]))</pre></td></tr><tr><td class="docs"><p>Creates the <em>Buttle</em> datasource.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn make-data-source
   []
   (let [ds (atom nil)
@@ -2909,7 +2903,7 @@ net.brehaut.ClojureTools = (function (SH) {
               (or @ds
                   (reset!
                    ds
-                   (lookup-data-source @jndi))))]
+                   (util/jndi-lookup @jndi))))]
     (proxy/make-proxy
      [DataSource ButtleDataSource]
      (proxy [DataSource ButtleDataSource] []
@@ -3457,13 +3451,19 @@ net.brehaut.ClojureTools = (function (SH) {
        (try (.setContextClassLoader (Thread/currentThread) ~cl)
             ~@body
             (finally
-              (.setContextClassLoader (Thread/currentThread) tccl#))))))</pre></td></tr><tr><td class="docs">
+              (.setContextClassLoader (Thread/currentThread) tccl#))))))</pre></td></tr><tr><td class="docs"><p>Looks up entry in JNDI and returns it. Throws if entry cannot be
+  found.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn jndi-lookup
   [jndi]
   (when-not jndi
     (throw (RuntimeException. &quot;No `jndi` property set.&quot;)))
-  (with-open [ctx (InitialContext.)]
-    (.lookup ctx jndi)))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.xa-data-source" name="buttle.xa-data-source"><h1 class="project-name">buttle.xa-data-source</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>The <em>Buttle</em> <code>javax.sql.XADataSource</code>.</p>
+  (try 
+    (with-open [ctx (InitialContext.)]
+      (.lookup ctx jndi))
+    (catch Throwable t
+      (throw
+       (RuntimeException.
+        (format &quot;JNDI lookup failed for '%s': %s&quot; jndi t) t)))))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.xa-data-source" name="buttle.xa-data-source"><h1 class="project-name">buttle.xa-data-source</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>The <em>Buttle</em> <code>javax.sql.XADataSource</code>.</p>
 
 <p>  This namespace delivers <code>buttle.jdbc.XADataSource</code> via
   <code>:gen-class</code>. This named class can be used as an xa-datasource class
@@ -3485,8 +3485,7 @@ net.brehaut.ClojureTools = (function (SH) {
     &lt;/xa-datasource&gt;
 </code></pre>
 </td><td class="codes"><pre class="brush: clojure">(ns buttle.xa-data-source
-  (:import [javax.naming InitialContext]
-           [javax.sql XADataSource])
+  (:import [javax.sql XADataSource])
   (:require [buttle.proxy :as proxy]
             [buttle.util :as util]))</pre></td></tr><tr><td class="docs"><p>Needed for -setXaDatasourceSpec. Otherwise the compile won't
 generate the method for buttle.jdbc.XADataSource</p>
@@ -3512,10 +3511,16 @@ generate the method for buttle.jdbc.XADataSource</p>
   all remaining keys/values will be used to set the instance's
   Java-Bean properties.</p>
 </td><td class="codes"><pre class="brush: clojure">(defmulti retrieve-xa-data-soure 
-  #'spec-&gt;type)</pre></td></tr><tr><td class="docs">
+  #'spec-&gt;type)</pre></td></tr><tr><td class="docs"><p>Retrieve xa-datasource and check that it <em>really IS</em> an
+xa-datasource. Else we won't be able to delegate to it.</p>
 </td><td class="codes"><pre class="brush: clojure">(defmethod retrieve-xa-data-soure :jndi [jndi-spec]
-  (throw
-   (RuntimeException. &quot;not implemented yet: retrieve-xa-data-soure :jndi &quot;)))</pre></td></tr><tr><td class="docs"><p>Create instance of (:xa-datasource-class xa-class-spec) and call
+  (let [xa-ds (util/jndi-lookup jndi-spec)]
+    (when-not (isa? (.getClass xa-ds) javax.sql.XADataSource)
+      (throw
+       (RuntimeException.
+        (format &quot;This is not a javax.sql.XADataSource: '%s'  It implements these interfaces: '%s'&quot;
+                xa-ds (-&gt;&gt; xa-ds .getClass .getInterfaces (into []))))))
+    xa-ds))</pre></td></tr><tr><td class="docs"><p>Create instance of (:xa-datasource-class xa-class-spec) and call
 setters for (keys (dissoc xa-class-spec
 :xa-datasource-class)). Setter-names are derived from map keys by
 camel-casing <code>:foo-bar</code> to <code>setFooBar</code>.</p>
