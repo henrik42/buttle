@@ -127,7 +127,16 @@ java [...] %BUTTLE% [...]
     &lt;/connection-url&gt;
 &lt;/datasource&gt;
 </code></pre>
-<p>If you rather have Wildfly load the Postgres driver you just add a <code>&lt;driver&gt;</code> entry for Postgres. In this case you do not need the <code>:class-for-name</code> entry.</p>
+<p>Instead of loading the class explicitly you can just use a class literal with some arbitrary key in the map – like this:</p>
+<pre><code>    &lt;connection-url&gt;
+        jdbc:buttle:{
+            :user "&lt;user&gt;"
+            :password "&lt;password&gt;"
+            :_ org.postgresql.Driver
+            :target-url "jdbc:postgresql://&lt;host&gt;:&lt;port&gt;/&lt;db-id&gt;"}
+    &lt;/connection-url&gt;
+</code></pre>
+<p>If you rather have Wildfly load the Postgres driver you just add a <code>&lt;driver&gt;</code> entry for Postgres. In this case you do not need the <code>:class-for-name</code>/class-literal entry.</p>
 <pre><code>&lt;drivers&gt;
   &lt;driver name="buttle-driver" module="buttle"/&gt;
   &lt;driver name="postgresql" module="postgres"/&gt;

@@ -196,9 +196,20 @@ __(3)__ Define `<datasource>`: in this example there is no extra
 	    </connection-url>
     </datasource>
 
+Instead of loading the class explicitly you can just use a class
+literal with some arbitrary key in the map -- like this:
+
+        <connection-url>
+	        jdbc:buttle:{
+		        :user "<user>"
+		        :password "<password>"
+		        :_ org.postgresql.Driver
+		        :target-url "jdbc:postgresql://<host>:<port>/<db-id>"}
+	    </connection-url>
+
 If you rather have Wildfly load the Postgres driver you just add a
 `<driver>` entry for Postgres. In this case you do not need the
-`:class-for-name` entry.
+`:class-for-name`/class-literal entry.
 
     <drivers>
       <driver name="buttle-driver" module="buttle"/>
