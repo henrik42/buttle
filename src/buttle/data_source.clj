@@ -29,6 +29,40 @@
   (setUrl [^String url])
   (setJndi [^String jndi]))
 
+(defn spec->type
+  "Dispatch for `retrieve-data-soure`. Returns type of `spec` (`:jndi`
+  for `String`, `:ds-class` for maps)."
+
+  [spec]
+  (cond
+   (string? spec) :jndi
+   (map? spec) :ds-class
+   :else (format "Unknown spec '%s'" (pr-str spec))))
+
+(defmulti retrieve-data-soure 
+  "Factory/lookup for _real_ datasource. `String` arg will be expected
+  to be JNDI name of a `javax.sql.DataSource`. In this case the
+  datasource will be looked up in JNDI. If the arg is a map the
+  `:datasource-class` will be used to create an instance and then
+  all remaining keys/values will be used to set the instance's
+  Java-Bean properties."
+
+  #'spec->type)
+
+(defmethod retrieve-data-soure :ds-class [ds-class-spec]
+  (throw (RuntimeException. "retrieve-data-soure :ds-class not implemented.")))
+
+;; Retrieve datasource and check that it *really IS* a
+;; datasource. Else we won't be able to delegate to it.
+(defmethod retrieve-data-soure :jndi [jndi-spec]
+  (let [ds (util/jndi-lookup jndi-spec)]
+    (when-not (isa? (.getClass ds) javax.sql.DataSource)
+      (throw
+       (RuntimeException.
+        (format "This is not a javax.sql.DataSource: '%s'  It implements these interfaces: '%s'"
+                ds (->> ds .getClass .getInterfaces (into []))))))
+    ds))
+
 (defn make-data-source
   "Creates the _Buttle_ datasource."
 

@@ -19,7 +19,7 @@
 (deftest test-accepts-url-fn
   (is (= nil (drv/accepts-url-fn "foobar")))
   (is (= nil (drv/accepts-url-fn "jdbc:buttle:")))
-  (is (= {:target-url nil, :user nil, :class-for-name nil :password nil}
+  (is (= {:target-url nil, :user nil, :class-for-name nil :password nil :datasource-spec nil}
          (drv/accepts-url-fn "jdbc:buttle:42")))
   (is (thrown-with-msg? Throwable #"Could not parse URL" (drv/accepts-url-fn "jdbc:buttle:("))))
 

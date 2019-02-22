@@ -47,7 +47,8 @@
    :implements [java.sql.Driver])
   (:require [buttle.driver-manager :as mgr]
             [buttle.util :as util]
-            [buttle.proxy :as proxy]))
+            [buttle.proxy :as proxy]
+            [buttle.data-source :as buttle-ds]))
 
 (defn parse-jdbc-url
   "Parses a _Buttle_ JDBC URL.
@@ -61,7 +62,7 @@
 
   [url]
   (try 
-    (some-> (re-matches #"jdbc:buttle:(.+)" (.replaceAll url "\\n" " "))
+    (some-> (re-matches #"jdbc:buttle:(.+)" (.replaceAll url "[\\n\\t]+" " "))
             second
             read-string
             eval)
@@ -70,16 +71,17 @@
 
 (defn accepts-url-fn
   "Parses `url` via `parse-jdbc-url` and retrieves the keys
-  `:target-url`, `:user` and `:password` from the returned
-  value (assuming that it is a map). Returns a map with `:target-url`,
-  `:user` and `:password`."
+  `:target-url`, `:user`, `:password`, `:class-for-name` and
+  `:datasource-spec` from the returned value (assuming that it is a
+  map). Returns a map with those keys/values."
 
   [url]
-  (when-let [{:keys [target-url user password class-for-name]} (parse-jdbc-url url)]
+  (when-let [{:keys [target-url user password class-for-name datasource-spec]} (parse-jdbc-url url)]
     {:target-url target-url
      :user user
+     :password password
      :class-for-name class-for-name
-     :password password}))
+     :datasource-spec datasource-spec}))
 
 (defn connect-fn
   "Returns `nil` if `url` is not a _Buttle_ URL (as of
@@ -90,6 +92,11 @@
   this case _Buttle_ does not call/use the proxied JDBC driver
   directly (but relies on the `DriverManager`).
 
+  If `:datasource-spec` is given in the _Buttle_ URL a datasource
+  `ds` (as of `buttle-ds/retrieve-data-soure`) will be used instead of
+  the `buttle.driver-manager/get-connection`. The connection is then
+  opened via `(.getConnection ds)`.
+
   If `:class-for-name` is set in the _Buttle_ `url` then
   calls `(Class/forName class-for-name)` before opening the
   connection. This takes care of cases when the proxied driver is not
@@ -99,10 +106,19 @@
   application servers when loading _modules_)."
 
   [url]
-  (when-let [{:keys [target-url user password class-for-name] :as args} (accepts-url-fn url)]
-    (when class-for-name
-      (Class/forName class-for-name))
-    (mgr/get-connection target-url user password)))
+  (when-let [{:keys [target-url user password class-for-name datasource-spec] :as args} (accepts-url-fn url)]
+    (try 
+      (when class-for-name
+        (Class/forName class-for-name))
+      (if datasource-spec
+        (let [ds (buttle-ds/retrieve-data-soure datasource-spec)]
+          (if-not password (.getConnection ds)
+                  (.getConnection ds user password)))
+        (mgr/get-connection target-url user password))
+      (catch Throwable t
+        (throw
+         (RuntimeException.
+          (format "Could not connect to %s %s: %s" url args t) t))))))
 
 (defn make-driver
   "Creates and returns a _Buttle_ `java.sql.Driver`.

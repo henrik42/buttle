@@ -2893,7 +2893,32 @@ net.brehaut.ClojureTools = (function (SH) {
             [buttle.util :as util]))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(definterface ButtleDataSource
   (setUrl [^String url])
-  (setJndi [^String jndi]))</pre></td></tr><tr><td class="docs"><p>Creates the <em>Buttle</em> datasource.</p>
+  (setJndi [^String jndi]))</pre></td></tr><tr><td class="docs"><p>Dispatch for <code>retrieve-data-soure</code>. Returns type of <code>spec</code> (<code>:jndi</code>
+  for <code>String</code>, <code>:ds-class</code> for maps).</p>
+</td><td class="codes"><pre class="brush: clojure">(defn spec-&gt;type
+  [spec]
+  (cond
+   (string? spec) :jndi
+   (map? spec) :ds-class
+   :else (format &quot;Unknown spec '%s'&quot; (pr-str spec))))</pre></td></tr><tr><td class="docs"><p>Factory/lookup for <em>real</em> datasource. <code>String</code> arg will be expected
+  to be JNDI name of a <code>javax.sql.DataSource</code>. In this case the
+  datasource will be looked up in JNDI. If the arg is a map the
+  <code>:datasource-class</code> will be used to create an instance and then
+  all remaining keys/values will be used to set the instance's
+  Java-Bean properties.</p>
+</td><td class="codes"><pre class="brush: clojure">(defmulti retrieve-data-soure 
+  #'spec-&gt;type)</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defmethod retrieve-data-soure :ds-class [ds-class-spec]
+  (throw (RuntimeException. &quot;retrieve-data-soure :ds-class not implemented.&quot;)))</pre></td></tr><tr><td class="docs"><p>Retrieve datasource and check that it <em>really IS</em> a
+datasource. Else we won't be able to delegate to it.</p>
+</td><td class="codes"><pre class="brush: clojure">(defmethod retrieve-data-soure :jndi [jndi-spec]
+  (let [ds (util/jndi-lookup jndi-spec)]
+    (when-not (isa? (.getClass ds) javax.sql.DataSource)
+      (throw
+       (RuntimeException.
+        (format &quot;This is not a javax.sql.DataSource: '%s'  It implements these interfaces: '%s'&quot;
+                ds (-&gt;&gt; ds .getClass .getInterfaces (into []))))))
+    ds))</pre></td></tr><tr><td class="docs"><p>Creates the <em>Buttle</em> datasource.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn make-data-source
   []
   (let [ds (atom nil)
@@ -3019,7 +3044,8 @@ net.brehaut.ClojureTools = (function (SH) {
    :implements [java.sql.Driver])
   (:require [buttle.driver-manager :as mgr]
             [buttle.util :as util]
-            [buttle.proxy :as proxy]))</pre></td></tr><tr><td class="docs"><p>Parses a <em>Buttle</em> JDBC URL.</p>
+            [buttle.proxy :as proxy]
+            [buttle.data-source :as buttle-ds]))</pre></td></tr><tr><td class="docs"><p>Parses a <em>Buttle</em> JDBC URL.</p>
 
 <p>   A <em>Buttle</em> JDBC URL has the format <code>#"jdbc:buttle:(.+)"</code>. Any
    text after <code>jdbc:buttle:</code> will be <code>read-string-eval</code>'ed and should
@@ -3030,28 +3056,34 @@ net.brehaut.ClojureTools = (function (SH) {
 </td><td class="codes"><pre class="brush: clojure">(defn parse-jdbc-url
   [url]
   (try 
-    (some-&gt; (re-matches #&quot;jdbc:buttle:(.+)&quot; (.replaceAll url &quot;\\n&quot; &quot; &quot;))
+    (some-&gt; (re-matches #&quot;jdbc:buttle:(.+)&quot; (.replaceAll url &quot;[\\n\\t]+&quot; &quot; &quot;))
             second
             read-string
             eval)
     (catch Throwable t
       (throw (ex-info &quot;Could not parse URL&quot; {:url url} t)))))</pre></td></tr><tr><td class="docs"><p>Parses <code>url</code> via <code>parse-jdbc-url</code> and retrieves the keys
-  <code>:target-url</code>, <code>:user</code> and <code>:password</code> from the returned
-  value (assuming that it is a map). Returns a map with <code>:target-url</code>,
-  <code>:user</code> and <code>:password</code>.</p>
+  <code>:target-url</code>, <code>:user</code>, <code>:password</code>, <code>:class-for-name</code> and
+  <code>:datasource-spec</code> from the returned value (assuming that it is a
+  map). Returns a map with those keys/values.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn accepts-url-fn
   [url]
-  (when-let [{:keys [target-url user password class-for-name]} (parse-jdbc-url url)]
+  (when-let [{:keys [target-url user password class-for-name datasource-spec]} (parse-jdbc-url url)]
     {:target-url target-url
      :user user
+     :password password
      :class-for-name class-for-name
-     :password password}))</pre></td></tr><tr><td class="docs"><p>Returns <code>nil</code> if <code>url</code> is not a <em>Buttle</em> URL (as of
+     :datasource-spec datasource-spec}))</pre></td></tr><tr><td class="docs"><p>Returns <code>nil</code> if <code>url</code> is not a <em>Buttle</em> URL (as of
   <code>accepts-url-fn</code>). Else opens a JDBC <code>Connection</code> to <code>:target-url</code>
   with <code>:user</code> and <code>:password</code> via
   <code>buttle.driver-manager/get-connection</code>. If that throws then this
   function throws. Otherwise the connection is returned. Note that in
   this case <em>Buttle</em> does not call/use the proxied JDBC driver
   directly (but relies on the <code>DriverManager</code>).</p>
+
+<p>  If <code>:datasource-spec</code> is given in the <em>Buttle</em> URL a datasource
+  <code>ds</code> (as of <code>buttle-ds/retrieve-data-soure</code>) will be used instead of
+  the <code>buttle.driver-manager/get-connection</code>. The connection is then
+  opened via <code>(.getConnection ds)</code>.</p>
 
 <p>  If <code>:class-for-name</code> is set in the <em>Buttle</em> <code>url</code> then
   calls <code>(Class/forName class-for-name)</code> before opening the
@@ -3062,10 +3094,19 @@ net.brehaut.ClojureTools = (function (SH) {
   application servers when loading <em>modules</em>).</p>
 </td><td class="codes"><pre class="brush: clojure">(defn connect-fn
   [url]
-  (when-let [{:keys [target-url user password class-for-name] :as args} (accepts-url-fn url)]
-    (when class-for-name
-      (Class/forName class-for-name))
-    (mgr/get-connection target-url user password)))</pre></td></tr><tr><td class="docs"><p>Creates and returns a <em>Buttle</em> <code>java.sql.Driver</code>.</p>
+  (when-let [{:keys [target-url user password class-for-name datasource-spec] :as args} (accepts-url-fn url)]
+    (try 
+      (when class-for-name
+        (Class/forName class-for-name))
+      (if datasource-spec
+        (let [ds (buttle-ds/retrieve-data-soure datasource-spec)]
+          (if-not password (.getConnection ds)
+                  (.getConnection ds user password)))
+        (mgr/get-connection target-url user password))
+      (catch Throwable t
+        (throw
+         (RuntimeException.
+          (format &quot;Could not connect to %s %s: %s&quot; url args t) t))))))</pre></td></tr><tr><td class="docs"><p>Creates and returns a <em>Buttle</em> <code>java.sql.Driver</code>.</p>
 
 <p>   Note that the underlying driver (which delegates to the real
    driver) is a Clojure <code>proxy</code> (not an instance of
