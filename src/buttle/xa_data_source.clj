@@ -70,27 +70,11 @@
                 xa-ds (->> xa-ds .getClass .getInterfaces (into []))))))
     xa-ds))
 
-;; Create instance of (:xa-datasource-class xa-class-spec) and call
-;; setters for (keys (dissoc xa-class-spec
-;; :xa-datasource-class)). Setter-names are derived from map keys by
-;; camel-casing `:foo-bar` to `setFooBar`.
+;; Create instance and invoke setters. Setter-names are derived from
+;; map keys by camel-casing `:foo-bar` to `setFooBar`.
 (defmethod retrieve-xa-data-soure :xa-class [xa-class-spec]
-  (let [xa-datasource-class (:xa-datasource-class xa-class-spec)
-        xa-ds (.newInstance xa-datasource-class)
-        meths (->> xa-datasource-class
-                   .getMethods
-                   (map #(-> [(.getName %1) %1]))
-                   (into {}))]
-    (doseq [[k v] (dissoc xa-class-spec :xa-datasource-class)
-            :let [mn (clojure.string/replace
-                            (str "set-" (name k))
-                            #"-(.)" #(-> % second .toUpperCase))
-                  m (meths mn)]]
-      (when-not m
-        (throw (RuntimeException. (format "Setter not found for %s. Known methods are %s"
-                                          [k v mn] (keys meths)))))
-      (.invoke m xa-ds (into-array [v])))
-    xa-ds))
+  (util/->java-bean (:xa-datasource-class xa-class-spec)
+                    (dissoc xa-class-spec :xa-datasource-class)))
 
 (defn make-xa-data-source
   "Creates and returns a _Buttle_ `javax.sql.XADataSource`.

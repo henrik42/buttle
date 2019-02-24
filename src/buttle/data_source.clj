@@ -49,8 +49,11 @@
 
   #'spec->type)
 
+;; Create instance and invoke setters. Setter-names are derived from
+;; map keys by camel-casing `:foo-bar` to `setFooBar`.
 (defmethod retrieve-data-soure :ds-class [ds-class-spec]
-  (throw (RuntimeException. "retrieve-data-soure :ds-class not implemented.")))
+  (util/->java-bean (:datasource-class ds-class-spec)
+                    (dissoc ds-class-spec :datasource-class)))
 
 ;; Retrieve datasource and check that it *really IS* a
 ;; datasource. Else we won't be able to delegate to it.
