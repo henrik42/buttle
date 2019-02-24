@@ -28,7 +28,7 @@
 ;; Needed for -setXaDatasourceSpec. Otherwise the compile won't
 ;; generate the method for buttle.jdbc.XADataSource
 (definterface ButtleDataSource 
-  (setXaDatasourceSpec [^String spec]))
+  (^void setXaDatasourceSpec [^String spec]))
 
 ;; Cannot be part of `ns` form because references
 ;; `buttle.xa_data_source.ButtleDataSource` from above
@@ -36,6 +36,7 @@
  :init init
  :state state
  :name buttle.jdbc.XADataSource
+ :extends buttle.SetContextClassLoaderInStaticInitializer
  :implements [javax.sql.XADataSource
               buttle.xa_data_source.ButtleDataSource])
 

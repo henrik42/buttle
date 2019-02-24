@@ -26,8 +26,8 @@
             [buttle.util :as util]))
 
 (definterface ButtleDataSource
-  (setUrl [^String url])
-  (setJndi [^String jndi]))
+  (^void setUrl [^String url])
+  (^void setJndi [^String jndi]))
 
 (defn spec->type
   "Dispatch for `retrieve-data-soure`. Returns type of `spec` (`:jndi`
