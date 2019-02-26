@@ -14,10 +14,11 @@
          (.put "org.osjava.sj.jndi.ignoreClose" "true")
          (.put "org.osjava.sj.jndi.shared" "true"))))))
 
-(javax.naming.spi.NamingManager/setInitialContextFactoryBuilder
- (proxy [javax.naming.spi.InitialContextFactoryBuilder] []
-   (createInitialContextFactory [_]
-     (create-initial-context-factory))))
+(defonce def-once-set-initial-context-factory-builder
+  (javax.naming.spi.NamingManager/setInitialContextFactoryBuilder
+   (proxy [javax.naming.spi.InitialContextFactoryBuilder] []
+     (createInitialContextFactory [_]
+       (create-initial-context-factory)))))
 
 (deftest sane-check
   (with-open [ctx (javax.naming.InitialContext.)]
@@ -37,5 +38,3 @@
                            (.setJndi "foo-ds"))
                conn (.getConnection buttle-ds)]
            (str conn)))))
-
-

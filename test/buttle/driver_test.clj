@@ -23,10 +23,13 @@
          (drv/accepts-url-fn "jdbc:buttle:42")))
   (is (thrown-with-msg? Throwable #"Could not parse URL" (drv/accepts-url-fn "jdbc:buttle:("))))
 
+(def buttle-user (System/getenv "buttle_user"))
+(def buttle-password (System/getenv "buttle_password"))
 (def postgres-url "jdbc:postgresql://127.0.0.1:6632/postgres")
+
 (def buttle-url (format "jdbc:buttle:{:user %s :password %s :target-url %s}"
-                        (pr-str (System/getenv "buttle_user"))
-                        (pr-str (System/getenv "buttle_password"))
+                        (pr-str buttle-user)
+                        (pr-str buttle-password)
                         (pr-str postgres-url)))
 
 (deftest test-connect-fn
