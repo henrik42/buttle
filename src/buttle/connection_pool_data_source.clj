@@ -4,7 +4,7 @@
             [buttle.util :as util]))
 
 (definterface ButtleCpDataSource 
-  (^void setCpDatasourceSpec [^String spec]))
+  (^void setDelegateSpec [^String spec]))
 
 (gen-class
  :init init
@@ -53,7 +53,7 @@
     (proxy/make-proxy
      [ConnectionPoolDataSource ButtleCpDataSource]
      (proxy [ConnectionPoolDataSource ButtleCpDataSource] []
-       (setCpDatasourceSpec [spec]
+       (setDelegateSpec [spec]
          (try
            (util/with-tccl (.getClassLoader (Class/forName "buttle.jdbc.ConnectionPoolDataSource"))
              (reset! cp-ds-spec
@@ -86,9 +86,9 @@
   []
   [[] (make-cp-data-source)])
 
-(defn -setCpDatasourceSpec
+(defn -setDelegateSpec
   [this spec]
-  (.setCpDatasourceSpec (.state this) spec))
+  (.setDelegateSpec (.state this) spec))
 
 (defn -getPooledConnection
   ([this]

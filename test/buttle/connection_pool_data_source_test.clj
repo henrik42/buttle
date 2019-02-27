@@ -8,7 +8,7 @@
 (deftest create-instance
   (let [buttle-cp-ds
         (doto (buttle.jdbc.ConnectionPoolDataSource.)
-          (.setCpDatasourceSpec
+          (.setDelegateSpec
            (format "{:cp-datasource-class org.postgresql.ds.PGConnectionPoolDataSource
                      :url %s}"
                    (pr-str driver-test/postgres-url))))]
@@ -24,7 +24,7 @@
                                {:url driver-test/postgres-url}))
     (let [buttle-cp-ds
           (doto (buttle.jdbc.ConnectionPoolDataSource.)
-            (.setCpDatasourceSpec "\"foo-ds\""))]
+            (.setDelegateSpec "\"foo-ds\""))]
       (with-open [conn (.getPooledConnection
                         buttle-cp-ds
                         driver-test/buttle-user
