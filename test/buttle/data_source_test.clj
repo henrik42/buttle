@@ -31,8 +31,8 @@
 (deftest create-instance
   (let [buttle-ds
         (doto (buttle.jdbc.DataSource.)
-          (.setDatasourceSpec
-           (format "{:datasource-class org.postgresql.ds.PGSimpleDataSource
+          (.setDelegateSpec
+           (format "{:delegate-class org.postgresql.ds.PGSimpleDataSource
                      :url %s}"
                    (pr-str driver-test/postgres-url))))]
     (with-open [conn (.getConnection
@@ -49,7 +49,7 @@
                                 :password driver-test/buttle-password}))
     (let [buttle-ds
           (doto (buttle.jdbc.DataSource.)
-            (.setDatasourceSpec "\"foo-ds\""))]
+            (.setDelegateSpec "\"foo-ds\""))]
       (with-open [conn (.getConnection
                         buttle-ds
                         driver-test/buttle-user
@@ -64,6 +64,6 @@
                                 (proxy [java.sql.Connection] []
                                   (toString [] "foo-connection"))))))
                buttle-ds (doto (buttle.jdbc.DataSource.)
-                           (.setDatasourceSpec "\"foo-ds\""))
+                           (.setDelegateSpec "\"foo-ds\""))
                conn (.getConnection buttle-ds)]
            (str conn)))))

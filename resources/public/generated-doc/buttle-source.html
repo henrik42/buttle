@@ -2992,7 +2992,7 @@ net.brehaut.ClojureTools = (function (SH) {
   (:require [buttle.proxy :as proxy]
             [buttle.util :as util]))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(definterface ButtleDataSource
-  (^void setDatasourceSpec [^String spec]))</pre></td></tr><tr><td class="docs">
+  (^void setDelegateSpec [^String spec]))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(gen-class
  :init init
  :state state
@@ -3016,8 +3016,8 @@ net.brehaut.ClojureTools = (function (SH) {
   #'spec-&gt;type)</pre></td></tr><tr><td class="docs"><p>Create instance and invoke setters. Setter-names are derived from
 map keys by camel-casing <code>:foo-bar</code> to <code>setFooBar</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(defmethod retrieve-data-soure :ds-class [ds-class-spec]
-  (util/-&gt;java-bean (:datasource-class ds-class-spec)
-                    (dissoc ds-class-spec :datasource-class)))</pre></td></tr><tr><td class="docs"><p>Retrieve datasource and check that it <em>really IS</em> a
+  (util/-&gt;java-bean (:delegate-class ds-class-spec)
+                    (dissoc ds-class-spec :delegate-class)))</pre></td></tr><tr><td class="docs"><p>Retrieve datasource and check that it <em>really IS</em> a
 datasource. Else we won't be able to delegate to it.</p>
 </td><td class="codes"><pre class="brush: clojure">(defmethod retrieve-data-soure :jndi [jndi-spec]
   (let [ds (util/jndi-lookup jndi-spec)]
@@ -3038,7 +3038,7 @@ datasource. Else we won't be able to delegate to it.</p>
     (proxy/make-proxy
      [DataSource ButtleDataSource]
      (proxy [DataSource ButtleDataSource] []
-       (setDatasourceSpec [spec]
+       (setDelegateSpec [spec]
          (try
            (util/with-tccl (.getClassLoader (Class/forName &quot;buttle.jdbc.DataSource&quot;))
              (reset! ds-spec
@@ -3069,9 +3069,9 @@ datasource. Else we won't be able to delegate to it.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn -init
     []
     [[] (make-data-source)])</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn -setDatasourceSpec
+</td><td class="codes"><pre class="brush: clojure">(defn -setDelegateSpec
   [this spec]
-  (.setDatasourceSpec (.state this) spec))</pre></td></tr><tr><td class="docs"><p>Implements <code>javax.sql.DataSource/getConnection</code>. Just delegates to
+  (.setDelegateSpec (.state this) spec))</pre></td></tr><tr><td class="docs"><p>Implements <code>javax.sql.DataSource/getConnection</code>. Just delegates to
   the referenced/internal datasource (see <code>-init</code>).</p>
 </td><td class="codes"><pre class="brush: clojure">(defn -getConnection
   ([this]

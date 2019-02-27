@@ -18,7 +18,7 @@
             [buttle.util :as util]))
   
 (definterface ButtleDataSource
-  (^void setDatasourceSpec [^String spec]))
+  (^void setDelegateSpec [^String spec]))
 
 (gen-class
  :init init
@@ -51,8 +51,8 @@
 ;; Create instance and invoke setters. Setter-names are derived from
 ;; map keys by camel-casing `:foo-bar` to `setFooBar`.
 (defmethod retrieve-data-soure :ds-class [ds-class-spec]
-  (util/->java-bean (:datasource-class ds-class-spec)
-                    (dissoc ds-class-spec :datasource-class)))
+  (util/->java-bean (:delegate-class ds-class-spec)
+                    (dissoc ds-class-spec :delegate-class)))
 
 ;; Retrieve datasource and check that it *really IS* a
 ;; datasource. Else we won't be able to delegate to it.
@@ -78,7 +78,7 @@
     (proxy/make-proxy
      [DataSource ButtleDataSource]
      (proxy [DataSource ButtleDataSource] []
-       (setDatasourceSpec [spec]
+       (setDelegateSpec [spec]
          (try
            (util/with-tccl (.getClassLoader (Class/forName "buttle.jdbc.DataSource"))
              (reset! ds-spec
@@ -113,9 +113,9 @@
     []
     [[] (make-data-source)])
 
-(defn -setDatasourceSpec
+(defn -setDelegateSpec
   [this spec]
-  (.setDatasourceSpec (.state this) spec))
+  (.setDelegateSpec (.state this) spec))
 
 (defn -getConnection
   "Implements `javax.sql.DataSource/getConnection`. Just delegates to
