@@ -28,7 +28,7 @@
 ;; Needed for -setXaDatasourceSpec. Otherwise the compile won't
 ;; generate the method for buttle.jdbc.XADataSource
 (definterface ButtleDataSource 
-  (^void setXaDatasourceSpec [^String spec]))
+  (^void setDelegateSpec [^String spec]))
 
 ;; Cannot be part of `ns` form because references
 ;; `buttle.xa_data_source.ButtleDataSource` from above
@@ -74,8 +74,8 @@
 ;; Create instance and invoke setters. Setter-names are derived from
 ;; map keys by camel-casing `:foo-bar` to `setFooBar`.
 (defmethod retrieve-xa-data-soure :xa-class [xa-class-spec]
-  (util/->java-bean (:xa-datasource-class xa-class-spec)
-                    (dissoc xa-class-spec :xa-datasource-class)))
+  (util/->java-bean (:delegate-class xa-class-spec)
+                    (dissoc xa-class-spec :delegate-class)))
 
 (defn make-xa-data-source
   "Creates and returns a _Buttle_ `javax.sql.XADataSource`.
@@ -98,7 +98,7 @@
     (proxy/make-proxy
      [XADataSource ButtleDataSource]
      (proxy [XADataSource ButtleDataSource] []
-       (setXaDatasourceSpec [spec]
+       (setDelegateSpec [spec]
          (try
            (util/with-tccl (.getClassLoader (Class/forName "buttle.jdbc.XADataSource"))
              (reset! xa-ds-spec
@@ -135,14 +135,14 @@
   []
   [[] (make-xa-data-source)])
 
-(defn -setXaDatasourceSpec
+(defn -setDelegateSpec
   "Implements
-  `buttle.xa_data_source.ButtleDataSource/setXaDatasourceSpec`. Just
+  `buttle.xa_data_source.ButtleDataSource/setDelegateSpec`. Just
   delegates to the referenced/internal _Buttle_ xa-datasource (see
   `-init`)."
 
   [this spec]
-  (.setXaDatasourceSpec (.state this) spec))
+  (.setDelegateSpec (.state this) spec))
 
 (defn -getXAConnection
   "Implements `javax.sql.XADataSource/getXAConnection`. Just delegates
