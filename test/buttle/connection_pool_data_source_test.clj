@@ -9,7 +9,7 @@
   (let [buttle-cp-ds
         (doto (buttle.jdbc.ConnectionPoolDataSource.)
           (.setDelegateSpec
-           (format "{:cp-datasource-class org.postgresql.ds.PGConnectionPoolDataSource
+           (format "{:delegate-class org.postgresql.ds.PGConnectionPoolDataSource
                      :url %s}"
                    (pr-str driver-test/postgres-url))))]
     (with-open [conn (.getPooledConnection

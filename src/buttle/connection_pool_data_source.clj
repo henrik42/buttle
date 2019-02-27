@@ -34,13 +34,13 @@
     cp-ds))
 
 (defmethod retrieve-cp-data-soure :cp-class [cp-class-spec]
-  (let [clazz (:cp-datasource-class cp-class-spec)]
+  (let [clazz (:delegate-class cp-class-spec)]
     (when-not (isa? clazz ConnectionPoolDataSource)
       (throw
        (RuntimeException.
         (format "This is not a javax.sql.ConnectionPoolDataSource: '%s'  It implements these interfaces: '%s'"
                 clazz (->> clazz .getInterfaces (into []))))))
-    (util/->java-bean clazz (dissoc cp-class-spec :cp-datasource-class))))
+    (util/->java-bean clazz (dissoc cp-class-spec :delegate-class))))
 
 (defn make-cp-data-source
   []
