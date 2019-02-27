@@ -11,23 +11,22 @@
   JDBC driver's `java.sql.Driver` implementation. So in these cases
   the JDBC driver does not even need to deliver an implementation for
   `javax.sql.DataSource`."
-  
-  (:gen-class
-   :init init
-   :state state
-   :name buttle.jdbc.DataSource
-   :implements [javax.sql.DataSource]
-   :methods [[setUrl [String] void]
-             [setJndi [String] void]])
   (:import [javax.sql DataSource]
            [java.sql SQLException]
            [java.sql SQLFeatureNotSupportedException])
   (:require [buttle.proxy :as proxy]
             [buttle.util :as util]))
-
+  
 (definterface ButtleDataSource
-  (^void setUrl [^String url])
-  (^void setJndi [^String jndi]))
+  (^void setDatasourceSpec [^String spec]))
+
+(gen-class
+ :init init
+ :state state
+ :name buttle.jdbc.DataSource
+ :extends buttle.SetContextClassLoaderInStaticInitializer
+ :implements [javax.sql.DataSource
+              buttle.data_source.ButtleDataSource])
 
 (defn spec->type
   "Dispatch for `retrieve-data-soure`. Returns type of `spec` (`:jndi`
@@ -70,20 +69,25 @@
   "Creates the _Buttle_ datasource."
 
   []
-  (let [ds (atom nil)
-        url (atom nil) 
-        jndi (atom nil)
-        ds! (fn []
-              (or @ds
-                  (reset!
-                   ds
-                   (util/jndi-lookup @jndi))))]
+  (let [ds-spec (atom nil)
+        ds (atom nil)
+        ;; lazy creation and cache
+        ds! (fn [] (or @ds
+                       (reset! ds
+                               (retrieve-data-soure @ds-spec))))]
     (proxy/make-proxy
      [DataSource ButtleDataSource]
      (proxy [DataSource ButtleDataSource] []
-       ;; TODO (setUrl [url])
-       (setJndi [x]
-         (reset! jndi x))
+       (setDatasourceSpec [spec]
+         (try
+           (util/with-tccl (.getClassLoader (Class/forName "buttle.jdbc.DataSource"))
+             (reset! ds-spec
+                     (-> spec
+                         (.replaceAll "[\\n\\t]+" " ")
+                         read-string
+                         eval)))
+           (catch Throwable t
+             (throw (ex-info "Could not parse spec" {:spec spec} t)))))
        (getConnection [& [user password :as xs]]
          (if-not xs (-> (ds!) .getConnection)
                  (-> (ds!) (.getConnection user password))))
@@ -109,12 +113,9 @@
     []
     [[] (make-data-source)])
 
-(defn -setUrl
-  [this url]
-  (.setUrl (.state this) url))
-
-(defn -setJndi [this jndi]
-  (.setJndi (.state this) jndi))
+(defn -setDatasourceSpec
+  [this spec]
+  (.setDatasourceSpec (.state this) spec))
 
 (defn -getConnection
   "Implements `javax.sql.DataSource/getConnection`. Just delegates to

@@ -2986,21 +2986,20 @@ net.brehaut.ClojureTools = (function (SH) {
   the JDBC driver does not even need to deliver an implementation for
   <code>javax.sql.DataSource</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns buttle.data-source
-  (:gen-class
-   :init init
-   :state state
-   :name buttle.jdbc.DataSource
-   :implements [javax.sql.DataSource]
-   :methods [[setUrl [String] void]
-             [setJndi [String] void]])
   (:import [javax.sql DataSource]
            [java.sql SQLException]
            [java.sql SQLFeatureNotSupportedException])
   (:require [buttle.proxy :as proxy]
             [buttle.util :as util]))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(definterface ButtleDataSource
-  (^void setUrl [^String url])
-  (^void setJndi [^String jndi]))</pre></td></tr><tr><td class="docs"><p>Dispatch for <code>retrieve-data-soure</code>. Returns type of <code>spec</code> (<code>:jndi</code>
+  (^void setDatasourceSpec [^String spec]))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(gen-class
+ :init init
+ :state state
+ :name buttle.jdbc.DataSource
+ :extends buttle.SetContextClassLoaderInStaticInitializer
+ :implements [javax.sql.DataSource
+              buttle.data_source.ButtleDataSource])</pre></td></tr><tr><td class="docs"><p>Dispatch for <code>retrieve-data-soure</code>. Returns type of <code>spec</code> (<code>:jndi</code>
   for <code>String</code>, <code>:ds-class</code> for maps).</p>
 </td><td class="codes"><pre class="brush: clojure">(defn spec-&gt;type
   [spec]
@@ -3030,20 +3029,25 @@ datasource. Else we won't be able to delegate to it.</p>
     ds))</pre></td></tr><tr><td class="docs"><p>Creates the <em>Buttle</em> datasource.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn make-data-source
   []
-  (let [ds (atom nil)
-        url (atom nil) 
-        jndi (atom nil)
-        ds! (fn []
-              (or @ds
-                  (reset!
-                   ds
-                   (util/jndi-lookup @jndi))))]
+  (let [ds-spec (atom nil)
+        ds (atom nil)
+        ;; lazy creation and cache
+        ds! (fn [] (or @ds
+                       (reset! ds
+                               (retrieve-data-soure @ds-spec))))]
     (proxy/make-proxy
      [DataSource ButtleDataSource]
      (proxy [DataSource ButtleDataSource] []
-       ;; TODO (setUrl [url])
-       (setJndi [x]
-         (reset! jndi x))
+       (setDatasourceSpec [spec]
+         (try
+           (util/with-tccl (.getClassLoader (Class/forName &quot;buttle.jdbc.DataSource&quot;))
+             (reset! ds-spec
+                     (-&gt; spec
+                         (.replaceAll &quot;[\\n\\t]+&quot; &quot; &quot;)
+                         read-string
+                         eval)))
+           (catch Throwable t
+             (throw (ex-info &quot;Could not parse spec&quot; {:spec spec} t)))))
        (getConnection [&amp; [user password :as xs]]
          (if-not xs (-&gt; (ds!) .getConnection)
                  (-&gt; (ds!) (.getConnection user password))))
@@ -3065,11 +3069,9 @@ datasource. Else we won't be able to delegate to it.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn -init
     []
     [[] (make-data-source)])</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn -setUrl
-  [this url]
-  (.setUrl (.state this) url))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn -setJndi [this jndi]
-  (.setJndi (.state this) jndi))</pre></td></tr><tr><td class="docs"><p>Implements <code>javax.sql.DataSource/getConnection</code>. Just delegates to
+</td><td class="codes"><pre class="brush: clojure">(defn -setDatasourceSpec
+  [this spec]
+  (.setDatasourceSpec (.state this) spec))</pre></td></tr><tr><td class="docs"><p>Implements <code>javax.sql.DataSource/getConnection</code>. Just delegates to
   the referenced/internal datasource (see <code>-init</code>).</p>
 </td><td class="codes"><pre class="brush: clojure">(defn -getConnection
   ([this]
