@@ -3617,21 +3617,35 @@ datasource. Else we won't be able to delegate to it.</p>
        (RuntimeException.
         (format &quot;JNDI lookup failed for '%s': %s&quot; jndi t) t)))))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defn -&gt;java-bean [class-spec props]
-  (let [new-instance (.newInstance class-spec)
-        meths (-&gt;&gt; class-spec
-                   .getMethods
-                   (map #(-&gt; [(.getName %1) %1]))
-                   (into {}))]
-    (doseq [[k v] props
-            :let [mn (clojure.string/replace
-                      (str &quot;set-&quot; (name k))
-                      #&quot;-(.)&quot; #(-&gt; % second .toUpperCase))
-                  m (meths mn)]]
-      (when-not m
-        (throw (RuntimeException. (format &quot;Setter not found for %s. Known methods are %s&quot;
-                                          [k v mn] (keys meths)))))
-      (.invoke m new-instance (into-array [v])))
-    new-instance))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.xa-data-source" name="buttle.xa-data-source"><h1 class="project-name">buttle.xa-data-source</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>The <em>Buttle</em> <code>javax.sql.XADataSource</code>.</p>
+  (try 
+    (let [new-instance (.newInstance class-spec)
+          meths (-&gt;&gt; class-spec
+                     .getMethods
+                     (map #(-&gt; [(.getName %1) %1]))
+                     (into {}))]
+      (doseq [[k v] props
+              :let [mn (clojure.string/replace
+                        (str &quot;set-&quot; (name k))
+                        #&quot;-(.)&quot; #(-&gt; % second .toUpperCase))
+                    m (meths mn)]]
+        (when-not m
+          (throw (RuntimeException. (format &quot;Setter not found for %s. Known methods are %s&quot;
+                                            [k v mn] (keys meths)))))
+        (try 
+          (.invoke m new-instance (into-array [v]))
+          (catch Throwable t
+            (throw
+             (RuntimeException.
+              (format &quot;Calling %s/%s with %s failed: %s&quot;
+                      m new-instance (pr-str v) t)
+              t)))))
+      new-instance)
+    (catch Throwable t
+      (throw
+       (RuntimeException.
+        (format &quot;(-&gt;java-bean %s %s) fails: %s&quot;
+                class-spec props t)
+        t)))))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.xa-data-source" name="buttle.xa-data-source"><h1 class="project-name">buttle.xa-data-source</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>The <em>Buttle</em> <code>javax.sql.XADataSource</code>.</p>
 
 <p>  This namespace delivers <code>buttle.jdbc.XADataSource</code> via
   <code>:gen-class</code>. This named class can be used as an xa-datasource class
@@ -3687,12 +3701,19 @@ xa-datasource. Else we won't be able to delegate to it.</p>
     (when-not (isa? (.getClass xa-ds) javax.sql.XADataSource)
       (throw
        (RuntimeException.
-        (format &quot;This is not a javax.sql.XADataSource: '%s'  It implements these interfaces: '%s'&quot;
-                xa-ds (-&gt;&gt; xa-ds .getClass .getInterfaces (into []))))))
+        (format (str &quot;(retrieve-xa-data-soure %s) fails!&quot;
+                     &quot; This is not a javax.sql.XADataSource: '%s'&quot;
+                     &quot; It implements these interfaces: '%s'&quot;)
+                (pr-str jndi-spec)
+                xa-ds
+                (-&gt;&gt; xa-ds .getClass .getInterfaces (into []))))))
     xa-ds))</pre></td></tr><tr><td class="docs"><p>Create instance and invoke setters. Setter-names are derived from
 map keys by camel-casing <code>:foo-bar</code> to <code>setFooBar</code>.</p>
-</td><td class="codes"><pre class="brush: clojure">(defmethod retrieve-xa-data-soure :xa-class [xa-class-spec]
-  (util/-&gt;java-bean (:delegate-class xa-class-spec)
+</td><td class="codes"><pre class="brush: clojure">(defmethod retrieve-xa-data-soure :xa-class [{:keys [delegate-class] :as xa-class-spec}]
+  (when (nil? delegate-class)
+    (throw (RuntimeException.
+            (format &quot;No :delegate-class given: %s&quot; xa-class-spec))))
+  (util/-&gt;java-bean delegate-class
                     (dissoc xa-class-spec :delegate-class)))</pre></td></tr><tr><td class="docs"><p>Creates and returns a <em>Buttle</em> <code>javax.sql.XADataSource</code>.</p>
 
 <p>  Use <code>setXaDatasourceSpec</code> to control what the <em>real</em> (or <em>backing</em>)

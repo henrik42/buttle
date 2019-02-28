@@ -67,14 +67,21 @@
     (when-not (isa? (.getClass xa-ds) javax.sql.XADataSource)
       (throw
        (RuntimeException.
-        (format "This is not a javax.sql.XADataSource: '%s'  It implements these interfaces: '%s'"
-                xa-ds (->> xa-ds .getClass .getInterfaces (into []))))))
+        (format (str "(retrieve-xa-data-soure %s) fails!"
+                     " This is not a javax.sql.XADataSource: '%s'"
+                     " It implements these interfaces: '%s'")
+                (pr-str jndi-spec)
+                xa-ds
+                (->> xa-ds .getClass .getInterfaces (into []))))))
     xa-ds))
 
 ;; Create instance and invoke setters. Setter-names are derived from
 ;; map keys by camel-casing `:foo-bar` to `setFooBar`.
-(defmethod retrieve-xa-data-soure :xa-class [xa-class-spec]
-  (util/->java-bean (:delegate-class xa-class-spec)
+(defmethod retrieve-xa-data-soure :xa-class [{:keys [delegate-class] :as xa-class-spec}]
+  (when (nil? delegate-class)
+    (throw (RuntimeException.
+            (format "No :delegate-class given: %s" xa-class-spec))))
+  (util/->java-bean delegate-class
                     (dissoc xa-class-spec :delegate-class)))
 
 (defn make-xa-data-source

@@ -39,19 +39,33 @@
         (format "JNDI lookup failed for '%s': %s" jndi t) t)))))
               
 (defn ->java-bean [class-spec props]
-  (let [new-instance (.newInstance class-spec)
-        meths (->> class-spec
-                   .getMethods
-                   (map #(-> [(.getName %1) %1]))
-                   (into {}))]
-    (doseq [[k v] props
-            :let [mn (clojure.string/replace
-                      (str "set-" (name k))
-                      #"-(.)" #(-> % second .toUpperCase))
-                  m (meths mn)]]
-      (when-not m
-        (throw (RuntimeException. (format "Setter not found for %s. Known methods are %s"
-                                          [k v mn] (keys meths)))))
-      (.invoke m new-instance (into-array [v])))
-    new-instance))
+  (try 
+    (let [new-instance (.newInstance class-spec)
+          meths (->> class-spec
+                     .getMethods
+                     (map #(-> [(.getName %1) %1]))
+                     (into {}))]
+      (doseq [[k v] props
+              :let [mn (clojure.string/replace
+                        (str "set-" (name k))
+                        #"-(.)" #(-> % second .toUpperCase))
+                    m (meths mn)]]
+        (when-not m
+          (throw (RuntimeException. (format "Setter not found for %s. Known methods are %s"
+                                            [k v mn] (keys meths)))))
+        (try 
+          (.invoke m new-instance (into-array [v]))
+          (catch Throwable t
+            (throw
+             (RuntimeException.
+              (format "Calling %s/%s with %s failed: %s"
+                      m new-instance (pr-str v) t)
+              t)))))
+      new-instance)
+    (catch Throwable t
+      (throw
+       (RuntimeException.
+        (format "(->java-bean %s %s) fails: %s"
+                class-spec props t)
+        t)))))
 
