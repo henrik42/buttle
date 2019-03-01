@@ -4,6 +4,8 @@
 
 _Buttle_ is a proxying JDBC driver with hooks.
 
+__proxies__
+
 _Buttle_ ships a `java.sql.Driver` which delegates `connect` calls to
 a backing (or _real_) driver (like `org.postgresql.Driver`). The
 _Buttle_ driver wraps a _Buttle_ proxy around the returned
@@ -19,12 +21,16 @@ _Buttle_ proxy (e.g. for `java.sql.Statement` and
 _Buttle_ proxies are only constructed for methods (i.e. their returned
 values) that have interface-typed declared return types.
 
+__hooks__
+
 _Buttle_ proxies delegate calls to the backing JDBC driver's instances
 through `buttle.proxy/handle` multi method. Via
 `buttle.proxy/def-handle` users can _inject/hook_ their own
 multi-method implemenations (per interface/method) into the delegation
 mechanism. See example in `examples/buttle/examples/open_tracing.clj`
 and `examples/buttle/examples/handle.clj`.
+
+__events__
 
 _Buttle_ proxies also create _events_ for every method invocation and
 completion incl. when an `Exception` is thrown (see
@@ -43,6 +49,8 @@ Events (see `event.clj`) are communicated through a `core.async`
 channel/mult so that users can consume `buttle.event/event-mult` to
 receive the events. See usage example in
 `examples/buttle/examples/event_channel.clj`.
+
+__referencs__
 
 Similar things have been done before:
 
