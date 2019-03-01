@@ -6,11 +6,12 @@
   application servers.
 
   __Note:__ This namespace has not yet been tested in an application
-  server. There are application servers (like Wildfly) which use their
-  own `javax.sql.DataSource` implementation which delegates to the
-  JDBC driver's `java.sql.Driver` implementation. So in these cases
-  the JDBC driver does not even need to deliver an implementation for
-  `javax.sql.DataSource`."
+  server. There are application servers (like Wildfly and IBM
+  Websphere) which use their own `javax.sql.DataSource` implementation
+  which delegates to the JDBC driver's `java.sql.Driver`
+  implementation. So in these cases the JDBC driver does not even need
+  to deliver an implementation for `javax.sql.DataSource`."
+  
   (:import [javax.sql DataSource]
            [java.sql SQLException]
            [java.sql SQLFeatureNotSupportedException])
@@ -42,8 +43,8 @@
   "Factory/lookup for _real_ datasource. `String` arg will be expected
   to be JNDI name of a `javax.sql.DataSource`. In this case the
   datasource will be looked up in JNDI. If the arg is a map the
-  `:datasource-class` will be used to create an instance and then
-  all remaining keys/values will be used to set the instance's
+  class-typed `:delegate-class` will be used to create an instance and
+  then all remaining keys/values will be used to set the instance's
   Java-Bean properties."
 
   #'spec->type)
@@ -114,6 +115,8 @@
     [[] (make-data-source)])
 
 (defn -setDelegateSpec
+  "Sets the `delegateSpec` of the _Buttle_ datasource."
+  
   [this spec]
   (.setDelegateSpec (.state this) spec))
 

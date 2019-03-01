@@ -2,7 +2,7 @@
   "The _Buttle_ `javax.sql.XADataSource`.
 
   This namespace delivers `buttle.jdbc.XADataSource` via
-  `:gen-class`. This named class can be used as an xa-datasource class
+  `:gen-class`. This named class can be used as an XA-datasource class
   for application servers.
 
   __Example (Wildfly)__:
@@ -15,8 +15,8 @@
             <user-name>postgres-user</user-name>
             <password>postgres-password</password>
           </security>
-          <xa-datasource-property name=\"XaDatasourceSpec\">
-            {:xa-datasource-class org.postgresql.xa.PGXADataSource
+          <xa-datasource-property name=\"DelegateSpec\">
+            {:delegate-class org.postgresql.xa.PGXADataSource
              :url \"jdbc:postgresql://127.0.0.1:6632/postgres\"}
           </xa-datasource-property>
         </xa-datasource>"
@@ -25,8 +25,8 @@
   (:require [buttle.proxy :as proxy]
             [buttle.util :as util]))
 
-;; Needed for -setXaDatasourceSpec. Otherwise the compile won't
-;; generate the method for buttle.jdbc.XADataSource
+;; Needed for -setDelegateSpec. Otherwise the compile won't generate
+;; the method for buttle.jdbc.XADataSource
 (definterface ButtleDataSource 
   (^void setDelegateSpec [^String spec]))
 
@@ -51,17 +51,17 @@
    :else (format "Unknown spec '%s'" (pr-str spec))))
 
 (defmulti retrieve-xa-data-soure 
-  "Factory/lookup for _real_ xa-datasource. `String` arg will be
+  "Factory/lookup for _real_ XA-datasource. `String` arg will be
   expected to be JNDI name of a `javax.sql.XADataSource`. In this case
-  the xa-datasource will be looked up in JNDI. If the arg is a map the
-  `:xa-datasource-class` will be used to create an instance and then
-  all remaining keys/values will be used to set the instance's
+  the XA-datasource will be looked up in JNDI. If the arg is a map the
+  class-typed `:delegate-class` will be used to create an instance and
+  then all remaining keys/values will be used to set the instance's
   Java-Bean properties."
 
   #'spec->type)
 
-;; Retrieve xa-datasource and check that it *really IS* an
-;; xa-datasource. Else we won't be able to delegate to it.
+;; Retrieve XA-datasource and check that it *really IS* an
+;; XA-datasource. Else we won't be able to delegate to it.
 (defmethod retrieve-xa-data-soure :jndi [jndi-spec]
   (let [xa-ds (util/jndi-lookup jndi-spec)]
     (when-not (isa? (.getClass xa-ds) javax.sql.XADataSource)
@@ -87,13 +87,13 @@
 (defn make-xa-data-source
   "Creates and returns a _Buttle_ `javax.sql.XADataSource`.
 
-  Use `setXaDatasourceSpec` to control what the _real_ (or _backing_)
+  Use `setDelegateSpec` to control what the _real_ (or _backing_)
   `javax.sql.XADataSource` is. You can use `String` to use an
-  xa-datasource from JNDI. Use a map to create an instance and set
+  XA-datasource from JNDI. Use a map to create an instance and set
   properties (see `retrieve-xa-data-soure` for details).
 
-  Note: creation is done on-demand when the backing xa-datasource is
-  actually needed."
+  Note: creation is done on-demand when the backing XA-datasource is
+  actually needed/used."
 
   []
   (let [xa-ds-spec (atom nil)
@@ -137,7 +137,7 @@
 (defn -init
   "Constructor function of `buttle.jdbc.XADataSource`. Calls
   `make-xa-data-source` and initialized `state` with that (i.e. the
-  _Buttle_ xa-datasource is cached)."
+  _Buttle_ XA-datasource is cached)."
 
   []
   [[] (make-xa-data-source)])
@@ -145,7 +145,7 @@
 (defn -setDelegateSpec
   "Implements
   `buttle.xa_data_source.ButtleDataSource/setDelegateSpec`. Just
-  delegates to the referenced/internal _Buttle_ xa-datasource (see
+  delegates to the referenced/internal _Buttle_ XA-datasource (see
   `-init`)."
 
   [this spec]
@@ -153,7 +153,7 @@
 
 (defn -getXAConnection
   "Implements `javax.sql.XADataSource/getXAConnection`. Just delegates
-  to the referenced/internal xa-datasource (see `-init`)."
+  to the referenced/internal XA-datasource (see `-init`)."
 
   ([this]
      (.getXAConnection (.state this)))
@@ -162,35 +162,35 @@
 
 (defn -getLogWriter
   "Implements `javax.sql.CommonDataSource/getLogWriter`. Just
-  delegates to the referenced/internal xa-datasource (see `-init`)."
+  delegates to the referenced/internal XA-datasource (see `-init`)."
 
   [this]
   (.getLogWriter (.state this)))
 
 (defn -setLogWriter
   "Implements `javax.sql.CommonDataSource/setLogWriter`. Just
-  delegates to the referenced/internal xa-datasource (see `-init`)."
+  delegates to the referenced/internal XA-datasource (see `-init`)."
 
   [this pr-wrt]
   (.setLogWriter (.state this) pr-wrt))
 
 (defn -setLoginTimeout
   "Implements `javax.sql.CommonDataSource/setLoginTimeout`. Just
-  delegates to the referenced/internal xa-datasource (see `-init`)."
+  delegates to the referenced/internal XA-datasource (see `-init`)."
 
   [this sec]
   (.setLoginTimeout (.state this) sec))
 
 (defn -getLoginTimeout
   "Implements `javax.sql.CommonDataSource/getLoginTimeout`. Just
-  delegates to the referenced/internal xa-datasource (see `-init`)."
+  delegates to the referenced/internal XA-datasource (see `-init`)."
   
   [this]
   (.getLoginTimeout (.state this)))
 
 (defn -getParentLogger
   "Implements `javax.sql.CommonDataSource/getParentLogger`. Just
-  delegates to the referenced/internal xa-datasource (see `-init`)."
+  delegates to the referenced/internal XA-datasource (see `-init`)."
 
   [this]
   (.getParentLogger (.state this)))
