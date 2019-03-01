@@ -4,23 +4,27 @@
 
 _Buttle_ is a proxying JDBC driver with hooks.
 
-_Buttle_ supplies a `java.sql.Driver` (see `driver.clj`; support for
-`javax.sql.DataSource` and `javax.sql.XADataSource` is also available
---- see below) which delegates `connect` calls to a backing `Driver`
-(like `org.postgresql.Driver`). _Buttle_ then constructs proxies
-_around_ the returned `Connection`. These proxies (see `proxy.clj`)
-then recursivly do the same for their proxied instances (e.g. for
-`Statement` and `ResultSet` return values).
+_Buttle_ ships a `java.sql.Driver` which delegates `connect` calls to
+a backing (or _real_) driver (like `org.postgresql.Driver`). The
+_Buttle_ driver wraps a _Buttle_ proxy around the returned
+`java.sql.Connection`. The _Buttle_ proxy then (recursivly) does the
+same to the wrapped instance -- i.e. it wraps a _Buttle_ proxy around
+the return value of delegated method calls.
 
-Proxies are only constructed for methods (i.e. their returned values)
-that have interface-typed declared return types.
+The effect of this is that the application which is using the _Buttle_
+`java.sql.Driver` will ever only call JDBC API methods through a
+_Buttle_ proxy (e.g. for `java.sql.Statement` and
+`java.sql.ResultSet`).
+
+_Buttle_ proxies are only constructed for methods (i.e. their returned
+values) that have interface-typed declared return types.
 
 _Buttle_ proxies delegate calls to the backing JDBC driver's instances
-through `buttle.proxy/handle` multi method. Using
-`buttle.proxy/def-handle` users can _inject_ their own method
-implemenations (per interface/method) into the delegation. See usage
-example in `examples/buttle/examples/open_tracing.clj` and
-`examples/buttle/examples/handle.clj`.
+through `buttle.proxy/handle` multi method. Via
+`buttle.proxy/def-handle` users can _inject/hook_ their own
+multi-method implemenations (per interface/method) into the delegation
+mechanism. See example in `examples/buttle/examples/open_tracing.clj`
+and `examples/buttle/examples/handle.clj`.
 
 _Buttle_ proxies also create _events_ for every method invocation and
 completion incl. when an `Exception` is thrown (see
@@ -125,10 +129,10 @@ __(1)__ In `squirrel-sql.bat` add system property `buttle.user-file` to java cal
 	set BUTTLE="-Dbuttle.user-file=<path-to>/buttle/examples/handle.clj"
 	java [...] %BUTTLE% [...]
 
-__(2)__ Add a _Driver_ with _extra classpath_
+__(2)__ In the GUI add a _Driver_ with _extra classpath_
   `<path-to>/buttle-standalone.jar` and class `buttle.jdbc.Driver`.
 
-__(3)__ Add _Alias_ with URL (replace `<user>` and `<password>`). Text
+__(3)__ In the GUI add an _Alias_ with URL (replace `<user>` and `<password>`). Text
   following `jdbc:buttle:` will be read as Clojure map form.
 
 	jdbc:buttle:{:user "<user>" :password "<password>" :target-url "jdbc:postgresql://127.0.0.1:6632/postgres"}
@@ -144,7 +148,7 @@ For this you have to:
 
 * define a `<module>`
 * define a `<driver>`
-* define a `<datasource>` (for `<xa-datasource>` see below)
+* define a `<datasource>` (or `<xa-datasource>`; see below)
 
 __(1)__ Define `<module>`: put this into
   `<wildfly-root>/modules/buttle/main/module.xml`. You may have to
@@ -230,7 +234,7 @@ load your _hook code_:
       <property name="buttle.user-file" value="<path-to>/buttle-user-file.clj" boot-time="true"/>
     </system-properties>
 
-#### XA-Datasource
+#### XA-datasource
 
 You define an `<xa-datasource>` like this (for Postgres):
 
@@ -257,33 +261,30 @@ Note though that Wildfly does __not__ give us a
 	user=> (->> (buttle.util/jndi-lookup "java:/jdbc/postgres-xa") .getClass .getInterfaces (into []))
 	[javax.sql.DataSource java.io.Serializable]
 
-Since there is no way to implement `javax.sql.XADataSource` based on a
-`javax.sql.DataSource` _Buttle_ cannot proxy XA-Datasources retrieved
-from JNDI for Wildfly.
+Since there is no (easy) way to implement `javax.sql.XADataSource`
+based on a `javax.sql.DataSource` _Buttle_ cannot proxy XA-datasources
+retrieved from JNDI for Wildfly.
 
 Others got bitten by this [1, 2] and it probably won't get fixed
 [3]. So _Buttle_ only supports __(a)__ wrapping _real_
-`javax.sql.XADataSource` implemenations retrieved from JNDI (which
-does not work for Wildfly but for Websphere; see below) and __(b)__
-__creating__ a JDBC Driver's XA-Datasource directly.
+`javax.sql.XADataSource` implemenations retrieved from JNDI and
+__(b)__ __creating__ a JDBC driver's XA-datasource directly.
 
 [1] https://stackoverflow.com/questions/52710666/exception-while-looking-up-xadatasource-using-jndi  
 [2] https://groups.google.com/forum/#!msg/ironjacamar-users/rxM1WbINnWI/RIdvEYn_iw4J  
 [3] https://issues.jboss.org/browse/JBJCA-657  
 
-__Creating a JDBC Driver's XA-Datasource directly__
+__Creating a JDBC driver's XA-datasource directly__
 
-So for Wildfly you define a _Buttle_ XA-Datasource and specify the
-_real_ XA-Datasource by setting the `XaDatasourceSpec` property to a
+So for Wildfly you define a _Buttle_ XA-datasource and specify the
+_real_ XA-datasource by setting the `DelegateSpec` property to a
 Clojure map form (to be exact I should say 'a form that evaluates to a
 map'; line-breaks are removed so DO NOT use `;` comments other than at
-the very end). This map must have `:xa-datasource-class` giving the
-_real_ XA-Datasource's class (note that it IS a class-literal!). Any
-other map key/value will be used to set the _real_ XA-Datasource's
-Java-Bean properties (note that no Bean-Property-Editor is used for
-converting to correct Java-Bean target-type. You have to supply the
-correct type through the map. Overloaded getter-methods are not
-supported).
+the very end). This map must have `:delegate-class` giving the _real_
+XA-datasource's class (note that it IS a class-literal!). Any other
+map key/value will be used to set the _real_ XA-datasource's Java-Bean
+properties. You have to supply the correct property type through the
+map. Overloaded setter-methods are not supported.
 
     <xa-datasource jndi-name="java:/jdbc/buttle-xa" pool-name="buttle-xa">
       <xa-datasource-class>buttle.jdbc.XADataSource</xa-datasource-class>
@@ -292,8 +293,8 @@ supported).
         <user-name>postgres-user</user-name>
         <password>postgres-password</password>
       </security>
-      <xa-datasource-property name="XaDatasourceSpec">
-        {:xa-datasource-class org.postgresql.xa.PGXADataSource
+      <xa-datasource-property name="DelegateSpec">
+        {:delegate-class org.postgresql.xa.PGXADataSource
          :url "jdbc:postgresql://127.0.0.1:6632/postgres"}
       </xa-datasource-property>
     </xa-datasource>
