@@ -2,12 +2,12 @@
   "A proxy factory.
 
    This namespace delivers all functions needed to (generically)
-   create proxys for JDBC related interfaces and to implement the
-   delegation logic for these proxys that is needed to route method
+   create proxies for JDBC related interfaces and to implement the
+   delegation logic for these proxies that is needed to route method
    calls through to the _real_ JDBC driver's instances.
 
-   In order to hook your own code into the delegation you may use
-   `def-handle` to register your functions for certain method calls."
+   In order to hook your own code into the delegation use `def-handle`
+   to register your functions for certain method calls."
   
   (:require [buttle.event :as event]
             [buttle.util :as util]))

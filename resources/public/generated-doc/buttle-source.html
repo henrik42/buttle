@@ -3408,12 +3408,12 @@ datasource. Else we won't be able to delegate to it.</p>
   (a/mult event-ch))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.proxy" name="buttle.proxy"><h1 class="project-name">buttle.proxy</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>A proxy factory.</p>
 
 <p>   This namespace delivers all functions needed to (generically)
-   create proxys for JDBC related interfaces and to implement the
-   delegation logic for these proxys that is needed to route method
+   create proxies for JDBC related interfaces and to implement the
+   delegation logic for these proxies that is needed to route method
    calls through to the <em>real</em> JDBC driver's instances.</p>
 
-<p>   In order to hook your own code into the delegation you may use
-   <code>def-handle</code> to register your functions for certain method calls.</p>
+<p>   In order to hook your own code into the delegation use <code>def-handle</code>
+   to register your functions for certain method calls.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns buttle.proxy
   (:require [buttle.event :as event]
             [buttle.util :as util]))</pre></td></tr><tr><td class="docs"><p>Returns an <em>invoke-event-map</em>.</p>
@@ -3617,6 +3617,7 @@ datasource. Else we won't be able to delegate to it.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns buttle.util
   (:import [javax.naming InitialContext]))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defn log [&amp; xs]
+  &quot;Log output.&quot;
   (let [s (apply pr-str xs)]
     (.println System/out (str &quot;buttle: &quot; s))
     s))</pre></td></tr><tr><td class="docs"><p>Thread-locally binds <code>clojure.core/*use-context-classloader*</code> to
@@ -3644,8 +3645,13 @@ datasource. Else we won't be able to delegate to it.</p>
     (catch Throwable t
       (throw
        (RuntimeException.
-        (format &quot;JNDI lookup failed for '%s': %s&quot; jndi t) t)))))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn -&gt;java-bean [class-spec props]
+        (format &quot;JNDI lookup failed for '%s': %s&quot; jndi t) t)))))</pre></td></tr><tr><td class="docs"><p>Creates and returns instance of class-typed <code>class-spec</code> and sets
+  Java-Bean properties via setters from <code>props</code> map. Setter-method
+  names are derived from map keys by camel-casing <code>foo-bar</code> to
+  <code>setFooBar</code>. Map values have to be type-conforming (no conversion is
+  done).</p>
+</td><td class="codes"><pre class="brush: clojure">(defn -&gt;java-bean
+  [class-spec props]
   (try 
     (let [new-instance (.newInstance class-spec)
           meths (-&gt;&gt; class-spec

@@ -3,6 +3,8 @@
   (:import [javax.naming InitialContext]))
 
 (defn log [& xs]
+  "Log output."
+  
   (let [s (apply pr-str xs)]
     (.println System/out (str "buttle: " s))
     s))
@@ -38,7 +40,14 @@
        (RuntimeException.
         (format "JNDI lookup failed for '%s': %s" jndi t) t)))))
               
-(defn ->java-bean [class-spec props]
+(defn ->java-bean
+  "Creates and returns instance of class-typed `class-spec` and sets
+  Java-Bean properties via setters from `props` map. Setter-method
+  names are derived from map keys by camel-casing `foo-bar` to
+  `setFooBar`. Map values have to be type-conforming (no conversion is
+  done)."
+
+  [class-spec props]
   (try 
     (let [new-instance (.newInstance class-spec)
           meths (->> class-spec
@@ -68,4 +77,3 @@
         (format "(->java-bean %s %s) fails: %s"
                 class-spec props t)
         t)))))
-
