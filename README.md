@@ -307,9 +307,80 @@ map. Overloaded setter-methods are not supported.
       </xa-datasource-property>
     </xa-datasource>
 
-### Websphere
+### IBM Websphere
 
-__TBD__
+Websphere (WAS) supports datasources of type `javax.sql.XADataSource`
+and `javax.sql.ConnectionPoolDataSource` (tested with WAS 9.0.0.8).
+
+For XA-datasource WAS (like Wildfly; see above) does not put a
+`javax.sql.XADataSource` into JNDI so _Buttle_ cannot proxy
+XA-datasources from JNDI for WAS.
+
+For WAS you have the following options:
+
+* __proxy a JNDI `javax.sql.ConnectionPoolDataSource`__  
+  Define the _Buttle_ datasource with
+  `buttle.jdbc.ConnectionPoolDataSource` and target the _real_
+  datasource by setting `delegateSpec` to its JNDI name.
+
+* __define a `javax.sql.ConnectionPoolDataSource`__  
+  Define the _Buttle_ datasource with
+  `buttle.jdbc.ConnectionPoolDataSource` and target the _real_
+  CP-datasource by setting `delegateSpec` to the map with
+  `:delegate-class <real-jdbc-driver-cp-ds-class>` and the
+  CP-datasource's Java-Beans property values.
+
+* __define a `javax.sql.XADataSource`__  
+  Define the _Buttle_ datasource with `buttle.jdbc.XADataSource` and
+  target the _real_ XA-datasource by setting `delegateSpec` to the map
+  with `:delegate-class <real-jdbc-driver-xa-ds-class>` and the
+  XA-datasource's Java-Beans property values.
+
+
+__Define _Buttle_ JDBC provider__
+
+First you need to define the _Buttle_ __JDBC provider__. You can
+repeat the following steps to define more than one provider (e.g. to
+define one provider for XA-datasources and one for CP-datasources).
+
+In the WAS Admin Console navigate to __Resources/JDBC/JDBC provider__,
+select __scope__ (e.g. your cell/node/server), hit __new__.
+
+__Step 1:__
+
+* select __database type__: __user defined__
+* enter __implementation class__: `buttle.jdbc.ConnectionPoolDataSource` or
+  `buttle.jdbc.XADataSource` (see above)
+* enter __name__ and __description__
+* hit __next__
+
+__Step 2:__
+
+* enter __classpath__: __<path-to-buttle-standalone.jar>__
+* hit __next__
+
+__Step 3:__
+
+* just hit __done__
+
+
+__Define _Buttle_ datasource__
+
+Now you define one or more datasources. In the WAS Admin Console
+navigate to __Resources/JDBC/datasources__, select __scope__
+(e.g. your cell/node/server), hit __new__.
+
+__Step 1:__
+
+
+__Step 2:__
+
+__Step 3:__
+
+__Step 4:__
+
+__Step 5:__
+
 
 ### Clojure
 
