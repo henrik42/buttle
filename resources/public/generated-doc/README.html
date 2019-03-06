@@ -195,30 +195,30 @@ uberjar</code> to include nrepl and Swank):</p>
 &lt;/xa-datasource&gt;
 </code></pre>
 <h3><a href="#ibm-websphere" name="ibm-websphere"></a>IBM Websphere</h3>
-<p>Websphere (WAS) supports datasources of type <code>javax.sql.XADataSource</code> and <code>javax.sql.ConnectionPoolDataSource</code> (tested with WAS 9.0.0.8).</p>
+<p>IBM Websphere (WAS) supports datasources of type <code>javax.sql.XADataSource</code> and <code>javax.sql.ConnectionPoolDataSource</code> (tested with WAS 9.0.0.8 ND).</p>
 <p>For XA-datasource WAS (like Wildfly; see above) does not put a <code>javax.sql.XADataSource</code> into JNDI so <em>Buttle</em> cannot proxy XA-datasources from JNDI for WAS.</p>
 <p>For WAS you have the following options:</p>
 <ul>
   <li>
   <p><strong>proxy a JNDI <code>javax.sql.ConnectionPoolDataSource</code></strong><br /> Define the <em>Buttle</em> datasource with  <code>buttle.jdbc.ConnectionPoolDataSource</code> and target the <em>real</em>  datasource by setting <code>delegateSpec</code> to its JNDI name.</p></li>
   <li>
-  <p><strong>define a <code>javax.sql.ConnectionPoolDataSource</code></strong><br /> Define the <em>Buttle</em> datasource with  <code>buttle.jdbc.ConnectionPoolDataSource</code> and target the <em>real</em>  CP-datasource by setting <code>delegateSpec</code> to the map with  <code>:delegate-class &lt;real-jdbc-driver-cp-ds-class&gt;</code> and the  CP-datasource’s Java-Beans property values.</p></li>
+  <p><strong>define a <code>javax.sql.ConnectionPoolDataSource</code></strong><br /> Define the <em>Buttle</em> datasource with  <code>buttle.jdbc.ConnectionPoolDataSource</code> and (create) target the  <em>real</em> CP-datasource by setting <code>delegateSpec</code> to the map with  <code>:delegate-class &lt;real-jdbc-driver-cp-ds-class&gt;</code> and the  CP-datasource’s Java-Beans property values.</p></li>
   <li>
-  <p><strong>define a <code>javax.sql.XADataSource</code></strong><br /> Define the <em>Buttle</em> datasource with <code>buttle.jdbc.XADataSource</code> and  target the <em>real</em> XA-datasource by setting <code>delegateSpec</code> to the map  with <code>:delegate-class &lt;real-jdbc-driver-xa-ds-class&gt;</code> and the  XA-datasource’s Java-Beans property values.</p></li>
+  <p><strong>define a <code>javax.sql.XADataSource</code></strong><br /> Define the <em>Buttle</em> datasource with <code>buttle.jdbc.XADataSource</code> and  (create) target the <em>real</em> XA-datasource by setting <code>delegateSpec</code>  to the map with <code>:delegate-class &lt;real-jdbc-driver-xa-ds-class&gt;</code> and  the XA-datasource’s Java-Beans property values.</p></li>
 </ul>
 <p><strong>Define <em>Buttle</em> JDBC provider</strong></p>
-<p>First you need to define the <em>Buttle</em> <strong>JDBC provider</strong>. You can repeat the following steps to define more than one provider (e.g. to define one provider for XA-datasources and one for CP-datasources).</p>
+<p>For all options you need to define the <em>Buttle</em> <strong>JDBC provider</strong> first. You can repeat the following steps to define more than one provider (e.g. to define one provider for XA-datasources and one for CP-datasources).</p>
 <p>In the WAS Admin Console navigate to <strong>Resources/JDBC/JDBC provider</strong>, select <strong>scope</strong> (e.g. your cell/node/server), hit <strong>new</strong>.</p>
 <p><strong>Step 1:</strong></p>
 <ul>
-  <li>select <strong>database type</strong>: <strong>user defined</strong></li>
+  <li>select <strong>database type</strong>: <code>user defined</code></li>
   <li>enter <strong>implementation class</strong>: <code>buttle.jdbc.ConnectionPoolDataSource</code> or  <code>buttle.jdbc.XADataSource</code> (see above)</li>
-  <li>enter <strong>name</strong> and <strong>description</strong></li>
+  <li>enter <strong>name</strong> (e.g. <code>Buttle CP-DS</code>) and <strong>description</strong></li>
   <li>hit <strong>next</strong></li>
 </ul>
 <p><strong>Step 2:</strong></p>
 <ul>
-  <li>enter <strong>classpath</strong>: <strong>&lt;path-to-buttle-standalone.jar&gt;</strong></li>
+  <li>enter <strong>classpath</strong>: <code>&lt;path-to-buttle-standalone.jar&gt;</code></li>
   <li>hit <strong>next</strong></li>
 </ul>
 <p><strong>Step 3:</strong></p>
@@ -228,10 +228,44 @@ uberjar</code> to include nrepl and Swank):</p>
 <p><strong>Define <em>Buttle</em> datasource</strong></p>
 <p>Now you define one or more datasources. In the WAS Admin Console navigate to <strong>Resources/JDBC/datasources</strong>, select <strong>scope</strong> (e.g. your cell/node/server), hit <strong>new</strong>.</p>
 <p><strong>Step 1:</strong></p>
+<ul>
+  <li>enter <strong>name</strong> (e.g. <code>buttle_cp_ds</code>) and <strong>JNDI name</strong>  (e.g. <code>jdbc/buttle_cp_ds</code>)</li>
+  <li>hit <strong>next</strong></li>
+</ul>
 <p><strong>Step 2:</strong></p>
+<ul>
+  <li>select <strong>JDBC provider</strong>: e.g. <code>Buttle CP-DS</code> (see above)</li>
+  <li>hit <strong>next</strong></li>
+</ul>
 <p><strong>Step 3:</strong></p>
+<ul>
+  <li><strong>helper</strong>: do not change default <code>com.ibm.websphere.rsadapter.GenericDataStoreHelper</code></li>
+  <li>just hit <strong>next</strong></li>
+</ul>
 <p><strong>Step 4:</strong></p>
+<ul>
+  <li>leave all authentication selections <strong>empty</strong>. In this case  authentication must come from <em>Buttle</em> datasource.</li>
+  <li>just hit <strong>next</strong></li>
+</ul>
 <p><strong>Step 5:</strong></p>
+<ul>
+  <li>just hit <strong>next</strong></li>
+</ul>
+<p><strong>Configure <em>Buttle</em> datasource</strong></p>
+<p>Before you can use/test the <em>Buttle</em> datasource you need to configure it. Navigate to <strong>Resources/JDBC/datasources</strong>, select <strong>scope</strong> (e.g. your cell/node/server) and click on the <em>Buttle</em> datasource you want to configure.</p>
+<p>Click on <strong>adjust properties</strong>. If you have not added <code>delegateSpec</code> hit <strong>add</strong>. Otherwise click on <code>delegateSpec</code> entry in the table.</p>
+<p>Enter/change <strong>value</strong>.</p>
+<p><strong>Example: Postgres</strong></p>
+<pre><code>{:delegate-class org.postgresql.ds.PGConnectionPoolDataSource
+ :databaseName "&lt;postgres-db-name&gt;"
+ :password "&lt;postgres-password&gt;"
+ :portNumber (int &lt;postgres-port-number&gt;)
+ :serverName "&lt;postgres-hostname&gt;"
+ :user "&lt;postgres-user&gt;"}
+</code></pre>
+<p>Then hit <strong>ok</strong>.</p>
+<p><strong>Test <em>Buttle</em> datasource</strong></p>
+<p>Finally we can test/use the <em>Buttle</em> datasource. Navigate to <strong>Resources/JDBC/datasources</strong>, select <strong>scope</strong> (e.g. your cell/node/server). Select (checkbox) the datasource. Hit <strong>test connection</strong>. If you have just changed the datasource you may get an error stating that you have to <em>synchronize</em> the datasource settings first. Go ahead and click <strong>synchronize</strong> and then repeat the test.</p>
 <h3><a href="#clojure" name="clojure"></a>Clojure</h3>
 <pre><code>C:&gt;java -cp buttle-0.1.0-SNAPSHOT-standalone.jar;postgresql-9.4.1212.jar clojure.main -r
 Clojure 1.8.0

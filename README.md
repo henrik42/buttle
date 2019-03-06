@@ -309,8 +309,9 @@ map. Overloaded setter-methods are not supported.
 
 ### IBM Websphere
 
-Websphere (WAS) supports datasources of type `javax.sql.XADataSource`
-and `javax.sql.ConnectionPoolDataSource` (tested with WAS 9.0.0.8).
+IBM Websphere (WAS) supports datasources of type
+`javax.sql.XADataSource` and `javax.sql.ConnectionPoolDataSource`
+(tested with WAS 9.0.0.8 ND).
 
 For XA-datasource WAS (like Wildfly; see above) does not put a
 `javax.sql.XADataSource` into JNDI so _Buttle_ cannot proxy
@@ -325,38 +326,39 @@ For WAS you have the following options:
 
 * __define a `javax.sql.ConnectionPoolDataSource`__  
   Define the _Buttle_ datasource with
-  `buttle.jdbc.ConnectionPoolDataSource` and target the _real_
-  CP-datasource by setting `delegateSpec` to the map with
+  `buttle.jdbc.ConnectionPoolDataSource` and (create) target the
+  _real_ CP-datasource by setting `delegateSpec` to the map with
   `:delegate-class <real-jdbc-driver-cp-ds-class>` and the
   CP-datasource's Java-Beans property values.
 
 * __define a `javax.sql.XADataSource`__  
   Define the _Buttle_ datasource with `buttle.jdbc.XADataSource` and
-  target the _real_ XA-datasource by setting `delegateSpec` to the map
-  with `:delegate-class <real-jdbc-driver-xa-ds-class>` and the
-  XA-datasource's Java-Beans property values.
+  (create) target the _real_ XA-datasource by setting `delegateSpec`
+  to the map with `:delegate-class <real-jdbc-driver-xa-ds-class>` and
+  the XA-datasource's Java-Beans property values.
 
 
 __Define _Buttle_ JDBC provider__
 
-First you need to define the _Buttle_ __JDBC provider__. You can
-repeat the following steps to define more than one provider (e.g. to
-define one provider for XA-datasources and one for CP-datasources).
+For all options you need to define the _Buttle_ __JDBC provider__
+first. You can repeat the following steps to define more than one
+provider (e.g. to define one provider for XA-datasources and one for
+CP-datasources).
 
 In the WAS Admin Console navigate to __Resources/JDBC/JDBC provider__,
 select __scope__ (e.g. your cell/node/server), hit __new__.
 
 __Step 1:__
 
-* select __database type__: __user defined__
+* select __database type__: `user defined`
 * enter __implementation class__: `buttle.jdbc.ConnectionPoolDataSource` or
   `buttle.jdbc.XADataSource` (see above)
-* enter __name__ and __description__
+* enter __name__ (e.g. `Buttle CP-DS`) and __description__
 * hit __next__
 
 __Step 2:__
 
-* enter __classpath__: __<path-to-buttle-standalone.jar>__
+* enter __classpath__: `<path-to-buttle-standalone.jar>`
 * hit __next__
 
 __Step 3:__
@@ -372,15 +374,62 @@ navigate to __Resources/JDBC/datasources__, select __scope__
 
 __Step 1:__
 
+* enter __name__ (e.g. `buttle_cp_ds`) and __JNDI name__
+  (e.g. `jdbc/buttle_cp_ds`)
+* hit __next__
 
 __Step 2:__
 
+* select __JDBC provider__: e.g. `Buttle CP-DS` (see above)
+* hit __next__
+
 __Step 3:__
+
+* __helper__: do not change default `com.ibm.websphere.rsadapter.GenericDataStoreHelper`
+* just hit __next__
 
 __Step 4:__
 
+* leave all authentication selections __empty__. In this case
+  authentication must come from _Buttle_ datasource.
+* just hit __next__
+
 __Step 5:__
 
+* just hit __next__
+
+
+__Configure _Buttle_ datasource__
+
+Before you can use/test the _Buttle_ datasource you need to configure
+it. Navigate to __Resources/JDBC/datasources__, select __scope__
+(e.g. your cell/node/server) and click on the _Buttle_ datasource you
+want to configure.
+
+Click on __adjust properties__. If you have not added `delegateSpec`
+hit __add__. Otherwise click on `delegateSpec` entry in the table.
+
+Enter/change __value__.
+
+__Example: Postgres__
+
+	{:delegate-class org.postgresql.ds.PGConnectionPoolDataSource
+	 :databaseName "<postgres-db-name>"
+	 :password "<postgres-password>"
+	 :portNumber (int <postgres-port-number>)
+	 :serverName "<postgres-hostname>"
+	 :user "<postgres-user>"}
+
+Then hit __ok__.
+
+__Test _Buttle_ datasource__
+
+Finally we can test/use the _Buttle_ datasource. Navigate to
+__Resources/JDBC/datasources__, select __scope__ (e.g. your
+cell/node/server). Select (checkbox) the datasource. Hit __test
+connection__. If you have just changed the datasource you may get an
+error stating that you have to _synchronize_ the datasource settings
+first. Go ahead and click __synchronize__ and then repeat the test.
 
 ### Clojure
 
