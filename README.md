@@ -242,6 +242,18 @@ load your _hook code_:
       <property name="buttle.user-file" value="<path-to>/buttle-user-file.clj" boot-time="true"/>
     </system-properties>
 
+#### A word on authentication
+
+Note that there are three (or four) places involved when it comes to
+authentication regarding the _Buttle_ datasource and the proxied
+_real_ datasource (in Wildfly and IBM Webpshere - see below):
+
+* __the _real_ datasource configuration__
+
+* __the _real_ datasource's authentication settings__
+
+* __the _Buttle_ datasource configuration__
+
 #### XA-datasource
 
 You define an `<xa-datasource>` like this (for Postgres):

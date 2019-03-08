@@ -155,6 +155,16 @@ java [...] %BUTTLE% [...]
   &lt;property name="buttle.user-file" value="&lt;path-to&gt;/buttle-user-file.clj" boot-time="true"/&gt;
 &lt;/system-properties&gt;
 </code></pre>
+<h4><a href="#a-word-on-authentication" name="a-word-on-authentication"></a>A word on authentication</h4>
+<p>Note that there are three (or four) places involved when it comes to authentication regarding the <em>Buttle</em> datasource and the proxied <em>real</em> datasource (in Wildfly and IBM Webpshere - see below):</p>
+<ul>
+  <li>
+  <p><strong>the <em>real</em> datasource configuration</strong></p></li>
+  <li>
+  <p><strong>the <em>real</em> datasource’s authentication settings</strong></p></li>
+  <li>
+  <p><strong>the <em>Buttle</em> datasource configuration</strong></p></li>
+</ul>
 <h4><a href="#xa-datasource" name="xa-datasource"></a>XA-datasource</h4>
 <p>You define an <code>&lt;xa-datasource&gt;</code> like this (for Postgres):</p>
 <pre><code>&lt;xa-datasource jndi-name="java:/jdbc/postgres-xa" pool-name="postgres-xa"&gt;
