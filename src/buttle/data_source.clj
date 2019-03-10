@@ -77,7 +77,8 @@
                        (reset! ds
                                (retrieve-data-soure @ds-spec))))]
     (proxy/make-proxy
-     [DataSource ButtleDataSource]
+     ;; Note: order matters!!! See buttle.proxy/make-proxy for more details
+     [ButtleDataSource DataSource]
      (proxy [DataSource ButtleDataSource] []
        (setDelegateSpec [spec]
          (try

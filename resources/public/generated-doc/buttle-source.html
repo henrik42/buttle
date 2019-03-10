@@ -2866,25 +2866,7 @@ net.brehaut.ClojureTools = (function (SH) {
   };
 })(SyntaxHighlighter);
 </script><title>buttle/buttle -- Marginalia</title></head><body><table><tr><td class="docs"><div class="header"><h1 class="project-name"><a href="https://github.com/henrik42/buttle/">buttle/buttle</a></h1><h2 class="project-version">0.1.0-SNAPSHOT</h2><br /><p>Buttle is a proxying JDBC driver with hooks.</p>
-</div><div class="dependencies"><h3>dependencies</h3><table><tr><td class="dep-name">org.clojure/clojure</td><td class="dotted"><hr /></td><td class="dep-version">1.9.0</td></tr><tr><td class="dep-name">org.clojure/core.async</td><td class="dotted"><hr /></td><td class="dep-version">0.4.490</td></tr></table></div></td><td class="codes" style="text-align: center; vertical-align: middle;color: #666;padding-right:20px"><br /><br /><br />(this space intentionally left almost blank)</td></tr><tr><td class="docs"><div class="toc"><a name="toc"><h3>namespaces</h3></a><ul><li><a href="#buttle.event">buttle.event</a></li><li><a href="#buttle.connection-pool-data-source">buttle.connection-pool-data-source</a></li><li><a href="#buttle.util">buttle.util</a></li><li><a href="#buttle.driver-manager">buttle.driver-manager</a></li><li><a href="#buttle.driver">buttle.driver</a></li><li><a href="#buttle.xa-data-source">buttle.xa-data-source</a></li><li><a href="#buttle.proxy">buttle.proxy</a></li><li><a href="#buttle.data-source">buttle.data-source</a></li></ul></div></td><td class="codes">&nbsp;</td></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.event" name="buttle.event"><h1 class="project-name">buttle.event</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Send events to consumers via core.async/channel.</p>
-
-<p>  Consumers can <code>tap</code> on <code>event-mult</code> to receive events that are
-  produced through <code>send-event</code> (<code>buttle.proxy/handle-default</code> is such
-  a producer).</p>
-</td><td class="codes"><pre class="brush: clojure">(ns buttle.event
-  (:require [clojure.core.async :as a]))</pre></td></tr><tr><td class="docs"><p>The channel through which events are sent. Is the input for
-  <code>event-mult</code>.</p>
-</td><td class="codes"><pre class="brush: clojure">(def event-ch
-  (a/chan))</pre></td></tr><tr><td class="docs"><p>For internal use only. Sends event <code>e</code> to <code>event-ch</code>.</p>
-</td><td class="codes"><pre class="brush: clojure">(defn put-event
-  [e]
-  (a/&gt;!! event-ch e))</pre></td></tr><tr><td class="docs"><p>Sends event <code>e</code> to <code>event-ch</code>.</p>
-</td><td class="codes"><pre class="brush: clojure">(defn send-event 
-  [e]
-  (put-event e))</pre></td></tr><tr><td class="docs"><p>API/<code>clojure.core.async/mult</code> for consumers which want to receive
-  events.</p>
-</td><td class="codes"><pre class="brush: clojure">(def event-mult
-  (a/mult event-ch))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.connection-pool-data-source" name="buttle.connection-pool-data-source"><h1 class="project-name">buttle.connection-pool-data-source</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>The <em>Buttle</em> <code>javax.sql.ConnectionPoolDataSource</code> (CP-datasource).</p>
+</div><div class="dependencies"><h3>dependencies</h3><table><tr><td class="dep-name">org.clojure/clojure</td><td class="dotted"><hr /></td><td class="dep-version">1.9.0</td></tr><tr><td class="dep-name">org.clojure/core.async</td><td class="dotted"><hr /></td><td class="dep-version">0.4.490</td></tr></table></div></td><td class="codes" style="text-align: center; vertical-align: middle;color: #666;padding-right:20px"><br /><br /><br />(this space intentionally left almost blank)</td></tr><tr><td class="docs"><div class="toc"><a name="toc"><h3>namespaces</h3></a><ul><li><a href="#buttle.connection-pool-data-source">buttle.connection-pool-data-source</a></li><li><a href="#buttle.data-source">buttle.data-source</a></li><li><a href="#buttle.driver">buttle.driver</a></li><li><a href="#buttle.driver-manager">buttle.driver-manager</a></li><li><a href="#buttle.event">buttle.event</a></li><li><a href="#buttle.proxy">buttle.proxy</a></li><li><a href="#buttle.util">buttle.util</a></li><li><a href="#buttle.xa-data-source">buttle.xa-data-source</a></li></ul></div></td><td class="codes">&nbsp;</td></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.connection-pool-data-source" name="buttle.connection-pool-data-source"><h1 class="project-name">buttle.connection-pool-data-source</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>The <em>Buttle</em> <code>javax.sql.ConnectionPoolDataSource</code> (CP-datasource).</p>
 
 <p>  This namespace delivers <code>buttle.jdbc.ConnectionPoolDataSource</code> via
   <code>:gen-class</code>. This named class can be used as a CP-datasource class
@@ -2952,10 +2934,9 @@ buttle.connection<em>pool</em>data_source.ButtleCpDataSource.
 buttle.proxy/make-proxy uses the first argument's classloader to
 define D. This makes D and P being compatible and M can be called.</p>
 
-<p>Only for WAS I had to do this. Wildfly's classloaders work somehow
-different and the code in buttle.xa-data-source/make-xa-data-source</p>
+<p>Only for IBM WAS I had to do this. Wildfly's classloaders work</p>
 
-<h2>looks simpler (until now).</h2>
+<h2>different somehow.</h2>
 </td><td class="codes"></td></tr><tr><td class="docs"><p>Creates and returns a <em>Buttle</em> <code>javax.sql.ConnectionPoolDataSource</code>.</p>
 
 <p>  Use <code>setDelegateSpec</code> to control what the <em>real</em> (or <em>backing</em>)
@@ -3048,104 +3029,140 @@ different and the code in buttle.xa-data-source/make-xa-data-source</p>
   delegates to the referenced/internal CP-datasource (see <code>-init</code>).</p>
 </td><td class="codes"><pre class="brush: clojure">(defn -getParentLogger
   [this]
-  (.getParentLogger (.state this)))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.util" name="buttle.util"><h1 class="project-name">buttle.util</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Just some helpers.</p>
-</td><td class="codes"><pre class="brush: clojure">(ns buttle.util
-  (:import [javax.naming InitialContext]))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn log [&amp; xs]
-  &quot;Log output.&quot;
-  (let [s (apply pr-str xs)]
-    (.println System/out (str &quot;buttle: &quot; s))
-    s))</pre></td></tr><tr><td class="docs"><p>Thread-locally binds <code>clojure.core/*use-context-classloader*</code> to
-  <code>true</code>, sets the current thread's context classloader to <code>cl</code> and
-  executes <code>body</code> within that context. On completion restores the
-  context classloader and pops
-  <code>clojure.core/*use-context-classloader*</code> to the previous
-  value. Returns value of <code>body</code> evaluation.</p>
-</td><td class="codes"><pre class="brush: clojure">(defmacro with-tccl
-  [cl &amp; body]
-  `(binding [*use-context-classloader* true]
-     (let [tccl# (.getContextClassLoader (Thread/currentThread))]
-       (try (.setContextClassLoader (Thread/currentThread) ~cl)
-            ~@body
-            (finally
-              (.setContextClassLoader (Thread/currentThread) tccl#))))))</pre></td></tr><tr><td class="docs"><p>Looks up entry in JNDI and returns it. Throws if entry cannot be
-  found.</p>
-</td><td class="codes"><pre class="brush: clojure">(defn jndi-lookup
-  [jndi]
-  (when-not jndi
-    (throw (RuntimeException. &quot;No `jndi` property set.&quot;)))
-  (try 
-    (with-open [ctx (InitialContext.)]
-      (.lookup ctx jndi))
-    (catch Throwable t
+  (.getParentLogger (.state this)))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.data-source" name="buttle.data-source"><h1 class="project-name">buttle.data-source</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>The <em>Buttle</em> <code>javax.sql.DataSource</code>.</p>
+
+<p>  This namespace delivers <code>buttle.jdbc.DataSource</code> via
+  <code>:gen-class</code>. This named class can be used as a datasource class for
+  application servers.</p>
+
+<p>  <strong>Note:</strong> This namespace has not yet been tested in an application
+  server. There are application servers (like Wildfly and IBM
+  Websphere) which use their own <code>javax.sql.DataSource</code> implementation
+  which delegates to the JDBC driver's <code>java.sql.Driver</code>
+  implementation. So in these cases the JDBC driver does not even need
+  to deliver an implementation for <code>javax.sql.DataSource</code>.</p>
+</td><td class="codes"><pre class="brush: clojure">(ns buttle.data-source
+  (:import [javax.sql DataSource]
+           [java.sql SQLException]
+           [java.sql SQLFeatureNotSupportedException])
+  (:require [buttle.proxy :as proxy]
+            [buttle.util :as util]))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(definterface ButtleDataSource
+  (^void setDelegateSpec [^String spec]))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(gen-class
+ :init init
+ :state state
+ :name buttle.jdbc.DataSource
+ :extends buttle.SetContextClassLoaderInStaticInitializer
+ :implements [javax.sql.DataSource
+              buttle.data_source.ButtleDataSource])</pre></td></tr><tr><td class="docs"><p>Dispatch for <code>retrieve-data-soure</code>. Returns type of <code>spec</code> (<code>:jndi</code>
+  for <code>String</code>, <code>:ds-class</code> for maps).</p>
+</td><td class="codes"><pre class="brush: clojure">(defn spec-&gt;type
+  [spec]
+  (cond
+   (string? spec) :jndi
+   (map? spec) :ds-class
+   :else (format &quot;Unknown spec '%s'&quot; (pr-str spec))))</pre></td></tr><tr><td class="docs"><p>Factory/lookup for <em>real</em> datasource. <code>String</code> arg will be expected
+  to be JNDI name of a <code>javax.sql.DataSource</code>. In this case the
+  datasource will be looked up in JNDI. If the arg is a map the
+  class-typed <code>:delegate-class</code> will be used to create an instance and
+  then all remaining keys/values will be used to set the instance's
+  Java-Bean properties.</p>
+</td><td class="codes"><pre class="brush: clojure">(defmulti retrieve-data-soure 
+  #'spec-&gt;type)</pre></td></tr><tr><td class="docs"><p>Create instance and invoke setters. Setter-names are derived from
+map keys by camel-casing <code>:foo-bar</code> to <code>setFooBar</code>.</p>
+</td><td class="codes"><pre class="brush: clojure">(defmethod retrieve-data-soure :ds-class [ds-class-spec]
+  (util/-&gt;java-bean (:delegate-class ds-class-spec)
+                    (dissoc ds-class-spec :delegate-class)))</pre></td></tr><tr><td class="docs"><p>Retrieve datasource and check that it <em>really IS</em> a
+datasource. Else we won't be able to delegate to it.</p>
+</td><td class="codes"><pre class="brush: clojure">(defmethod retrieve-data-soure :jndi [jndi-spec]
+  (let [ds (util/jndi-lookup jndi-spec)]
+    (when-not (isa? (.getClass ds) javax.sql.DataSource)
       (throw
        (RuntimeException.
-        (format &quot;JNDI lookup failed for '%s': %s&quot; jndi t) t)))))</pre></td></tr><tr><td class="docs"><p>Creates and returns instance of class-typed <code>class-spec</code> and sets
-  Java-Bean properties via setters from <code>props</code> map. Setter-method
-  names are derived from map keys by camel-casing <code>foo-bar</code> to
-  <code>setFooBar</code>. Map values have to be type-conforming (no conversion is
-  done).</p>
-</td><td class="codes"><pre class="brush: clojure">(defn -&gt;java-bean
-  [class-spec props]
-  (try 
-    (let [new-instance (.newInstance class-spec)
-          meths (-&gt;&gt; class-spec
-                     .getMethods
-                     (map #(-&gt; [(.getName %1) %1]))
-                     (into {}))]
-      (doseq [[k v] props
-              :let [mn (clojure.string/replace
-                        (str &quot;set-&quot; (name k))
-                        #&quot;-(.)&quot; #(-&gt; % second .toUpperCase))
-                    m (meths mn)]]
-        (when-not m
-          (throw (RuntimeException. (format &quot;Setter not found for %s. Known methods are %s&quot;
-                                            [k v mn] (keys meths)))))
-        (try 
-          (.invoke m new-instance (into-array [v]))
-          (catch Throwable t
-            (throw
-             (RuntimeException.
-              (format &quot;Calling %s/%s with %s failed: %s&quot;
-                      m new-instance (pr-str v) t)
-              t)))))
-      new-instance)
-    (catch Throwable t
-      (throw
-       (RuntimeException.
-        (format &quot;(-&gt;java-bean %s %s) fails: %s&quot;
-                class-spec props t)
-        t)))))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.driver-manager" name="buttle.driver-manager"><h1 class="project-name">buttle.driver-manager</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>A thin/simple Clojure API around <code>java.sql.DriverManager</code>.</p>
-</td><td class="codes"><pre class="brush: clojure">(ns buttle.driver-manager
-  (:import [java.sql DriverManager]))</pre></td></tr><tr><td class="docs"><p>Registers the <code>driver</code> (see
-  <code>java.sql.DriverManager.registerDriver(Driver)</code>).</p>
-</td><td class="codes"><pre class="brush: clojure">(defn register-driver
-  [driver]
-  (DriverManager/registerDriver driver))</pre></td></tr><tr><td class="docs"><p>Returns the registered <code>java.sql.Driver</code> which accepts the
-  <code>url</code>. Throws if a driver cannot be found (see
-  <code>java.sql.DriverManager.getDriver(String)</code>).</p>
-</td><td class="codes"><pre class="brush: clojure">(defn get-driver
-  [url]
-  (DriverManager/getDriver url))</pre></td></tr><tr><td class="docs"><p>Returns a seq of all registered drivers (see
-  <code>java.sql.DriverManager.getDrivers()</code>)</p>
-</td><td class="codes"><pre class="brush: clojure">(defn get-drivers
+        (format &quot;This is not a javax.sql.DataSource: '%s'  It implements these interfaces: '%s'&quot;
+                ds (-&gt;&gt; ds .getClass .getInterfaces (into []))))))
+    ds))</pre></td></tr><tr><td class="docs"><p>Creates the <em>Buttle</em> datasource.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn make-data-source
   []
-  (enumeration-seq (DriverManager/getDrivers)))</pre></td></tr><tr><td class="docs"><p>Finds the driver for <code>url</code> and uses it to open a
-  <code>java.sql.Connection</code>. Returns the connection or throws if anything
-  goes wrong (see `java.sql.DriverManager.getConnection(String,
-  String, String)`).</p>
-</td><td class="codes"><pre class="brush: clojure">(defn get-connection 
-  [url user password]
-  (DriverManager/getConnection url user password))</pre></td></tr><tr><td class="docs"><p>Iterates over all registered drivers (as of <code>(get-drivers)</code>) and
-  deregisters each. Returns seq of drivers.</p>
-</td><td class="codes"><pre class="brush: clojure">(defn deregister-drivers
-  []
-  (seq 
-   (doall 
-    (for [d (get-drivers)]
-      (do 
-        (DriverManager/deregisterDriver d)
-        d)))))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.driver" name="buttle.driver"><h1 class="project-name">buttle.driver</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>The <em>Buttle</em> <code>java.sql.Driver</code>.</p>
+  (let [ds-spec (atom nil)
+        ds (atom nil)
+        ;; lazy creation and cache
+        ds! (fn [] (or @ds
+                       (reset! ds
+                               (retrieve-data-soure @ds-spec))))]
+    (proxy/make-proxy
+     ;; Note: order matters!!! See buttle.proxy/make-proxy for more details
+     [ButtleDataSource DataSource]
+     (proxy [DataSource ButtleDataSource] []
+       (setDelegateSpec [spec]
+         (try
+           (util/with-tccl (.getClassLoader (Class/forName &quot;buttle.jdbc.DataSource&quot;))
+             (reset! ds-spec
+                     (-&gt; spec
+                         (.replaceAll &quot;[\\n\\t]+&quot; &quot; &quot;)
+                         read-string
+                         eval)))
+           (catch Throwable t
+             (throw (ex-info &quot;Could not parse spec&quot; {:spec spec} t)))))
+       (getConnection [&amp; [user password :as xs]]
+         (if-not xs (-&gt; (ds!) .getConnection)
+                 (-&gt; (ds!) (.getConnection user password))))
+       (getLogWriter []
+         (-&gt; (ds!) .getLogWriter))
+       (setLogWriter [pr-wrt]
+         (-&gt; (ds!) (.setLogWriter pr-wrt)))
+       (setLoginTimeout [sec]
+         (-&gt; (ds!) (.setLoginTimeout sec)))
+       (getLoginTimeout []
+         (-&gt; (ds!) .getLoginTimeout))
+       (getParentLogger []
+         (-&gt; (ds!) .getParentLogger))
+       (unwrap [ifc]
+         (-&gt; (ds!) (.unwrap ifc)))
+       (isWrapperFor [ifc]
+         (-&gt; (ds!) (.isWrapperFor ifc))))
+     proxy/handle)))</pre></td></tr><tr><td class="docs"><p>Constructor function of <code>buttle.jdbc.DataSource</code>.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn -init
+    []
+    [[] (make-data-source)])</pre></td></tr><tr><td class="docs"><p>Sets the <code>delegateSpec</code> of the <em>Buttle</em> datasource.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn -setDelegateSpec
+  [this spec]
+  (.setDelegateSpec (.state this) spec))</pre></td></tr><tr><td class="docs"><p>Implements <code>javax.sql.DataSource/getConnection</code>. Just delegates to
+  the referenced/internal datasource (see <code>-init</code>).</p>
+</td><td class="codes"><pre class="brush: clojure">(defn -getConnection
+  ([this]
+     (.getConnection (.state this)))
+  ([this username password]
+     (.getConnection (.state this) username password)))</pre></td></tr><tr><td class="docs"><p>Implements <code>javax.sql.CommonDataSource/getLogWriter</code>. Just
+  delegates to the referenced/internal datasource (see <code>-init</code>).</p>
+</td><td class="codes"><pre class="brush: clojure">(defn -getLogWriter
+  [this]
+  (.getLogWriter (.state this)))</pre></td></tr><tr><td class="docs"><p>Implements <code>javax.sql.CommonDataSource/setLogWriter</code>. Just
+  delegates to the referenced/internal datasource (see <code>-init</code>).</p>
+</td><td class="codes"><pre class="brush: clojure">(defn -setLogWriter
+  [this pr-wrt]
+  (.setLogWriter (.state this) pr-wrt))</pre></td></tr><tr><td class="docs"><p>Implements <code>javax.sql.CommonDataSource/setLoginTimeout</code>. Just
+  delegates to the referenced/internal datasource (see <code>-init</code>).</p>
+</td><td class="codes"><pre class="brush: clojure">(defn -setLoginTimeout
+  [this sec]
+  (.setLoginTimeout (.state this) sec))</pre></td></tr><tr><td class="docs"><p>Implements <code>javax.sql.CommonDataSource/getLoginTimeout</code>. Just
+  delegates to the referenced/internal datasource (see <code>-init</code>).</p>
+</td><td class="codes"><pre class="brush: clojure">(defn -getLoginTimeout
+  [this]
+  (.getLoginTimeout (.state this)))</pre></td></tr><tr><td class="docs"><p>Implements <code>javax.sql.CommonDataSource/getParentLogger</code>. Just
+  delegates to the referenced/internal datasource (see <code>-init</code>).</p>
+</td><td class="codes"><pre class="brush: clojure">(defn -getParentLogger
+  [this]
+  (.getParentLogger (.state this)))</pre></td></tr><tr><td class="docs"><p>Implements <code>java.sql.Wrapper/unwrap</code>. Just delegates to the
+  referenced/internal datasource (see <code>-init</code>).</p>
+</td><td class="codes"><pre class="brush: clojure">(defn -unwrap
+  [this ifc]
+  (.unwrap (.state this) ifc))</pre></td></tr><tr><td class="docs"><p>Implements <code>java.sql.Wrapper/isWrapperFor</code>. Just delegates to the
+  referenced/internal datasource (see <code>-init</code>).</p>
+</td><td class="codes"><pre class="brush: clojure">(defn -isWrapperFor
+  [this ifc]
+  (.isWrapperFor (.state this) ifc))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.driver" name="buttle.driver"><h1 class="project-name">buttle.driver</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>The <em>Buttle</em> <code>java.sql.Driver</code>.</p>
 
 <p>  This namespace delivers <code>buttle.jdbc.Driver</code> via <code>:gen-class</code>. This
   named class can be used by tools (like SQuirreL) and the SPI
@@ -3368,171 +3385,55 @@ different and the code in buttle.xa-data-source/make-xa-data-source</p>
       (load-file user-file)
       (catch Throwable t
         (.println System/err (format &quot;(eval-buttle-user-file! %s) failed: %s&quot; (pr-str user-file) t))))))</pre></td></tr><tr><td class="docs"><p>Note - this will execute when lein compiling, but should do no harm</p>
-</td><td class="codes"><pre class="brush: clojure">(eval-buttle-user-file!)</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.xa-data-source" name="buttle.xa-data-source"><h1 class="project-name">buttle.xa-data-source</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>The <em>Buttle</em> <code>javax.sql.XADataSource</code>.</p>
-
-<p>  This namespace delivers <code>buttle.jdbc.XADataSource</code> via
-  <code>:gen-class</code>. This named class can be used as an XA-datasource class
-  for application servers.</p>
-
-<p>  <strong>Example (Wildfly)</strong>:</p>
-
-<pre><code>    &lt;xa-datasource jndi-name="java:/jdbc/buttle-xa" pool-name="buttle-xa"&gt;
-      &lt;xa-datasource-class&gt;buttle.jdbc.XADataSource&lt;/xa-datasource-class&gt;
-      &lt;driver&gt;buttle-driver&lt;/driver&gt;
-      &lt;security&gt;
-        &lt;user-name&gt;postgres-user&lt;/user-name&gt;
-        &lt;password&gt;postgres-password&lt;/password&gt;
-      &lt;/security&gt;
-      &lt;xa-datasource-property name="DelegateSpec"&gt;
-        {:delegate-class org.postgresql.xa.PGXADataSource
-         :url "jdbc:postgresql://127.0.0.1:6632/postgres"}
-      &lt;/xa-datasource-property&gt;
-    &lt;/xa-datasource&gt;
-</code></pre>
-</td><td class="codes"><pre class="brush: clojure">(ns buttle.xa-data-source
-  (:import [javax.sql XADataSource])
-  (:require [buttle.proxy :as proxy]
-            [buttle.driver]
-            [buttle.util :as util]))</pre></td></tr><tr><td class="docs"><p>Needed for -setDelegateSpec. Otherwise the compile won't generate
-the method for buttle.jdbc.XADataSource</p>
-</td><td class="codes"><pre class="brush: clojure">(definterface ButtleDataSource 
-  (^void setDelegateSpec [^String spec]))</pre></td></tr><tr><td class="docs"><p>Cannot be part of <code>ns</code> form because references
-<code>buttle.xa_data_source.ButtleDataSource</code> from above</p>
-</td><td class="codes"><pre class="brush: clojure">(gen-class
- :init init
- :state state
- :name buttle.jdbc.XADataSource
- :extends buttle.SetContextClassLoaderInStaticInitializer
- :implements [javax.sql.XADataSource
-              buttle.xa_data_source.ButtleDataSource])</pre></td></tr><tr><td class="docs"><p>Dispatch for <code>retrieve-xa-data-soure</code>. Returns type of
-  <code>spec</code> (<code>:jndi</code> for <code>String</code>, <code>:xa-class</code> for maps).</p>
-</td><td class="codes"><pre class="brush: clojure">(defn spec-&gt;type
-  [spec]
-  (cond
-   (string? spec) :jndi
-   (map? spec) :xa-class
-   :else (format &quot;Unknown spec '%s'&quot; (pr-str spec))))</pre></td></tr><tr><td class="docs"><p>Factory/lookup for <em>real</em> XA-datasource. <code>String</code> arg will be
-  expected to be JNDI name of a <code>javax.sql.XADataSource</code>. In this case
-  the XA-datasource will be looked up in JNDI. If the arg is a map the
-  class-typed <code>:delegate-class</code> will be used to create an instance and
-  then all remaining keys/values will be used to set the instance's
-  Java-Bean properties.</p>
-</td><td class="codes"><pre class="brush: clojure">(defmulti retrieve-xa-data-soure 
-  #'spec-&gt;type)</pre></td></tr><tr><td class="docs"><p>Retrieve XA-datasource and check that it <em>really IS</em> an
-XA-datasource. Else we won't be able to delegate to it.</p>
-</td><td class="codes"><pre class="brush: clojure">(defmethod retrieve-xa-data-soure :jndi [jndi-spec]
-  (let [xa-ds (util/jndi-lookup jndi-spec)]
-    (when-not (isa? (.getClass xa-ds) javax.sql.XADataSource)
-      (throw
-       (RuntimeException.
-        (format (str &quot;(retrieve-xa-data-soure %s) fails!&quot;
-                     &quot; This is not a javax.sql.XADataSource: '%s'&quot;
-                     &quot; It implements these interfaces: '%s'&quot;)
-                (pr-str jndi-spec)
-                xa-ds
-                (-&gt;&gt; xa-ds .getClass .getInterfaces (into []))))))
-    xa-ds))</pre></td></tr><tr><td class="docs"><p>Create instance and invoke setters. Setter-names are derived from
-map keys by camel-casing <code>:foo-bar</code> to <code>setFooBar</code>.</p>
-</td><td class="codes"><pre class="brush: clojure">(defmethod retrieve-xa-data-soure :xa-class [{:keys [delegate-class] :as xa-class-spec}]
-  (when (nil? delegate-class)
-    (throw (RuntimeException.
-            (format &quot;No :delegate-class given: %s&quot; xa-class-spec))))
-  (util/-&gt;java-bean delegate-class
-                    (dissoc xa-class-spec :delegate-class)))</pre></td></tr><tr><td class="docs"><p><hr />
-A note on classloading</p>
-
-<h2>See src/buttle/connection_pool_data_source.clj for details.</h2>
-</td><td class="codes"></td></tr><tr><td class="docs"><p>Creates and returns a <em>Buttle</em> <code>javax.sql.XADataSource</code>.</p>
-
-<p>  Use <code>setDelegateSpec</code> to control what the <em>real</em> (or <em>backing</em>)
-  <code>javax.sql.XADataSource</code> is. You can use <code>String</code> to use an
-  XA-datasource from JNDI. Use a map to create an instance and set
-  properties (see <code>retrieve-xa-data-soure</code> for details).</p>
-
-<p>  Note: creation is done on-demand when the backing XA-datasource is
-  actually needed/used.</p>
-</td><td class="codes"><pre class="brush: clojure">(defn make-xa-data-source
+</td><td class="codes"><pre class="brush: clojure">(eval-buttle-user-file!)</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.driver-manager" name="buttle.driver-manager"><h1 class="project-name">buttle.driver-manager</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>A thin/simple Clojure API around <code>java.sql.DriverManager</code>.</p>
+</td><td class="codes"><pre class="brush: clojure">(ns buttle.driver-manager
+  (:import [java.sql DriverManager]))</pre></td></tr><tr><td class="docs"><p>Registers the <code>driver</code> (see
+  <code>java.sql.DriverManager.registerDriver(Driver)</code>).</p>
+</td><td class="codes"><pre class="brush: clojure">(defn register-driver
+  [driver]
+  (DriverManager/registerDriver driver))</pre></td></tr><tr><td class="docs"><p>Returns the registered <code>java.sql.Driver</code> which accepts the
+  <code>url</code>. Throws if a driver cannot be found (see
+  <code>java.sql.DriverManager.getDriver(String)</code>).</p>
+</td><td class="codes"><pre class="brush: clojure">(defn get-driver
+  [url]
+  (DriverManager/getDriver url))</pre></td></tr><tr><td class="docs"><p>Returns a seq of all registered drivers (see
+  <code>java.sql.DriverManager.getDrivers()</code>)</p>
+</td><td class="codes"><pre class="brush: clojure">(defn get-drivers
   []
-  (let [xa-ds-spec (atom nil)
-        xa-ds (atom nil)
-        ;; classloader of cached proxy class definition
-        cl (-&gt; (proxy [XADataSource ButtleDataSource] [])
-               .getClass
-               .getClassLoader)
-        ;; lazy creation and cache
-        xa-ds! (fn [] (or @xa-ds
-                          (reset! xa-ds
-                                  (retrieve-xa-data-soure @xa-ds-spec))))]
-    ;; make Java dyn. proxy D which uses cl as its definiting classloader
-    (proxy/make-proxy
-     [(Class/forName &quot;buttle.xa_data_source.ButtleDataSource&quot; true cl) XADataSource]
-     ;; proxy should have classloader cl
-     (proxy [XADataSource ButtleDataSource] []
-       (setDelegateSpec [spec]
-         (try
-           (util/with-tccl (.getClassLoader (Class/forName &quot;buttle.jdbc.XADataSource&quot;))
-             (reset! xa-ds-spec
-                     (-&gt; spec
-                         (.replaceAll &quot;[\\n\\t]+&quot; &quot; &quot;)
-                         read-string
-                         eval)))
-           (catch Throwable t
-             (throw (ex-info &quot;Could not parse spec&quot; {:spec spec} t)))))
-       (getXAConnection [&amp; [user password :as xs]]
-         (if-not xs (-&gt; (xa-ds!) .getXAConnection)
-                 (-&gt; (xa-ds!) (.getXAConnection user password))))
-       (getLogWriter []
-         (-&gt; (xa-ds!) .getLogWriter))
-       (setLogWriter [pr-wrt]
-         (-&gt; (xa-ds!) (.setLogWriter pr-wrt)))
-       (setLoginTimeout [sec]
-         (-&gt; (xa-ds!) (.setLoginTimeout sec)))
-       (getLoginTimeout []
-         (-&gt; (xa-ds!) .getLoginTimeout))
-       (getParentLogger []
-         (-&gt; (xa-ds!) .getParentLogger)))
-     (fn [the-method target-obj the-args]
-       ;; set TCCL so that CLojure RT/Compiler uses correct
-       ;; classloader.
-       (util/with-tccl (.getClassLoader (Class/forName &quot;buttle.jdbc.XADataSource&quot;))
-         (proxy/handle the-method target-obj the-args))))))</pre></td></tr><tr><td class="docs"><p>Constructor function of <code>buttle.jdbc.XADataSource</code>. Calls
-  <code>make-xa-data-source</code> and initialized <code>state</code> with that (i.e. the
-  <em>Buttle</em> XA-datasource is cached).</p>
-</td><td class="codes"><pre class="brush: clojure">(defn -init
+  (enumeration-seq (DriverManager/getDrivers)))</pre></td></tr><tr><td class="docs"><p>Finds the driver for <code>url</code> and uses it to open a
+  <code>java.sql.Connection</code>. Returns the connection or throws if anything
+  goes wrong (see `java.sql.DriverManager.getConnection(String,
+  String, String)`).</p>
+</td><td class="codes"><pre class="brush: clojure">(defn get-connection 
+  [url user password]
+  (DriverManager/getConnection url user password))</pre></td></tr><tr><td class="docs"><p>Iterates over all registered drivers (as of <code>(get-drivers)</code>) and
+  deregisters each. Returns seq of drivers.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn deregister-drivers
   []
-  [[] (make-xa-data-source)])</pre></td></tr><tr><td class="docs"><p>Implements
-  <code>buttle.xa_data_source.ButtleDataSource/setDelegateSpec</code>. Just
-  delegates to the referenced/internal <em>Buttle</em> XA-datasource (see
-  <code>-init</code>).</p>
-</td><td class="codes"><pre class="brush: clojure">(defn -setDelegateSpec
-  [this spec]
-  (.setDelegateSpec (.state this) spec))</pre></td></tr><tr><td class="docs"><p>Implements <code>javax.sql.XADataSource/getXAConnection</code>. Just delegates
-  to the referenced/internal XA-datasource (see <code>-init</code>).</p>
-</td><td class="codes"><pre class="brush: clojure">(defn -getXAConnection
-  ([this]
-     (.getXAConnection (.state this)))
-  ([this username password]
-     (.getXAConnection (.state this) username password)))</pre></td></tr><tr><td class="docs"><p>Implements <code>javax.sql.CommonDataSource/getLogWriter</code>. Just
-  delegates to the referenced/internal XA-datasource (see <code>-init</code>).</p>
-</td><td class="codes"><pre class="brush: clojure">(defn -getLogWriter
-  [this]
-  (.getLogWriter (.state this)))</pre></td></tr><tr><td class="docs"><p>Implements <code>javax.sql.CommonDataSource/setLogWriter</code>. Just
-  delegates to the referenced/internal XA-datasource (see <code>-init</code>).</p>
-</td><td class="codes"><pre class="brush: clojure">(defn -setLogWriter
-  [this pr-wrt]
-  (.setLogWriter (.state this) pr-wrt))</pre></td></tr><tr><td class="docs"><p>Implements <code>javax.sql.CommonDataSource/setLoginTimeout</code>. Just
-  delegates to the referenced/internal XA-datasource (see <code>-init</code>).</p>
-</td><td class="codes"><pre class="brush: clojure">(defn -setLoginTimeout
-  [this sec]
-  (.setLoginTimeout (.state this) sec))</pre></td></tr><tr><td class="docs"><p>Implements <code>javax.sql.CommonDataSource/getLoginTimeout</code>. Just
-  delegates to the referenced/internal XA-datasource (see <code>-init</code>).</p>
-</td><td class="codes"><pre class="brush: clojure">(defn -getLoginTimeout
-  [this]
-  (.getLoginTimeout (.state this)))</pre></td></tr><tr><td class="docs"><p>Implements <code>javax.sql.CommonDataSource/getParentLogger</code>. Just
-  delegates to the referenced/internal XA-datasource (see <code>-init</code>).</p>
-</td><td class="codes"><pre class="brush: clojure">(defn -getParentLogger
-  [this]
-  (.getParentLogger (.state this)))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.proxy" name="buttle.proxy"><h1 class="project-name">buttle.proxy</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>A proxy factory.</p>
+  (seq 
+   (doall 
+    (for [d (get-drivers)]
+      (do 
+        (DriverManager/deregisterDriver d)
+        d)))))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.event" name="buttle.event"><h1 class="project-name">buttle.event</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Send events to consumers via core.async/channel.</p>
+
+<p>  Consumers can <code>tap</code> on <code>event-mult</code> to receive events that are
+  produced through <code>send-event</code> (<code>buttle.proxy/handle-default</code> is such
+  a producer).</p>
+</td><td class="codes"><pre class="brush: clojure">(ns buttle.event
+  (:require [clojure.core.async :as a]))</pre></td></tr><tr><td class="docs"><p>The channel through which events are sent. Is the input for
+  <code>event-mult</code>.</p>
+</td><td class="codes"><pre class="brush: clojure">(def event-ch
+  (a/chan))</pre></td></tr><tr><td class="docs"><p>For internal use only. Sends event <code>e</code> to <code>event-ch</code>.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn put-event
+  [e]
+  (a/&gt;!! event-ch e))</pre></td></tr><tr><td class="docs"><p>Sends event <code>e</code> to <code>event-ch</code>.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn send-event 
+  [e]
+  (put-event e))</pre></td></tr><tr><td class="docs"><p>API/<code>clojure.core.async/mult</code> for consumers which want to receive
+  events.</p>
+</td><td class="codes"><pre class="brush: clojure">(def event-mult
+  (a/mult event-ch))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.proxy" name="buttle.proxy"><h1 class="project-name">buttle.proxy</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>A proxy factory.</p>
 
 <p>   This namespace delivers all functions needed to (generically)
    create proxies for JDBC related interfaces and to implement the
@@ -3749,139 +3650,238 @@ A note on classloading</p>
       ;; MUTATION/SIDEEFFECT!!!!
       (prefer-method handle
                      [clss :buttle/default]
-                     [java.lang.Object m]))))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.data-source" name="buttle.data-source"><h1 class="project-name">buttle.data-source</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>The <em>Buttle</em> <code>javax.sql.DataSource</code>.</p>
+                     [java.lang.Object m]))))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.util" name="buttle.util"><h1 class="project-name">buttle.util</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Just some helpers.</p>
+</td><td class="codes"><pre class="brush: clojure">(ns buttle.util
+  (:import [javax.naming InitialContext]))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn log [&amp; xs]
+  &quot;Log output.&quot;
+  (let [s (apply pr-str xs)]
+    (.println System/out (str &quot;buttle: &quot; s))
+    s))</pre></td></tr><tr><td class="docs"><p>Thread-locally binds <code>clojure.core/*use-context-classloader*</code> to
+  <code>true</code>, sets the current thread's context classloader to <code>cl</code> and
+  executes <code>body</code> within that context. On completion restores the
+  context classloader and pops
+  <code>clojure.core/*use-context-classloader*</code> to the previous
+  value. Returns value of <code>body</code> evaluation.</p>
+</td><td class="codes"><pre class="brush: clojure">(defmacro with-tccl
+  [cl &amp; body]
+  `(binding [*use-context-classloader* true]
+     (let [tccl# (.getContextClassLoader (Thread/currentThread))]
+       (try (.setContextClassLoader (Thread/currentThread) ~cl)
+            ~@body
+            (finally
+              (.setContextClassLoader (Thread/currentThread) tccl#))))))</pre></td></tr><tr><td class="docs"><p>Looks up entry in JNDI and returns it. Throws if entry cannot be
+  found.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn jndi-lookup
+  [jndi]
+  (when-not jndi
+    (throw (RuntimeException. &quot;No `jndi` property set.&quot;)))
+  (try 
+    (with-open [ctx (InitialContext.)]
+      (.lookup ctx jndi))
+    (catch Throwable t
+      (throw
+       (RuntimeException.
+        (format &quot;JNDI lookup failed for '%s': %s&quot; jndi t) t)))))</pre></td></tr><tr><td class="docs"><p>Creates and returns instance of class-typed <code>class-spec</code> and sets
+  Java-Bean properties via setters from <code>props</code> map. Setter-method
+  names are derived from map keys by camel-casing <code>foo-bar</code> to
+  <code>setFooBar</code>. Map values have to be type-conforming (no conversion is
+  done).</p>
+</td><td class="codes"><pre class="brush: clojure">(defn -&gt;java-bean
+  [class-spec props]
+  (try 
+    (let [new-instance (.newInstance class-spec)
+          meths (-&gt;&gt; class-spec
+                     .getMethods
+                     (map #(-&gt; [(.getName %1) %1]))
+                     (into {}))]
+      (doseq [[k v] props
+              :let [mn (clojure.string/replace
+                        (str &quot;set-&quot; (name k))
+                        #&quot;-(.)&quot; #(-&gt; % second .toUpperCase))
+                    m (meths mn)]]
+        (when-not m
+          (throw (RuntimeException. (format &quot;Setter not found for %s. Known methods are %s&quot;
+                                            [k v mn] (keys meths)))))
+        (try 
+          (.invoke m new-instance (into-array [v]))
+          (catch Throwable t
+            (throw
+             (RuntimeException.
+              (format &quot;Calling %s/%s with %s failed: %s&quot;
+                      m new-instance (pr-str v) t)
+              t)))))
+      new-instance)
+    (catch Throwable t
+      (throw
+       (RuntimeException.
+        (format &quot;(-&gt;java-bean %s %s) fails: %s&quot;
+                class-spec props t)
+        t)))))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.xa-data-source" name="buttle.xa-data-source"><h1 class="project-name">buttle.xa-data-source</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>The <em>Buttle</em> <code>javax.sql.XADataSource</code>.</p>
 
-<p>  This namespace delivers <code>buttle.jdbc.DataSource</code> via
-  <code>:gen-class</code>. This named class can be used as a datasource class for
-  application servers.</p>
+<p>  This namespace delivers <code>buttle.jdbc.XADataSource</code> via
+  <code>:gen-class</code>. This named class can be used as an XA-datasource class
+  for application servers.</p>
 
-<p>  <strong>Note:</strong> This namespace has not yet been tested in an application
-  server. There are application servers (like Wildfly and IBM
-  Websphere) which use their own <code>javax.sql.DataSource</code> implementation
-  which delegates to the JDBC driver's <code>java.sql.Driver</code>
-  implementation. So in these cases the JDBC driver does not even need
-  to deliver an implementation for <code>javax.sql.DataSource</code>.</p>
-</td><td class="codes"><pre class="brush: clojure">(ns buttle.data-source
-  (:import [javax.sql DataSource]
-           [java.sql SQLException]
-           [java.sql SQLFeatureNotSupportedException])
+<p>  <strong>Example (Wildfly)</strong>:</p>
+
+<pre><code>    &lt;xa-datasource jndi-name="java:/jdbc/buttle-xa" pool-name="buttle-xa"&gt;
+      &lt;xa-datasource-class&gt;buttle.jdbc.XADataSource&lt;/xa-datasource-class&gt;
+      &lt;driver&gt;buttle-driver&lt;/driver&gt;
+      &lt;security&gt;
+        &lt;user-name&gt;postgres-user&lt;/user-name&gt;
+        &lt;password&gt;postgres-password&lt;/password&gt;
+      &lt;/security&gt;
+      &lt;xa-datasource-property name="DelegateSpec"&gt;
+        {:delegate-class org.postgresql.xa.PGXADataSource
+         :url "jdbc:postgresql://127.0.0.1:6632/postgres"}
+      &lt;/xa-datasource-property&gt;
+    &lt;/xa-datasource&gt;
+</code></pre>
+</td><td class="codes"><pre class="brush: clojure">(ns buttle.xa-data-source
+  (:import [javax.sql XADataSource])
   (:require [buttle.proxy :as proxy]
-            [buttle.util :as util]))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(definterface ButtleDataSource
-  (^void setDelegateSpec [^String spec]))</pre></td></tr><tr><td class="docs">
+            [buttle.driver]
+            [buttle.util :as util]))</pre></td></tr><tr><td class="docs"><p>Needed for -setDelegateSpec. Otherwise the compile won't generate
+the method for buttle.jdbc.XADataSource</p>
+</td><td class="codes"><pre class="brush: clojure">(definterface ButtleDataSource 
+  (^void setDelegateSpec [^String spec]))</pre></td></tr><tr><td class="docs"><p>Cannot be part of <code>ns</code> form because references
+<code>buttle.xa_data_source.ButtleDataSource</code> from above</p>
 </td><td class="codes"><pre class="brush: clojure">(gen-class
  :init init
  :state state
- :name buttle.jdbc.DataSource
+ :name buttle.jdbc.XADataSource
  :extends buttle.SetContextClassLoaderInStaticInitializer
- :implements [javax.sql.DataSource
-              buttle.data_source.ButtleDataSource])</pre></td></tr><tr><td class="docs"><p>Dispatch for <code>retrieve-data-soure</code>. Returns type of <code>spec</code> (<code>:jndi</code>
-  for <code>String</code>, <code>:ds-class</code> for maps).</p>
+ :implements [javax.sql.XADataSource
+              buttle.xa_data_source.ButtleDataSource])</pre></td></tr><tr><td class="docs"><p>Dispatch for <code>retrieve-xa-data-soure</code>. Returns type of
+  <code>spec</code> (<code>:jndi</code> for <code>String</code>, <code>:xa-class</code> for maps).</p>
 </td><td class="codes"><pre class="brush: clojure">(defn spec-&gt;type
   [spec]
   (cond
    (string? spec) :jndi
-   (map? spec) :ds-class
-   :else (format &quot;Unknown spec '%s'&quot; (pr-str spec))))</pre></td></tr><tr><td class="docs"><p>Factory/lookup for <em>real</em> datasource. <code>String</code> arg will be expected
-  to be JNDI name of a <code>javax.sql.DataSource</code>. In this case the
-  datasource will be looked up in JNDI. If the arg is a map the
+   (map? spec) :xa-class
+   :else (format &quot;Unknown spec '%s'&quot; (pr-str spec))))</pre></td></tr><tr><td class="docs"><p>Factory/lookup for <em>real</em> XA-datasource. <code>String</code> arg will be
+  expected to be JNDI name of a <code>javax.sql.XADataSource</code>. In this case
+  the XA-datasource will be looked up in JNDI. If the arg is a map the
   class-typed <code>:delegate-class</code> will be used to create an instance and
   then all remaining keys/values will be used to set the instance's
   Java-Bean properties.</p>
-</td><td class="codes"><pre class="brush: clojure">(defmulti retrieve-data-soure 
-  #'spec-&gt;type)</pre></td></tr><tr><td class="docs"><p>Create instance and invoke setters. Setter-names are derived from
-map keys by camel-casing <code>:foo-bar</code> to <code>setFooBar</code>.</p>
-</td><td class="codes"><pre class="brush: clojure">(defmethod retrieve-data-soure :ds-class [ds-class-spec]
-  (util/-&gt;java-bean (:delegate-class ds-class-spec)
-                    (dissoc ds-class-spec :delegate-class)))</pre></td></tr><tr><td class="docs"><p>Retrieve datasource and check that it <em>really IS</em> a
-datasource. Else we won't be able to delegate to it.</p>
-</td><td class="codes"><pre class="brush: clojure">(defmethod retrieve-data-soure :jndi [jndi-spec]
-  (let [ds (util/jndi-lookup jndi-spec)]
-    (when-not (isa? (.getClass ds) javax.sql.DataSource)
+</td><td class="codes"><pre class="brush: clojure">(defmulti retrieve-xa-data-soure 
+  #'spec-&gt;type)</pre></td></tr><tr><td class="docs"><p>Retrieve XA-datasource and check that it <em>really IS</em> an
+XA-datasource. Else we won't be able to delegate to it.</p>
+</td><td class="codes"><pre class="brush: clojure">(defmethod retrieve-xa-data-soure :jndi [jndi-spec]
+  (let [xa-ds (util/jndi-lookup jndi-spec)]
+    (when-not (isa? (.getClass xa-ds) javax.sql.XADataSource)
       (throw
        (RuntimeException.
-        (format &quot;This is not a javax.sql.DataSource: '%s'  It implements these interfaces: '%s'&quot;
-                ds (-&gt;&gt; ds .getClass .getInterfaces (into []))))))
-    ds))</pre></td></tr><tr><td class="docs"><p>Creates the <em>Buttle</em> datasource.</p>
-</td><td class="codes"><pre class="brush: clojure">(defn make-data-source
+        (format (str &quot;(retrieve-xa-data-soure %s) fails!&quot;
+                     &quot; This is not a javax.sql.XADataSource: '%s'&quot;
+                     &quot; It implements these interfaces: '%s'&quot;)
+                (pr-str jndi-spec)
+                xa-ds
+                (-&gt;&gt; xa-ds .getClass .getInterfaces (into []))))))
+    xa-ds))</pre></td></tr><tr><td class="docs"><p>Create instance and invoke setters. Setter-names are derived from
+map keys by camel-casing <code>:foo-bar</code> to <code>setFooBar</code>.</p>
+</td><td class="codes"><pre class="brush: clojure">(defmethod retrieve-xa-data-soure :xa-class [{:keys [delegate-class] :as xa-class-spec}]
+  (when (nil? delegate-class)
+    (throw (RuntimeException.
+            (format &quot;No :delegate-class given: %s&quot; xa-class-spec))))
+  (util/-&gt;java-bean delegate-class
+                    (dissoc xa-class-spec :delegate-class)))</pre></td></tr><tr><td class="docs"><p><hr />
+A note on classloading</p>
+
+<h2>See src/buttle/connection_pool_data_source.clj for details.</h2>
+</td><td class="codes"></td></tr><tr><td class="docs"><p>Creates and returns a <em>Buttle</em> <code>javax.sql.XADataSource</code>.</p>
+
+<p>  Use <code>setDelegateSpec</code> to control what the <em>real</em> (or <em>backing</em>)
+  <code>javax.sql.XADataSource</code> is. You can use <code>String</code> to use an
+  XA-datasource from JNDI. Use a map to create an instance and set
+  properties (see <code>retrieve-xa-data-soure</code> for details).</p>
+
+<p>  Note: creation is done on-demand when the backing XA-datasource is
+  actually needed/used.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn make-xa-data-source
   []
-  (let [ds-spec (atom nil)
-        ds (atom nil)
+  (let [xa-ds-spec (atom nil)
+        xa-ds (atom nil)
+        ;; classloader of cached proxy class definition
+        cl (-&gt; (proxy [XADataSource ButtleDataSource] [])
+               .getClass
+               .getClassLoader)
         ;; lazy creation and cache
-        ds! (fn [] (or @ds
-                       (reset! ds
-                               (retrieve-data-soure @ds-spec))))]
+        xa-ds! (fn [] (or @xa-ds
+                          (reset! xa-ds
+                                  (retrieve-xa-data-soure @xa-ds-spec))))]
+    ;; make Java dyn. proxy D which uses cl as its definiting classloader
     (proxy/make-proxy
-     [DataSource ButtleDataSource]
-     (proxy [DataSource ButtleDataSource] []
+     [(Class/forName &quot;buttle.xa_data_source.ButtleDataSource&quot; true cl) XADataSource]
+     ;; proxy should have classloader cl
+     (proxy [XADataSource ButtleDataSource] []
        (setDelegateSpec [spec]
          (try
-           (util/with-tccl (.getClassLoader (Class/forName &quot;buttle.jdbc.DataSource&quot;))
-             (reset! ds-spec
+           (util/with-tccl (.getClassLoader (Class/forName &quot;buttle.jdbc.XADataSource&quot;))
+             (reset! xa-ds-spec
                      (-&gt; spec
                          (.replaceAll &quot;[\\n\\t]+&quot; &quot; &quot;)
                          read-string
                          eval)))
            (catch Throwable t
              (throw (ex-info &quot;Could not parse spec&quot; {:spec spec} t)))))
-       (getConnection [&amp; [user password :as xs]]
-         (if-not xs (-&gt; (ds!) .getConnection)
-                 (-&gt; (ds!) (.getConnection user password))))
+       (getXAConnection [&amp; [user password :as xs]]
+         (if-not xs (-&gt; (xa-ds!) .getXAConnection)
+                 (-&gt; (xa-ds!) (.getXAConnection user password))))
        (getLogWriter []
-         (-&gt; (ds!) .getLogWriter))
+         (-&gt; (xa-ds!) .getLogWriter))
        (setLogWriter [pr-wrt]
-         (-&gt; (ds!) (.setLogWriter pr-wrt)))
+         (-&gt; (xa-ds!) (.setLogWriter pr-wrt)))
        (setLoginTimeout [sec]
-         (-&gt; (ds!) (.setLoginTimeout sec)))
+         (-&gt; (xa-ds!) (.setLoginTimeout sec)))
        (getLoginTimeout []
-         (-&gt; (ds!) .getLoginTimeout))
+         (-&gt; (xa-ds!) .getLoginTimeout))
        (getParentLogger []
-         (-&gt; (ds!) .getParentLogger))
-       (unwrap [ifc]
-         (-&gt; (ds!) (.unwrap ifc)))
-       (isWrapperFor [ifc]
-         (-&gt; (ds!) (.isWrapperFor ifc))))
-     proxy/handle)))</pre></td></tr><tr><td class="docs"><p>Constructor function of <code>buttle.jdbc.DataSource</code>.</p>
+         (-&gt; (xa-ds!) .getParentLogger)))
+     (fn [the-method target-obj the-args]
+       ;; set TCCL so that CLojure RT/Compiler uses correct
+       ;; classloader.
+       (util/with-tccl (.getClassLoader (Class/forName &quot;buttle.jdbc.XADataSource&quot;))
+         (proxy/handle the-method target-obj the-args))))))</pre></td></tr><tr><td class="docs"><p>Constructor function of <code>buttle.jdbc.XADataSource</code>. Calls
+  <code>make-xa-data-source</code> and initialized <code>state</code> with that (i.e. the
+  <em>Buttle</em> XA-datasource is cached).</p>
 </td><td class="codes"><pre class="brush: clojure">(defn -init
-    []
-    [[] (make-data-source)])</pre></td></tr><tr><td class="docs"><p>Sets the <code>delegateSpec</code> of the <em>Buttle</em> datasource.</p>
+  []
+  [[] (make-xa-data-source)])</pre></td></tr><tr><td class="docs"><p>Implements
+  <code>buttle.xa_data_source.ButtleDataSource/setDelegateSpec</code>. Just
+  delegates to the referenced/internal <em>Buttle</em> XA-datasource (see
+  <code>-init</code>).</p>
 </td><td class="codes"><pre class="brush: clojure">(defn -setDelegateSpec
   [this spec]
-  (.setDelegateSpec (.state this) spec))</pre></td></tr><tr><td class="docs"><p>Implements <code>javax.sql.DataSource/getConnection</code>. Just delegates to
-  the referenced/internal datasource (see <code>-init</code>).</p>
-</td><td class="codes"><pre class="brush: clojure">(defn -getConnection
+  (.setDelegateSpec (.state this) spec))</pre></td></tr><tr><td class="docs"><p>Implements <code>javax.sql.XADataSource/getXAConnection</code>. Just delegates
+  to the referenced/internal XA-datasource (see <code>-init</code>).</p>
+</td><td class="codes"><pre class="brush: clojure">(defn -getXAConnection
   ([this]
-     (.getConnection (.state this)))
+     (.getXAConnection (.state this)))
   ([this username password]
-     (.getConnection (.state this) username password)))</pre></td></tr><tr><td class="docs"><p>Implements <code>javax.sql.CommonDataSource/getLogWriter</code>. Just
-  delegates to the referenced/internal datasource (see <code>-init</code>).</p>
+     (.getXAConnection (.state this) username password)))</pre></td></tr><tr><td class="docs"><p>Implements <code>javax.sql.CommonDataSource/getLogWriter</code>. Just
+  delegates to the referenced/internal XA-datasource (see <code>-init</code>).</p>
 </td><td class="codes"><pre class="brush: clojure">(defn -getLogWriter
   [this]
   (.getLogWriter (.state this)))</pre></td></tr><tr><td class="docs"><p>Implements <code>javax.sql.CommonDataSource/setLogWriter</code>. Just
-  delegates to the referenced/internal datasource (see <code>-init</code>).</p>
+  delegates to the referenced/internal XA-datasource (see <code>-init</code>).</p>
 </td><td class="codes"><pre class="brush: clojure">(defn -setLogWriter
   [this pr-wrt]
   (.setLogWriter (.state this) pr-wrt))</pre></td></tr><tr><td class="docs"><p>Implements <code>javax.sql.CommonDataSource/setLoginTimeout</code>. Just
-  delegates to the referenced/internal datasource (see <code>-init</code>).</p>
+  delegates to the referenced/internal XA-datasource (see <code>-init</code>).</p>
 </td><td class="codes"><pre class="brush: clojure">(defn -setLoginTimeout
   [this sec]
   (.setLoginTimeout (.state this) sec))</pre></td></tr><tr><td class="docs"><p>Implements <code>javax.sql.CommonDataSource/getLoginTimeout</code>. Just
-  delegates to the referenced/internal datasource (see <code>-init</code>).</p>
+  delegates to the referenced/internal XA-datasource (see <code>-init</code>).</p>
 </td><td class="codes"><pre class="brush: clojure">(defn -getLoginTimeout
   [this]
   (.getLoginTimeout (.state this)))</pre></td></tr><tr><td class="docs"><p>Implements <code>javax.sql.CommonDataSource/getParentLogger</code>. Just
-  delegates to the referenced/internal datasource (see <code>-init</code>).</p>
+  delegates to the referenced/internal XA-datasource (see <code>-init</code>).</p>
 </td><td class="codes"><pre class="brush: clojure">(defn -getParentLogger
   [this]
-  (.getParentLogger (.state this)))</pre></td></tr><tr><td class="docs"><p>Implements <code>java.sql.Wrapper/unwrap</code>. Just delegates to the
-  referenced/internal datasource (see <code>-init</code>).</p>
-</td><td class="codes"><pre class="brush: clojure">(defn -unwrap
-  [this ifc]
-  (.unwrap (.state this) ifc))</pre></td></tr><tr><td class="docs"><p>Implements <code>java.sql.Wrapper/isWrapperFor</code>. Just delegates to the
-  referenced/internal datasource (see <code>-init</code>).</p>
-</td><td class="codes"><pre class="brush: clojure">(defn -isWrapperFor
-  [this ifc]
-  (.isWrapperFor (.state this) ifc))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr></table><div class="footer">Generated by <a href="https://github.com/gdeer81/marginalia">Marginalia</a>.&nbsp;&nbsp;Syntax highlighting provided by Alex Gorbatchev's <a href="http://alexgorbatchev.com/SyntaxHighlighter/">SyntaxHighlighter</a><div id="floating-toc"><ul><li class="floating-toc-li" id="floating-toc_buttle.event">buttle.event</li><li class="floating-toc-li" id="floating-toc_buttle.connection-pool-data-source">buttle.connection-pool-data-source</li><li class="floating-toc-li" id="floating-toc_buttle.util">buttle.util</li><li class="floating-toc-li" id="floating-toc_buttle.driver-manager">buttle.driver-manager</li><li class="floating-toc-li" id="floating-toc_buttle.driver">buttle.driver</li><li class="floating-toc-li" id="floating-toc_buttle.xa-data-source">buttle.xa-data-source</li><li class="floating-toc-li" id="floating-toc_buttle.proxy">buttle.proxy</li><li class="floating-toc-li" id="floating-toc_buttle.data-source">buttle.data-source</li></ul></div></div><script type="text/javascript">SyntaxHighlighter.defaults['gutter'] = false;
+  (.getParentLogger (.state this)))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr></table><div class="footer">Generated by <a href="https://github.com/gdeer81/marginalia">Marginalia</a>.&nbsp;&nbsp;Syntax highlighting provided by Alex Gorbatchev's <a href="http://alexgorbatchev.com/SyntaxHighlighter/">SyntaxHighlighter</a><div id="floating-toc"><ul><li class="floating-toc-li" id="floating-toc_buttle.connection-pool-data-source">buttle.connection-pool-data-source</li><li class="floating-toc-li" id="floating-toc_buttle.data-source">buttle.data-source</li><li class="floating-toc-li" id="floating-toc_buttle.driver">buttle.driver</li><li class="floating-toc-li" id="floating-toc_buttle.driver-manager">buttle.driver-manager</li><li class="floating-toc-li" id="floating-toc_buttle.event">buttle.event</li><li class="floating-toc-li" id="floating-toc_buttle.proxy">buttle.proxy</li><li class="floating-toc-li" id="floating-toc_buttle.util">buttle.util</li><li class="floating-toc-li" id="floating-toc_buttle.xa-data-source">buttle.xa-data-source</li></ul></div></div><script type="text/javascript">SyntaxHighlighter.defaults['gutter'] = false;
 SyntaxHighlighter.all();
 
 // hackity hack
