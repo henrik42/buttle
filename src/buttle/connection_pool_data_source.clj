@@ -3,12 +3,7 @@
 
   This namespace delivers `buttle.jdbc.ConnectionPoolDataSource` via
   `:gen-class`. This named class can be used as a CP-datasource class
-  for application servers.
-
-  __Example (IBM Websphere)__:
-
-
-  "
+  for application servers."
 
   (:import [javax.sql ConnectionPoolDataSource])
   (:require [buttle.proxy :as proxy]
@@ -64,6 +59,30 @@
                 clazz (->> clazz .getInterfaces (into []))))))
     (util/->java-bean clazz (dissoc cp-class-spec :delegate-class))))
 
+;; ----------------------------------------------------------------------------------------------------------------------
+;; A note on classloading
+;;
+;; buttle.proxy/make-proxy creates a Java dyn. proxy D which
+;; reflectivly calls methods M on the Clojure proxy P that's created
+;; below.
+;;
+;; This only works if D's class definition matches P's class
+;; definition. Otherwise M of D can not be called on P.
+;;
+;; P is defined by Clojure's dynamic claassloader. So we have to make
+;; D be defined by them same classloader. Clojure's proxy classes are
+;; cached by key (which is [ConnectionPoolDataSource
+;; ButtleCpDataSource] below) so we calculate it's classloader cl and
+;; then use it to load class/interface
+;; buttle.connection_pool_data_source.ButtleCpDataSource.
+;; buttle.proxy/make-proxy uses the first argument's classloader to
+;; define D. This makes D and P being compatible and M can be called.
+;;
+;; Only for WAS I had to do this. Wildfly's classloaders work somehow
+;; different and the code in buttle.xa-data-source/make-xa-data-source
+;; looks simpler (until now).
+;; ----------------------------------------------------------------------------------------------------------------------
+
 (defn make-cp-data-source
   "Creates and returns a _Buttle_ `javax.sql.ConnectionPoolDataSource`.
 
@@ -78,12 +97,20 @@
   []
   (let [cp-ds-spec (atom nil)
         cp-ds (atom nil)
+        ;; classloader of cached proxy class definition
+        cl (-> (proxy [ConnectionPoolDataSource ButtleCpDataSource] [])
+               .getClass
+               .getClassLoader)
         ;; lazy creation and cache
         cp-ds! (fn [] (or @cp-ds
                           (reset! cp-ds
                                   (retrieve-cp-data-soure @cp-ds-spec))))]
+    
+    ;; make Java dyn. proxy D which uses cl as its definiting classloader
     (proxy/make-proxy
-     [ConnectionPoolDataSource ButtleCpDataSource]
+     [(Class/forName "buttle.connection_pool_data_source.ButtleCpDataSource" true cl) ConnectionPoolDataSource]
+     
+     ;; proxy should have classloader cl
      (proxy [ConnectionPoolDataSource ButtleCpDataSource] []
        (setDelegateSpec [spec]
          (try

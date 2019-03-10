@@ -99,14 +99,15 @@
                          (toString [] \"foo-connection\")))))"
 
   [proxy-type target-obj handler-fn]
-  (java.lang.reflect.Proxy/newProxyInstance
-   (.. target-obj getClass getClassLoader)
-   (if (vector? proxy-type)
-     (into-array proxy-type)
-     (into-array [proxy-type]))
-   (proxy [java.lang.reflect.InvocationHandler] []
-     (invoke [the-proxy the-method the-args]
-       (invoke-fn proxy-type target-obj handler-fn the-proxy the-method the-args)))))
+  (let [pt (if (vector? proxy-type)
+             (into-array proxy-type)
+             (into-array [proxy-type]))]
+    (java.lang.reflect.Proxy/newProxyInstance
+     (.getClassLoader (first pt)) 
+     pt
+     (proxy [java.lang.reflect.InvocationHandler] []
+       (invoke [the-proxy the-method the-args]
+         (invoke-fn proxy-type target-obj handler-fn the-proxy the-method the-args))))))
 
 (defn invocation-key
   "Dispatch function for `handle`. Returns a vector with the method's
