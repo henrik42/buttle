@@ -85,9 +85,17 @@
 
    Creates and returns a __Java dynamic proxy__ with
    `proxy-type` (which may be an interface or a vector of
-   interfaces). The classloader for this proxy is taken from
-   `target-obj`. The proxy delegates any method invocation to
-   `invoke-fn` which in turn delegates to `handler-fn`.
+   interfaces).
+
+   The proxy delegates any method invocation to `invoke-fn` which in
+   turn delegates to `handler-fn`.
+
+   The classloader for this proxy is taken from the first
+   interface. If you want to delegate invocations on this proxy D
+   through handler-fn and onto a Clojure proxy P you have to make
+   sure, that D's and P's method/class declarations are
+   compatible. See notes on classloading in
+   src/buttle/connection_pool_data_source.clj for more details.
 
    Example usage:
 

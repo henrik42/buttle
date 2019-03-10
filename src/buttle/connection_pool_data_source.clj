@@ -7,6 +7,7 @@
 
   (:import [javax.sql ConnectionPoolDataSource])
   (:require [buttle.proxy :as proxy]
+            [buttle.driver]
             [buttle.util :as util]))
 
 (definterface ButtleCpDataSource 
@@ -78,9 +79,8 @@
 ;; buttle.proxy/make-proxy uses the first argument's classloader to
 ;; define D. This makes D and P being compatible and M can be called.
 ;;
-;; Only for WAS I had to do this. Wildfly's classloaders work somehow
-;; different and the code in buttle.xa-data-source/make-xa-data-source
-;; looks simpler (until now).
+;; Only for IBM WAS I had to do this. Wildfly's classloaders work
+;; different somehow.
 ;; ----------------------------------------------------------------------------------------------------------------------
 
 (defn make-cp-data-source

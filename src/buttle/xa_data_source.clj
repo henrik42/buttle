@@ -23,6 +23,7 @@
   
   (:import [javax.sql XADataSource])
   (:require [buttle.proxy :as proxy]
+            [buttle.driver]
             [buttle.util :as util]))
 
 ;; Needed for -setDelegateSpec. Otherwise the compile won't generate
@@ -84,6 +85,12 @@
   (util/->java-bean delegate-class
                     (dissoc xa-class-spec :delegate-class)))
 
+;; ----------------------------------------------------------------------------------------------------------------------
+;; A note on classloading
+;;
+;; See src/buttle/connection_pool_data_source.clj for details.
+;; ----------------------------------------------------------------------------------------------------------------------
+
 (defn make-xa-data-source
   "Creates and returns a _Buttle_ `javax.sql.XADataSource`.
 
@@ -98,12 +105,20 @@
   []
   (let [xa-ds-spec (atom nil)
         xa-ds (atom nil)
+        ;; classloader of cached proxy class definition
+        cl (-> (proxy [XADataSource ButtleDataSource] [])
+               .getClass
+               .getClassLoader)
         ;; lazy creation and cache
         xa-ds! (fn [] (or @xa-ds
                           (reset! xa-ds
                                   (retrieve-xa-data-soure @xa-ds-spec))))]
+    
+    ;; make Java dyn. proxy D which uses cl as its definiting classloader
     (proxy/make-proxy
-     [XADataSource ButtleDataSource]
+     [(Class/forName "buttle.xa_data_source.ButtleDataSource" true cl) XADataSource]
+
+     ;; proxy should have classloader cl
      (proxy [XADataSource ButtleDataSource] []
        (setDelegateSpec [spec]
          (try

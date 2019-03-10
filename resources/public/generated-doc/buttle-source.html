@@ -2892,6 +2892,7 @@ net.brehaut.ClojureTools = (function (SH) {
 </td><td class="codes"><pre class="brush: clojure">(ns buttle.connection-pool-data-source
   (:import [javax.sql ConnectionPoolDataSource])
   (:require [buttle.proxy :as proxy]
+            [buttle.driver]
             [buttle.util :as util]))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(definterface ButtleCpDataSource 
   (^void setDelegateSpec [^String spec]))</pre></td></tr><tr><td class="docs">
@@ -3391,6 +3392,7 @@ different and the code in buttle.xa-data-source/make-xa-data-source</p>
 </td><td class="codes"><pre class="brush: clojure">(ns buttle.xa-data-source
   (:import [javax.sql XADataSource])
   (:require [buttle.proxy :as proxy]
+            [buttle.driver]
             [buttle.util :as util]))</pre></td></tr><tr><td class="docs"><p>Needed for -setDelegateSpec. Otherwise the compile won't generate
 the method for buttle.jdbc.XADataSource</p>
 </td><td class="codes"><pre class="brush: clojure">(definterface ButtleDataSource 
@@ -3436,7 +3438,11 @@ map keys by camel-casing <code>:foo-bar</code> to <code>setFooBar</code>.</p>
     (throw (RuntimeException.
             (format &quot;No :delegate-class given: %s&quot; xa-class-spec))))
   (util/-&gt;java-bean delegate-class
-                    (dissoc xa-class-spec :delegate-class)))</pre></td></tr><tr><td class="docs"><p>Creates and returns a <em>Buttle</em> <code>javax.sql.XADataSource</code>.</p>
+                    (dissoc xa-class-spec :delegate-class)))</pre></td></tr><tr><td class="docs"><p><hr />
+A note on classloading</p>
+
+<h2>See src/buttle/connection_pool_data_source.clj for details.</h2>
+</td><td class="codes"></td></tr><tr><td class="docs"><p>Creates and returns a <em>Buttle</em> <code>javax.sql.XADataSource</code>.</p>
 
 <p>  Use <code>setDelegateSpec</code> to control what the <em>real</em> (or <em>backing</em>)
   <code>javax.sql.XADataSource</code> is. You can use <code>String</code> to use an
@@ -3449,12 +3455,18 @@ map keys by camel-casing <code>:foo-bar</code> to <code>setFooBar</code>.</p>
   []
   (let [xa-ds-spec (atom nil)
         xa-ds (atom nil)
+        ;; classloader of cached proxy class definition
+        cl (-&gt; (proxy [XADataSource ButtleDataSource] [])
+               .getClass
+               .getClassLoader)
         ;; lazy creation and cache
         xa-ds! (fn [] (or @xa-ds
                           (reset! xa-ds
                                   (retrieve-xa-data-soure @xa-ds-spec))))]
+    ;; make Java dyn. proxy D which uses cl as its definiting classloader
     (proxy/make-proxy
-     [XADataSource ButtleDataSource]
+     [(Class/forName &quot;buttle.xa_data_source.ButtleDataSource&quot; true cl) XADataSource]
+     ;; proxy should have classloader cl
      (proxy [XADataSource ButtleDataSource] []
        (setDelegateSpec [spec]
          (try
@@ -3588,9 +3600,17 @@ map keys by camel-casing <code>:foo-bar</code> to <code>setFooBar</code>.</p>
 
 <p>   Creates and returns a <strong>Java dynamic proxy</strong> with
    <code>proxy-type</code> (which may be an interface or a vector of
-   interfaces). The classloader for this proxy is taken from
-   <code>target-obj</code>. The proxy delegates any method invocation to
-   <code>invoke-fn</code> which in turn delegates to <code>handler-fn</code>.</p>
+   interfaces).</p>
+
+<p>   The proxy delegates any method invocation to <code>invoke-fn</code> which in
+   turn delegates to <code>handler-fn</code>.</p>
+
+<p>   The classloader for this proxy is taken from the first
+   interface. If you want to delegate invocations on this proxy D
+   through handler-fn and onto a Clojure proxy P you have to make
+   sure, that D's and P's method/class declarations are
+   compatible. See notes on classloading in
+   src/buttle/connection<em>pool</em>data_source.clj for more details.</p>
 
 <p>   Example usage:</p>
 
