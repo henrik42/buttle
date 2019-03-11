@@ -3415,23 +3415,39 @@ datasource. Else we won't be able to delegate to it.</p>
     (for [d (get-drivers)]
       (do 
         (DriverManager/deregisterDriver d)
-        d)))))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.event" name="buttle.event"><h1 class="project-name">buttle.event</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Send events to consumers via core.async/channel.</p>
+        d)))))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.event" name="buttle.event"><h1 class="project-name">buttle.event</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Send events to consumers via <code>clojure.core.async/chan</code>.</p>
 
 <p>  Consumers can <code>tap</code> on <code>event-mult</code> to receive events that are
-  produced through <code>send-event</code> (<code>buttle.proxy/handle-default</code> is such
-  a producer).</p>
-</td><td class="codes"><pre class="brush: clojure">(ns buttle.event
-  (:require [clojure.core.async :as a]))</pre></td></tr><tr><td class="docs"><p>The channel through which events are sent. Is the input for
+  produced through <code>send-event</code>. <code>buttle.proxy/handle-default</code> is such
+  a producer.</p>
+
+<p>  Note that <code>send-event</code> <strong>synchronuosly</strong> puts events onto channel
+  <code>event-ch</code> which is the input channel for <code>event-mult</code>. When there
+  is <strong>no</strong> <strong>channel</strong> connected to <code>event-mult</code> (which is the case
+  when this namespace is loaded the first time) calling <code>send-event</code>
+  will <strong>not</strong> <strong>block</strong> (<code>event-mult</code> will just eat up those
+  events). When there <strong>is</strong> one or more channels connected to
+  <code>event-mult</code> (by consumers having called <code>clojure.core.async/tap</code>)
+  calling <code>send-event</code> <strong>will</strong> <strong>block</strong> until the event has been
+  sent/consumed by each of the connected channels. So make sure you
+  have a <code>go</code> block consuming any channel that you connect to
   <code>event-mult</code>.</p>
+</td><td class="codes"><pre class="brush: clojure">(ns buttle.event
+  (:require [clojure.core.async :as a]))</pre></td></tr><tr><td class="docs"><p>For internal use only. The channel through which events are
+  sent. Is the input for <code>event-mult</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(def event-ch
   (a/chan))</pre></td></tr><tr><td class="docs"><p>For internal use only. Sends event <code>e</code> to <code>event-ch</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn put-event
   [e]
-  (a/&gt;!! event-ch e))</pre></td></tr><tr><td class="docs"><p>Sends event <code>e</code> to <code>event-ch</code>.</p>
+  (a/&gt;!! event-ch e))</pre></td></tr><tr><td class="docs"><p><strong>Synchronuosly</strong> (<strong>blocking</strong>) sends event <code>e</code> to <code>event-ch</code> (via <code>put-event</code>).</p>
+
+<p>  API for producing/sending events, which are then consumed through
+  <code>event-mult</code> and conncted consumer channels (if present).</p>
 </td><td class="codes"><pre class="brush: clojure">(defn send-event 
   [e]
-  (put-event e))</pre></td></tr><tr><td class="docs"><p>API/<code>clojure.core.async/mult</code> for consumers which want to receive
-  events.</p>
+  (put-event e))</pre></td></tr><tr><td class="docs"><p>API for consumers which want to receive events. Use
+  <code>clojure.core.async/tap</code> to register your consumer
+  <code>clojure.core.async/chan</code></p>
 </td><td class="codes"><pre class="brush: clojure">(def event-mult
   (a/mult event-ch))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#buttle.proxy" name="buttle.proxy"><h1 class="project-name">buttle.proxy</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>A proxy factory.</p>
 

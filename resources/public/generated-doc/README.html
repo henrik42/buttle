@@ -157,6 +157,7 @@ java [...] %BUTTLE% [...]
 </code></pre>
 <h4><a href="#a-word-on-authentication" name="a-word-on-authentication"></a>A word on authentication</h4>
 <p>Note that there are three (or four) places involved when it comes to authentication regarding the <em>Buttle</em> datasource and the proxied <em>real</em> datasource (in Wildfly and IBM Webpshere - see below):</p>
+<p><strong>TBD</strong></p>
 <ul>
   <li>
   <p><strong>the <em>real</em> datasource configuration</strong></p></li>
@@ -347,6 +348,8 @@ public class ButtleTest {
 <p>You can use <em>Buttle</em> as a library (<code>buttle.proxy</code> could probably be used for proxying other APIs like LDAP und JMS) but I usually use it like you would use a self-contained JDBC driver. If you have problems using <em>Buttle</em> in Clojure environments then you may have to fix the <code>make-</code> aliases.</p>
 <h2><a href="#todos" name="todos"></a>TODOS</h2>
 <ul>
+  <li>
+  <p>review uses of butte.proxy/make-proxy and buttle.util/with-tccl –  which classloader is picked? And why.</p></li>
   <li>
   <p>add optional loading of <code>buttle-user-file.clj</code> via classloader to  <code>driver</code>. With that you don’t even need to set the system property  <code>buttle.user-file</code> to load your own code. You just need a dir that  the classpath/classloader of your app points to.</p></li>
   <li>

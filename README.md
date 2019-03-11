@@ -248,6 +248,8 @@ Note that there are three (or four) places involved when it comes to
 authentication regarding the _Buttle_ datasource and the proxied
 _real_ datasource (in Wildfly and IBM Webpshere - see below):
 
+__TBD__
+
 * __the _real_ datasource configuration__
 
 * __the _real_ datasource's authentication settings__
@@ -535,6 +537,9 @@ using _Buttle_ in Clojure environments then you may have to fix the
 `make-` aliases.
 
 ## TODOS
+
+* review uses of butte.proxy/make-proxy and buttle.util/with-tccl --
+  which classloader is picked? And why.
 
 * add optional loading of `buttle-user-file.clj` via classloader to
   `driver`. With that you don't even need to set the system property
