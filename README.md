@@ -45,12 +45,12 @@ These events include info about
 * arguments
 * returned value/`Exception`
 
-Events (see `event.clj`) are communicated through a `core.async`
-channel/mult so that users can consume `buttle.event/event-mult` to
-receive the events. See usage example in
+Events (see `event.clj`) are communicated through a
+`clojure.core.async/mult` that users can `tap` onto to receive the
+events. See usage example in
 `examples/buttle/examples/event_channel.clj`.
 
-__referencs__
+__references__
 
 Similar things have been done before:
 
