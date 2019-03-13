@@ -120,7 +120,7 @@ java [...] %BUTTLE% [...]
 &lt;/drivers&gt;
 </code></pre>
 <p><strong>(3)</strong> Define <code>&lt;datasource&gt;</code>: in this example there is no extra  Postgres <code>&lt;datasource&gt;</code>/<code>&lt;driver&gt;</code> entry so Wildfly will not load  the Postgres JDBC driver for us. Therefore we put <code>:class-for-name
-  "org.postgresql.Driver"</code> into the <em>Buttle</em> URL. Now <em>Buttle</em> loads  the JDBC driver’s class and usually these will register themselves  with the <code>DriverManager</code>. After that <em>Buttle</em> can connect to  Postgres through the <code>DriverManager</code>.</p>
+  "org.postgresql.Driver"</code> into the <em>Buttle</em> URL. Now <em>Buttle</em> loads  the JDBC driver’s class and usually these will register themselves  with the <code>DriverManager</code>. After that <em>Buttle</em> can connect to  Postgres through the <code>DriverManager</code> (see section <strong>A note on  authentication</strong> below for details on how authentication works with  <em>Buttle</em>).</p>
 <pre><code>&lt;datasource jndi-name="java:/jdbc/buttle-ds" pool-name="buttle-ds" use-java-context="true"&gt;
     &lt;driver&gt;buttle-driver&lt;/driver&gt;
     &lt;connection-url&gt;
@@ -155,17 +155,68 @@ java [...] %BUTTLE% [...]
   &lt;property name="buttle.user-file" value="&lt;path-to&gt;/buttle-user-file.clj" boot-time="true"/&gt;
 &lt;/system-properties&gt;
 </code></pre>
-<h4><a href="#a-word-on-authentication" name="a-word-on-authentication"></a>A word on authentication</h4>
-<p>Note that there are three (or four) places involved when it comes to authentication regarding the <em>Buttle</em> datasource and the proxied <em>real</em> datasource (in Wildfly and IBM Webpshere - see below):</p>
-<p><strong>TBD</strong></p>
-<ul>
-  <li>
-  <p><strong>the <em>real</em> datasource configuration</strong></p></li>
-  <li>
-  <p><strong>the <em>real</em> datasource’s authentication settings</strong></p></li>
-  <li>
-  <p><strong>the <em>Buttle</em> datasource configuration</strong></p></li>
-</ul>
+<h4><a href="#a-note-on-authentication" name="a-note-on-authentication"></a>A note on authentication</h4>
+<p>Usually JEE containers let you define a datasource and with it supply authentication credentials (e.g. username and password). For Wildfly this is done through the <code>security</code> element:</p>
+<pre><code>    &lt;xa-datasource jndi-name="java:/jdbc/postgres-xa" pool-name="postgres-xa" spy="true"&gt;
+      &lt;driver&gt;postgres-driver&lt;/driver&gt;
+      &lt;xa-datasource-class&gt;org.postgresql.xa.PGXADataSource&lt;/xa-datasource-class&gt;
+      &lt;security&gt;
+        &lt;user-name&gt;postgres-user&lt;/user-name&gt;
+        &lt;password&gt;postgres-password&lt;/password&gt;
+      &lt;/security&gt;
+      &lt;xa-datasource-property name="Url"&gt;jdbc:postgresql://127.0.0.1:6632/postgres&lt;/xa-datasource-property&gt;
+    &lt;/xa-datasource&gt;
+</code></pre>
+<p>For IBM WAS you enter <strong>security aliases</strong> (see below).</p>
+<p>Then when your application needs a JDBC connection it calls <code>javax.sql.DataSource.getConnection()</code> on the datasource which it usually retrieves from JNDI. Your app rarely calls <code>javax.sql.DataSource.getConnection(String, String)</code> since no-one wants to give authentication credentials to your app. That’s why it is given to the JEE container only.</p>
+<p>When calling <code>getConnection()</code> your app will be talking to a <code>javax.sql.DataSource</code> <strong>proxy</strong> that the JEE container puts between your code and the <em>real</em> datasource (which may even be an XA-datasource really). If you have given authentication credentials explicitly to the container (like shown above) then the container’s <strong>datasource proxy</strong> will call <code>javax.sql.DataSource.getConnection(String, String)</code> on the <em>real</em> datasource when delegating your call thus supplying the authentication credentials for connecting to the database.</p>
+<p>Instead of giving authentication credentials explicitly to the container (like shown above) you can usually set some of the <em>real</em> datasource’s Java-Beans property values to give it username and password.</p>
+<p>Note that in this case the container has no explicit knowledge about the details on how and what authentication credentials you give to the datasource. And it depends on the JDBC datasource class which Java-Beans properties you have to set (e.g. it’s <code>User</code> and <code>Password</code> for Postgres, but it may be <code>UserName</code> and <code>Passphrase</code> for some other driver).</p>
+<p>For Wildfly and Postgres this looks like this:</p>
+<pre><code>    &lt;xa-datasource jndi-name="java:/jdbc/postgres-xa" pool-name="postgres-xa"&gt;
+      &lt;driver&gt;postgres-driver&lt;/driver&gt;
+      &lt;xa-datasource-class&gt;org.postgresql.xa.PGXADataSource&lt;/xa-datasource-class&gt;
+      &lt;xa-datasource-property name="Url"&gt;jdbc:postgresql://127.0.0.1:6632/postgres&lt;/xa-datasource-property&gt;
+      &lt;xa-datasource-property name="User"&gt;postgres-user&lt;/xa-datasource-property&gt;
+      &lt;xa-datasource-property name="Password"&gt;postgres-password&lt;/xa-datasource-property&gt;
+    &lt;/xa-datasource&gt;
+</code></pre>
+<p>For IBM WAS you set the datasource’s <strong>custom properties</strong> (see below).</p>
+<p>Now when your app calls <code>javax.sql.DataSource.getConnection()</code> on the datasource (proxy) the proxy will call <code>getConnection()</code> (instead of <code>getConnection(String, String)</code>) on the underlying <em>real</em> datasource. In this case the <em>real</em> datasource must, should and usually will use the Java-Beans property values for <code>User</code> and <code>Password</code> (or whatever property it uses) to authenticate against the database.</p>
+<p>When using a <em>Buttle</em> datasource (to proxy the <em>real</em> datasource) all this is working just the same way. Only now the <em>Buttle</em> datasource (proxy) introduces an additional indirection/delegation step.</p>
+<p>You configure authentication for the <em>Buttle</em> datasource just like you do it for the <em>real</em> datasource.</p>
+<p>With the following configuration the container will call <code>getConnection(String, String)</code> on the <em>Buttle</em> datasource which in turn calls <code>getConnection(String, String)</code> on the <em>real</em> datasource.</p>
+<pre><code>    &lt;xa-datasource jndi-name="java:/jdbc/buttle-xa" pool-name="buttle-xa"&gt;
+      &lt;driver&gt;buttle-driver&lt;/driver&gt;
+      &lt;xa-datasource-class&gt;buttle.jdbc.XADataSource&lt;/xa-datasource-class&gt;
+      &lt;security&gt;
+       &lt;user-name&gt;postgres-user&lt;/user-name&gt;
+       &lt;password&gt;postgres-password&lt;/password&gt;
+      &lt;/security&gt;
+      &lt;xa-datasource-property name="DelegateSpec"&gt;
+       {
+        :delegate-class org.postgresql.xa.PGXADataSource
+        :url "jdbc:postgresql://127.0.0.1:6632/postgres"
+       }
+      &lt;/xa-datasource-property&gt;
+    &lt;/xa-datasource&gt;
+</code></pre>
+<p>The <em>Buttle</em> datasource classes support the map-typed Java-Bean property <code>DelegateSpec</code>. Keys (other than <code>:delegate-class</code>) are used to set the corresponding Java-Bean property of the <em>real</em> datasource (see below for more details). So in the following example we’re setting <code>Url</code>, <code>User</code> and <code>Password</code> Java-Beans property values.</p>
+<pre><code>    &lt;xa-datasource jndi-name="java:/jdbc/buttle-xa" pool-name="buttle-xa"&gt;
+      &lt;xa-datasource-class&gt;buttle.jdbc.XADataSource&lt;/xa-datasource-class&gt;
+      &lt;driver&gt;buttle-driver&lt;/driver&gt;
+      &lt;xa-datasource-property name="DelegateSpec"&gt;
+        {
+          :delegate-class org.postgresql.xa.PGXADataSource
+          :url "jdbc:postgresql://127.0.0.1:6632/postgres"
+          :user "postgres-user"
+          :password "postgres-password"
+        }
+      &lt;/xa-datasource-property&gt;
+    &lt;/xa-datasource&gt;
+</code></pre>
+<p>In this case the container will call <code>getConnection()</code> on the <em>Buttle</em> datasource which in turn calls <code>getConnection()</code> on the <em>real</em> datasource which again must/will use the Java-Beans property values that <em>Buttle</em> has set before.</p>
+<p>So when configuring authentication for your datasource keep in mind that the whole story starts with a call from the JEE container and this call will be determined by how you configure the datasource that your app retrieves from JNDI. From there the rest follows as described above.</p>
 <h4><a href="#xa-datasource" name="xa-datasource"></a>XA-datasource</h4>
 <p>You define an <code>&lt;xa-datasource&gt;</code> like this (for Postgres):</p>
 <pre><code>&lt;xa-datasource jndi-name="java:/jdbc/postgres-xa" pool-name="postgres-xa"&gt;
@@ -219,51 +270,52 @@ uberjar</code> to include nrepl and Swank):</p>
 </ul>
 <p><strong>Define <em>Buttle</em> JDBC provider</strong></p>
 <p>For all options you need to define the <em>Buttle</em> <strong>JDBC provider</strong> first. You can repeat the following steps to define more than one provider (e.g. to define one provider for XA-datasources and one for CP-datasources).</p>
-<p>In the WAS Admin Console navigate to <strong>Resources/JDBC/JDBC provider</strong>, select <strong>scope</strong> (e.g. your cell/node/server), hit <strong>new</strong>.</p>
-<p><strong>Step 1:</strong></p>
+<p>In the WAS admin console navigate to <strong>Resources/JDBC/JDBC providers</strong>, select <strong>scope</strong> (i.e. your Cell/Node/Server), hit <strong>New…</strong>.</p>
+<p><strong>Step 1: Create new JDBC provider</strong></p>
 <ul>
-  <li>select <strong>database type</strong>: <code>user defined</code></li>
-  <li>enter <strong>implementation class</strong>: <code>buttle.jdbc.ConnectionPoolDataSource</code> or  <code>buttle.jdbc.XADataSource</code> (see above)</li>
-  <li>enter <strong>name</strong> (e.g. <code>Buttle CP-DS</code>) and <strong>description</strong></li>
-  <li>hit <strong>next</strong></li>
+  <li>select <strong>Database type</strong>: <code>User-defined</code></li>
+  <li>enter <strong>Implementation class name</strong>:  <code>buttle.jdbc.ConnectionPoolDataSource</code> or <code>buttle.jdbc.XADataSource</code>  (see above)</li>
+  <li>enter <strong>Name</strong> (e.g. <code>Buttle CP-DS</code>) and <strong>Description</strong></li>
+  <li>hit <strong>Next</strong></li>
 </ul>
-<p><strong>Step 2:</strong></p>
+<p><strong>Step 2: Enter database class path information</strong></p>
 <ul>
-  <li>enter <strong>classpath</strong>: <code>&lt;path-to-buttle-standalone.jar&gt;</code></li>
-  <li>hit <strong>next</strong></li>
+  <li>enter <strong>Class path</strong>: <code>&lt;path-to-buttle-standalone.jar&gt;</code></li>
+  <li>hit <strong>Next</strong></li>
 </ul>
-<p><strong>Step 3:</strong></p>
+<p><strong>Step 3: Summary</strong></p>
 <ul>
-  <li>just hit <strong>done</strong></li>
+  <li>just hit <strong>Finish</strong></li>
 </ul>
 <p><strong>Define <em>Buttle</em> datasource</strong></p>
-<p>Now you define one or more datasources. In the WAS Admin Console navigate to <strong>Resources/JDBC/datasources</strong>, select <strong>scope</strong> (e.g. your cell/node/server), hit <strong>new</strong>.</p>
-<p><strong>Step 1:</strong></p>
+<p>Now you need to define one or more datasources. In the WAS admin console navigate to <strong>Resources/JDBC/Data sources</strong>, select <strong>scope</strong> (i.e. your Cell/Node/Server), hit <strong>New…</strong>.</p>
+<p><strong>Step 1: Enter basic data source information</strong></p>
 <ul>
-  <li>enter <strong>name</strong> (e.g. <code>buttle_cp_ds</code>) and <strong>JNDI name</strong>  (e.g. <code>jdbc/buttle_cp_ds</code>)</li>
-  <li>hit <strong>next</strong></li>
+  <li>enter <strong>Data source name</strong> (e.g. <code>buttle_cp_ds</code>) and <strong>JNDI name</strong>  (e.g. <code>jdbc/buttle_cp_ds</code>)</li>
+  <li>hit <strong>Next</strong></li>
 </ul>
-<p><strong>Step 2:</strong></p>
+<p><strong>Step 2: Select JDBC provider</strong></p>
 <ul>
-  <li>select <strong>JDBC provider</strong>: e.g. <code>Buttle CP-DS</code> (see above)</li>
-  <li>hit <strong>next</strong></li>
+  <li>select <strong>Select an existing JDBC provider</strong>: e.g. <code>Buttle CP-DS</code> (see above)</li>
+  <li>hit <strong>Next</strong></li>
 </ul>
-<p><strong>Step 3:</strong></p>
+<p><strong>Step 3: Enter database specific properties for the data source</strong></p>
 <ul>
-  <li><strong>helper</strong>: do not change default <code>com.ibm.websphere.rsadapter.GenericDataStoreHelper</code></li>
-  <li>just hit <strong>next</strong></li>
+  <li><strong>Data store helper class name</strong>: do not change default  <code>com.ibm.websphere.rsadapter.GenericDataStoreHelper</code></li>
+  <li><strong>Use this data source in container managed persistence (CMP)</strong>: do  not change default <em>checked</em></li>
+  <li>just hit <strong>Next</strong></li>
 </ul>
-<p><strong>Step 4:</strong></p>
+<p><strong>Step 4: Setup security aliases</strong></p>
 <ul>
-  <li>leave all authentication selections <strong>empty</strong>. In this case  authentication must come from <em>Buttle</em> datasource.</li>
-  <li>just hit <strong>next</strong></li>
+  <li>set all selections in <strong>Select the authentication values for this  resource</strong> to <strong>(none)</strong>. In this case authentication must come from  <em>Buttle</em> datasource configuration which is described below (see also  section <strong>A note on authentication</strong> above).</li>
+  <li>hit <strong>Next</strong></li>
 </ul>
-<p><strong>Step 5:</strong></p>
+<p><strong>Step 5: Summary</strong></p>
 <ul>
-  <li>just hit <strong>next</strong></li>
+  <li>just hit <strong>Finish</strong></li>
 </ul>
 <p><strong>Configure <em>Buttle</em> datasource</strong></p>
-<p>Before you can use/test the <em>Buttle</em> datasource you need to configure it. Navigate to <strong>Resources/JDBC/datasources</strong>, select <strong>scope</strong> (e.g. your cell/node/server) and click on the <em>Buttle</em> datasource you want to configure.</p>
+<p>Before you can use/test the <em>Buttle</em> datasource you need to configure it. Navigate to <strong>Resources/JDBC/Data sources</strong>, select <strong>scope</strong> (i.e. your Cell/Node/Server) and click on the <em>Buttle</em> datasource you want to configure.</p>
 <p>Click on <strong>adjust properties</strong>. If you have not added <code>delegateSpec</code> hit <strong>add</strong>. Otherwise click on <code>delegateSpec</code> entry in the table.</p>
 <p>Enter/change <strong>value</strong>.</p>
 <p><strong>Example: Postgres</strong></p>
