@@ -3036,11 +3036,10 @@ define D. This makes D and P being compatible and M can be called.</p>
   application servers.</p>
 
 <p>  <strong>Note:</strong> This namespace has not yet been tested in an application
-  server. There are application servers (like Wildfly and IBM
-  Websphere) which use their own <code>javax.sql.DataSource</code> implementation
-  which delegates to the JDBC driver's <code>java.sql.Driver</code>
-  implementation. So in these cases the JDBC driver does not even need
-  to deliver an implementation for <code>javax.sql.DataSource</code>.</p>
+  server. Wildfly and IBM Websphere both do not use
+  <code>javax.sql.DataSource</code> implementations (see README for more
+  details). So this namespace is only tested by
+  <code>buttle.data-source-test</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns buttle.data-source
   (:import [javax.sql DataSource]
            [java.sql SQLException]
@@ -3082,18 +3081,27 @@ datasource. Else we won't be able to delegate to it.</p>
        (RuntimeException.
         (format &quot;This is not a javax.sql.DataSource: '%s'  It implements these interfaces: '%s'&quot;
                 ds (-&gt;&gt; ds .getClass .getInterfaces (into []))))))
-    ds))</pre></td></tr><tr><td class="docs"><p>Creates the <em>Buttle</em> datasource.</p>
+    ds))</pre></td></tr><tr><td class="docs"><p><hr />
+A note on classloading</p>
+
+<h2>See src/buttle/connection_pool_data_source.clj for details.</h2>
+</td><td class="codes"></td></tr><tr><td class="docs"><p>Creates the <em>Buttle</em> datasource.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn make-data-source
   []
   (let [ds-spec (atom nil)
         ds (atom nil)
+        ;; classloader of cached proxy class definition
+        cl (-&gt; (proxy [DataSource ButtleDataSource] [])
+               .getClass
+               .getClassLoader)
         ;; lazy creation and cache
         ds! (fn [] (or @ds
                        (reset! ds
                                (retrieve-data-soure @ds-spec))))]
+    ;; make Java dyn. proxy D which uses cl as its definiting classloader
     (proxy/make-proxy
-     ;; Note: order matters!!! See buttle.proxy/make-proxy for more details
-     [ButtleDataSource DataSource]
+     [(Class/forName &quot;buttle.data_source.ButtleDataSource&quot; true cl) DataSource]
+     ;; proxy should have classloader cl
      (proxy [DataSource ButtleDataSource] []
        (setDelegateSpec [spec]
          (try
@@ -3304,7 +3312,12 @@ datasource. Else we won't be able to delegate to it.</p>
    java.sql.Driver
    (proxy [java.sql.Driver] []
      ;; java.sql.Driver.connect(String url, Properties info)
-     (connect [url info]
+     ;;
+     ;; When using a Wildfly &lt;datasource&gt; the container will pass-in
+     ;; &lt;security&gt; settings in `info` with String-typed &quot;user&quot; and
+     ;; &quot;password&quot; keyed values. In this case _Buttle_ has to decide
+     ;; which credentials to use. At the moment we just ignore `info`.
+     (connect [url _info]
        (connect-fn url))
      ;; boolean acceptsURL(String url)
      (acceptsURL [url]

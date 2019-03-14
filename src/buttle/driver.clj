@@ -151,7 +151,12 @@
    java.sql.Driver
    (proxy [java.sql.Driver] []
      ;; java.sql.Driver.connect(String url, Properties info)
-     (connect [url info]
+     ;;
+     ;; When using a Wildfly <datasource> the container will pass-in
+     ;; <security> settings in `info` with String-typed "user" and
+     ;; "password" keyed values. In this case _Buttle_ has to decide
+     ;; which credentials to use. At the moment we just ignore `info`.
+     (connect [url _info]
        (connect-fn url))
      ;; boolean acceptsURL(String url)
      (acceptsURL [url]

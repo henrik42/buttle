@@ -218,7 +218,7 @@ java [...] %BUTTLE% [...]
 <p>In this case the container will call <code>getConnection()</code> on the <em>Buttle</em> datasource which in turn calls <code>getConnection()</code> on the <em>real</em> datasource which again must/will use the Java-Beans property values that <em>Buttle</em> has set before.</p>
 <p>So when configuring authentication for your datasource keep in mind that the whole story starts with a call from the JEE container and this call will be determined by how you configure the datasource that your app retrieves from JNDI. From there the rest follows as described above.</p>
 <h4><a href="#xa-datasource" name="xa-datasource"></a>XA-datasource</h4>
-<p>You define an <code>&lt;xa-datasource&gt;</code> like this (for Postgres):</p>
+<p>In Wildfly you define an <code>&lt;xa-datasource&gt;</code> like this (for Postgres):</p>
 <pre><code>&lt;xa-datasource jndi-name="java:/jdbc/postgres-xa" pool-name="postgres-xa"&gt;
   &lt;xa-datasource-class&gt;org.postgresql.xa.PGXADataSource&lt;/xa-datasource-class&gt;
   &lt;driver&gt;postgres-driver&lt;/driver&gt;

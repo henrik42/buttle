@@ -6,11 +6,10 @@
   application servers.
 
   __Note:__ This namespace has not yet been tested in an application
-  server. There are application servers (like Wildfly and IBM
-  Websphere) which use their own `javax.sql.DataSource` implementation
-  which delegates to the JDBC driver's `java.sql.Driver`
-  implementation. So in these cases the JDBC driver does not even need
-  to deliver an implementation for `javax.sql.DataSource`."
+  server. Wildfly and IBM Websphere both do not use
+  `javax.sql.DataSource` implementations (see README for more
+  details). So this namespace is only tested by
+  `buttle.data-source-test`."
   
   (:import [javax.sql DataSource]
            [java.sql SQLException]
@@ -66,19 +65,32 @@
                 ds (->> ds .getClass .getInterfaces (into []))))))
     ds))
 
+;; ----------------------------------------------------------------------------------------------------------------------
+;; A note on classloading
+;;
+;; See src/buttle/connection_pool_data_source.clj for details.
+;; ----------------------------------------------------------------------------------------------------------------------
+
 (defn make-data-source
   "Creates the _Buttle_ datasource."
 
   []
   (let [ds-spec (atom nil)
         ds (atom nil)
+        ;; classloader of cached proxy class definition
+        cl (-> (proxy [DataSource ButtleDataSource] [])
+               .getClass
+               .getClassLoader)
         ;; lazy creation and cache
         ds! (fn [] (or @ds
                        (reset! ds
                                (retrieve-data-soure @ds-spec))))]
+    
+    ;; make Java dyn. proxy D which uses cl as its definiting classloader
     (proxy/make-proxy
-     ;; Note: order matters!!! See buttle.proxy/make-proxy for more details
-     [ButtleDataSource DataSource]
+     [(Class/forName "buttle.data_source.ButtleDataSource" true cl) DataSource]
+
+     ;; proxy should have classloader cl
      (proxy [DataSource ButtleDataSource] []
        (setDelegateSpec [spec]
          (try
