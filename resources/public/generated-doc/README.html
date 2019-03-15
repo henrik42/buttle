@@ -88,7 +88,7 @@
 java [...] %BUTTLE% [...]
 </code></pre>
 <p><strong>(2)</strong> In the GUI add a <em>Driver</em> with <em>extra classpath</em>  <code>&lt;path-to&gt;/buttle-standalone.jar</code> and class <code>buttle.jdbc.Driver</code>.</p>
-<p><strong>(3)</strong> In the GUI add an <em>Alias</em> with URL (replace <code>&lt;user&gt;</code> and <code>&lt;password&gt;</code>). Text  following <code>jdbc:buttle:</code> will be read as Clojure map form.</p>
+<p><strong>(3)</strong> In the GUI add an <em>Alias</em> with URL (replace <code>&lt;user&gt;</code> and  <code>&lt;password&gt;</code>). Text following <code>jdbc:buttle:</code> will be  <code>read</code>/<code>eval</code>’ed as Clojure map form.</p>
 <pre><code>jdbc:buttle:{:user "&lt;user&gt;" :password "&lt;password&gt;" :target-url "jdbc:postgresql://127.0.0.1:6632/postgres"}
 </code></pre>
 <h3><a href="#wildfly" name="wildfly"></a>Wildfly</h3>
@@ -157,7 +157,7 @@ java [...] %BUTTLE% [...]
 </code></pre>
 <h4><a href="#a-note-on-authentication" name="a-note-on-authentication"></a>A note on authentication</h4>
 <p>Usually JEE containers let you define a datasource and with it supply authentication credentials (e.g. username and password). For Wildfly this is done through the <code>security</code> element:</p>
-<pre><code>    &lt;xa-datasource jndi-name="java:/jdbc/postgres-xa" pool-name="postgres-xa" spy="true"&gt;
+<pre><code>    &lt;xa-datasource jndi-name="java:/jdbc/postgres-xa" pool-name="postgres-xa"&gt;
       &lt;driver&gt;postgres-driver&lt;/driver&gt;
       &lt;xa-datasource-class&gt;org.postgresql.xa.PGXADataSource&lt;/xa-datasource-class&gt;
       &lt;security&gt;
@@ -168,8 +168,8 @@ java [...] %BUTTLE% [...]
     &lt;/xa-datasource&gt;
 </code></pre>
 <p>For IBM WAS you enter <strong>security aliases</strong> (see below).</p>
-<p>Then when your application needs a JDBC connection it calls <code>javax.sql.DataSource.getConnection()</code> on the datasource which it usually retrieves from JNDI. Your app rarely calls <code>javax.sql.DataSource.getConnection(String, String)</code> since no-one wants to give authentication credentials to your app. That’s why it is given to the JEE container only.</p>
-<p>When calling <code>getConnection()</code> your app will be talking to a <code>javax.sql.DataSource</code> <strong>proxy</strong> that the JEE container puts between your code and the <em>real</em> datasource (which may even be an XA-datasource really). If you have given authentication credentials explicitly to the container (like shown above) then the container’s <strong>datasource proxy</strong> will call <code>javax.sql.DataSource.getConnection(String, String)</code> on the <em>real</em> datasource when delegating your call thus supplying the authentication credentials for connecting to the database.</p>
+<p>Then when your application needs a JDBC connection it calls <code>javax.sql.DataSource.getConnection()</code> on the datasource which it usually retrieves from JNDI. Your app rarely calls <code>javax.sql.DataSource.getConnection(String username, String password)</code> since no-one wants to give authentication credentials to your app. That’s why it is given to the JEE container only.</p>
+<p>When calling <code>getConnection()</code> your app will be talking to a <code>javax.sql.DataSource</code> <strong>datasource proxy</strong> that the JEE container puts between your code and the <em>real</em> datasource (which may even be an XA-datasource really). If you have given authentication credentials explicitly to the container (like shown above) then the container’s <strong>datasource proxy</strong> will call <code>javax.sql.DataSource.getConnection(String username, String password)</code> on the <em>real</em> datasource when delegating your call and thus supplying the configured authentication credentials for connecting to the database.</p>
 <p>Instead of giving authentication credentials explicitly to the container (like shown above) you can usually set some of the <em>real</em> datasource’s Java-Beans property values to give it username and password.</p>
 <p>Note that in this case the container has no explicit knowledge about the details on how and what authentication credentials you give to the datasource. And it depends on the JDBC datasource class which Java-Beans properties you have to set (e.g. it’s <code>User</code> and <code>Password</code> for Postgres, but it may be <code>UserName</code> and <code>Passphrase</code> for some other driver).</p>
 <p>For Wildfly and Postgres this looks like this:</p>
@@ -182,10 +182,10 @@ java [...] %BUTTLE% [...]
     &lt;/xa-datasource&gt;
 </code></pre>
 <p>For IBM WAS you set the datasource’s <strong>custom properties</strong> (see below).</p>
-<p>Now when your app calls <code>javax.sql.DataSource.getConnection()</code> on the datasource (proxy) the proxy will call <code>getConnection()</code> (instead of <code>getConnection(String, String)</code>) on the underlying <em>real</em> datasource. In this case the <em>real</em> datasource must, should and usually will use the Java-Beans property values for <code>User</code> and <code>Password</code> (or whatever property it uses) to authenticate against the database.</p>
+<p>Now when your app calls <code>javax.sql.DataSource.getConnection()</code> on the <strong>datasource proxy</strong> this time the proxy will call <code>getConnection()</code> (instead of <code>getConnection(String, String)</code>) on the underlying <em>real</em> datasource. In this case the <em>real</em> datasource must, should and usually will use the Java-Beans property values for <code>User</code> and <code>Password</code> (or whatever property it uses) to authenticate against the database. Note though that JDBC drives may support even more ways to supply authentication credentials (like Postgres which can take these from the JDBC URL).</p>
 <p>When using a <em>Buttle</em> datasource (to proxy the <em>real</em> datasource) all this is working just the same way. Only now the <em>Buttle</em> datasource (proxy) introduces an additional indirection/delegation step.</p>
 <p>You configure authentication for the <em>Buttle</em> datasource just like you do it for the <em>real</em> datasource.</p>
-<p>With the following configuration the container will call <code>getConnection(String, String)</code> on the <em>Buttle</em> datasource which in turn calls <code>getConnection(String, String)</code> on the <em>real</em> datasource.</p>
+<p>With the following configuration the container will call <code>getConnection(String, String)</code> on the <em>Buttle</em> datasource which in turn calls <code>getConnection(String, String)</code> on the <em>real</em> datasource:</p>
 <pre><code>    &lt;xa-datasource jndi-name="java:/jdbc/buttle-xa" pool-name="buttle-xa"&gt;
       &lt;driver&gt;buttle-driver&lt;/driver&gt;
       &lt;xa-datasource-class&gt;buttle.jdbc.XADataSource&lt;/xa-datasource-class&gt;
@@ -203,8 +203,8 @@ java [...] %BUTTLE% [...]
 </code></pre>
 <p>The <em>Buttle</em> datasource classes support the map-typed Java-Bean property <code>DelegateSpec</code>. Keys (other than <code>:delegate-class</code>) are used to set the corresponding Java-Bean property of the <em>real</em> datasource (see below for more details). So in the following example we’re setting <code>Url</code>, <code>User</code> and <code>Password</code> Java-Beans property values.</p>
 <pre><code>    &lt;xa-datasource jndi-name="java:/jdbc/buttle-xa" pool-name="buttle-xa"&gt;
-      &lt;xa-datasource-class&gt;buttle.jdbc.XADataSource&lt;/xa-datasource-class&gt;
       &lt;driver&gt;buttle-driver&lt;/driver&gt;
+      &lt;xa-datasource-class&gt;buttle.jdbc.XADataSource&lt;/xa-datasource-class&gt;
       &lt;xa-datasource-property name="DelegateSpec"&gt;
         {
           :delegate-class org.postgresql.xa.PGXADataSource

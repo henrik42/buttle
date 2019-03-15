@@ -140,8 +140,9 @@ __(1)__ In `squirrel-sql.bat` add system property `buttle.user-file` to java cal
 __(2)__ In the GUI add a _Driver_ with _extra classpath_
   `<path-to>/buttle-standalone.jar` and class `buttle.jdbc.Driver`.
 
-__(3)__ In the GUI add an _Alias_ with URL (replace `<user>` and `<password>`). Text
-  following `jdbc:buttle:` will be read as Clojure map form.
+__(3)__ In the GUI add an _Alias_ with URL (replace `<user>` and
+  `<password>`). Text following `jdbc:buttle:` will be
+  `read`/`eval`'ed as Clojure map form.
 
 	jdbc:buttle:{:user "<user>" :password "<password>" :target-url "jdbc:postgresql://127.0.0.1:6632/postgres"}
 
@@ -250,7 +251,7 @@ Usually JEE containers let you define a datasource and with it supply
 authentication credentials (e.g. username and password). For Wildfly
 this is done through the `security` element:
 
-	    <xa-datasource jndi-name="java:/jdbc/postgres-xa" pool-name="postgres-xa" spy="true">
+	    <xa-datasource jndi-name="java:/jdbc/postgres-xa" pool-name="postgres-xa">
 	      <driver>postgres-driver</driver>
 	      <xa-datasource-class>org.postgresql.xa.PGXADataSource</xa-datasource-class>
 	      <security>
@@ -265,19 +266,20 @@ For IBM WAS you enter __security aliases__ (see below).
 Then when your application needs a JDBC connection it calls
 `javax.sql.DataSource.getConnection()` on the datasource which it
 usually retrieves from JNDI. Your app rarely calls
-`javax.sql.DataSource.getConnection(String, String)` since no-one
-wants to give authentication credentials to your app. That's why it is
-given to the JEE container only.
+`javax.sql.DataSource.getConnection(String username, String password)`
+since no-one wants to give authentication credentials to your
+app. That's why it is given to the JEE container only.
 
 When calling `getConnection()` your app will be talking to a
-`javax.sql.DataSource` __proxy__ that the JEE container puts between
-your code and the _real_ datasource (which may even be an
-XA-datasource really). If you have given authentication credentials
-explicitly to the container (like shown above) then the container's
-__datasource proxy__ will call
-`javax.sql.DataSource.getConnection(String, String)` on the _real_
-datasource when delegating your call thus supplying the authentication
-credentials for connecting to the database.
+`javax.sql.DataSource` __datasource proxy__ that the JEE container
+puts between your code and the _real_ datasource (which may even be an
+XA-datasource really; like in the example shown above). If you have
+given authentication credentials explicitly to the container (like
+shown above) then the container's __datasource proxy__ will call
+`javax.sql.DataSource.getConnection(String username, String password)`
+on the _real_ datasource when delegating your call and thus supplying
+the configured authentication credentials for connecting to the
+database.
 
 Instead of giving authentication credentials explicitly to the
 container (like shown above) you can usually set some of the _real_
@@ -305,12 +307,14 @@ For IBM WAS you set the datasource's __custom properties__ (see
 below).
 
 Now when your app calls `javax.sql.DataSource.getConnection()` on the
-datasource (proxy) the proxy will call `getConnection()` (instead of
-`getConnection(String, String)`) on the underlying _real_
+__datasource proxy__ this time the proxy will call `getConnection()`
+(instead of `getConnection(String, String)`) on the underlying _real_
 datasource. In this case the _real_ datasource must, should and
 usually will use the Java-Beans property values for `User` and
 `Password` (or whatever property it uses) to authenticate against the
-database.
+database. Note though that JDBC drives may support even more ways to
+supply authentication credentials (like Postgres which can take these
+from the JDBC URL).
 
 When using a _Buttle_ datasource (to proxy the _real_ datasource) all
 this is working just the same way. Only now the _Buttle_ datasource
@@ -321,7 +325,7 @@ do it for the _real_ datasource.
 
 With the following configuration the container will call
 `getConnection(String, String)` on the _Buttle_ datasource which in
-turn calls `getConnection(String, String)` on the _real_ datasource.
+turn calls `getConnection(String, String)` on the _real_ datasource:
 
 	    <xa-datasource jndi-name="java:/jdbc/buttle-xa" pool-name="buttle-xa">
 	      <driver>buttle-driver</driver>
@@ -345,8 +349,8 @@ to set the corresponding Java-Bean property of the _real_ datasource
 setting `Url`, `User` and `Password` Java-Beans property values.
 
         <xa-datasource jndi-name="java:/jdbc/buttle-xa" pool-name="buttle-xa">
-          <xa-datasource-class>buttle.jdbc.XADataSource</xa-datasource-class>
           <driver>buttle-driver</driver>
+          <xa-datasource-class>buttle.jdbc.XADataSource</xa-datasource-class>
           <xa-datasource-property name="DelegateSpec">
             {
               :delegate-class org.postgresql.xa.PGXADataSource
