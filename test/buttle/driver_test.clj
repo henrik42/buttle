@@ -33,9 +33,9 @@
                         (pr-str postgres-url)))
 
 (deftest test-connect-fn
-  (is (= nil (drv/connect-fn "foobar")))
-  (is (= nil (drv/connect-fn "jdbc:buttle:")))
-  (is (thrown-with-msg? Throwable #"The url cannot be null" (drv/connect-fn "jdbc:buttle:42"))))
+  (is (= nil (drv/connect-fn "foobar" nil)))
+  (is (= nil (drv/connect-fn "jdbc:buttle:" nil)))
+  (is (thrown-with-msg? Throwable #"The url cannot be null" (drv/connect-fn "jdbc:buttle:42" nil))))
 
 (deftest test-make-driver
   (let [buttle-driver (drv/make-driver)

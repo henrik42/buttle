@@ -211,6 +211,13 @@ __(3)__ Define `<datasource>`: in this example there is no extra
 	    </connection-url>
     </datasource>
 
+Note: if you define a `<datasource>` with `<connection-url>` then
+Wildfly will create a `javax.sql.DataSource` __datasource proxy__ that
+uses the `java.sql.DriverManager` API to lookup the JDBC driver and
+open connections. So in the example above it will effectively use
+`buttle.jdbc.Driver` and not `buttle.jdbc.DataSource`. Below you find
+an example which involves `buttle.jdbc.DataSource`.
+
 Instead of loading the class explicitly you can just use a class
 literal with some arbitrary key in the map -- like this:
 
@@ -385,6 +392,12 @@ In Wildfly you define an `<xa-datasource>` like this (for Postgres):
       </security>
       <xa-datasource-property name="Url">jdbc:postgresql://127.0.0.1:6632/postgres</xa-datasource-property>
     </xa-datasource>
+
+Note that `security` configuration is included here only for you to be
+able to test this datasource through the Wildfly admin console GUI in
+isolation. When proxying this datasource with _Buttle_ these
+`security` settings will never be used (as explaied in __A note on
+authentication__).
 
 You can retrieve this from JNDI like this (done via nREPL into running
 Wildfly; build UBERJAR with `lein with-profile +swank,+wildfly

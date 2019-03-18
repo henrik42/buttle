@@ -3241,25 +3241,37 @@ A note on classloading</p>
   <code>:target-url</code>, <code>:user</code>, <code>:password</code>, <code>:class-for-name</code> and
   <code>:datasource-spec</code> from the returned value (assuming that it is a
   map). Returns a map with those keys/values.</p>
-</td><td class="codes"><pre class="brush: clojure">(defn accepts-url-fn
+</td><td class="codes"><pre class="brush: clojure">#_
+(let [f {&quot;foo&quot; &quot;FOO&quot; &quot;bar&quot; &quot;BAR&quot;}
+      {foo &quot;foo&quot; :as g} f]
+  [g foo])
+(defn accepts-url-fn
   [url]
   (when-let [{:keys [target-url user password class-for-name datasource-spec]} (parse-jdbc-url url)]
     {:target-url target-url
      :user user
      :password password
      :class-for-name class-for-name
-     :datasource-spec datasource-spec}))</pre></td></tr><tr><td class="docs"><p>Returns <code>nil</code> if <code>url</code> is not a <em>Buttle</em> URL (as of
+     :datasource-spec datasource-spec}))</pre></td></tr><tr><td class="docs"><p>Returns a JDBC connection for given <code>url</code>.</p>
+
+<p>  Returns <code>nil</code> if <code>url</code> is not a <em>Buttle</em> URL (as of
   <code>accepts-url-fn</code>). Else opens a JDBC <code>Connection</code> to <code>:target-url</code>
-  with <code>:user</code> and <code>:password</code> via
-  <code>buttle.driver-manager/get-connection</code>. If that throws then this
+  via <code>buttle.driver-manager/get-connection</code>. If that throws then this
   function throws. Otherwise the connection is returned. Note that in
   this case <em>Buttle</em> does not call/use the proxied JDBC driver
   directly (but relies on the <code>DriverManager</code>).</p>
 
 <p>  If <code>:datasource-spec</code> is given in the <em>Buttle</em> URL a datasource
   <code>ds</code> (as of <code>buttle-ds/retrieve-data-soure</code>) will be used instead of
-  the <code>buttle.driver-manager/get-connection</code>. The connection is then
-  opened via <code>(.getConnection ds)</code>.</p>
+  the <code>buttle.driver-manager/get-connection</code>.</p>
+
+<p>  Authentication credentials (user and password) are taken from
+  <code>info</code> (keys <code>"user"</code> and <code>"password"</code>) if given. Else they are
+  taken from <em>Buttle</em> URL (keys <code>:user</code> and <code>:password</code>). If the
+  connection is opened via <code>DriverManager</code> then <code>info</code> will be passed
+  onto <code>DriverManager/getConnection</code> so that any properties beyond
+  <code>"user"</code> and <code>"password"</code> (which are set to the authentication
+  credentials) contained in <code>info</code> are preserved. </p>
 
 <p>  If <code>:class-for-name</code> is set in the <em>Buttle</em> <code>url</code> then
   calls <code>(Class/forName class-for-name)</code> before opening the
@@ -3267,22 +3279,34 @@ A note on classloading</p>
   loaded auto-magically by the <code>DriverManager</code>. This may happen when
   the <code>DriverManager</code> is initialized and the classloader does not
   <em>see</em> the proxied driver classes at that point (e.g. in JEE
-  application servers when loading <em>modules</em>).</p>
+  application servers when loading things via isolated classloaders).</p>
 </td><td class="codes"><pre class="brush: clojure">(defn connect-fn
-  [url]
+  [url {info-user &quot;user&quot; info-password &quot;password&quot; :as info}]
   (when-let [{:keys [target-url user password class-for-name datasource-spec] :as args} (accepts-url-fn url)]
     (try 
       (when class-for-name
         (Class/forName class-for-name))
-      (if datasource-spec
-        (let [ds (buttle-ds/retrieve-data-soure datasource-spec)]
-          (if-not password (.getConnection ds)
-                  (.getConnection ds user password)))
-        (mgr/get-connection target-url user password))
+      ;; Take user/pw from info if given. Else use user/pw from
+      ;; url. If delegating to DriverManager pass info with
+      ;; user/pw. We do this since there may be more things in info
+      ;; and we want Buttle to be as &quot;transarent&quot; as we can make it.
+      (let [[user password] (if (and (empty? info-user) (empty? info-password))
+                              [user password]
+                              [info-user info-password])]
+        (if datasource-spec
+          (let [ds (buttle-ds/retrieve-data-soure datasource-spec)]
+            (if-not password
+              (.getConnection ds)
+              (.getConnection ds user password)))
+          (mgr/get-connection target-url (let [info (if info (.clone info)
+                                                        (java.util.Properties.))]
+                                           (when user (.setProperty info &quot;user&quot; user))
+                                           (when password (.setProperty info &quot;password&quot; password))
+                                           info))))
       (catch Throwable t
         (throw
          (RuntimeException.
-          (format &quot;Could not connect to %s %s: %s&quot; url args t) t))))))</pre></td></tr><tr><td class="docs"><p>Creates and returns a <em>Buttle</em> <code>java.sql.Driver</code>.</p>
+          (format &quot;Could not connect to %s %s %s: %s&quot; url info args t) t))))))</pre></td></tr><tr><td class="docs"><p>Creates and returns a <em>Buttle</em> <code>java.sql.Driver</code>.</p>
 
 <p>   Note that the underlying driver (which delegates to the real
    driver) is a Clojure <code>proxy</code> (not an instance of
@@ -3317,8 +3341,8 @@ A note on classloading</p>
      ;; &lt;security&gt; settings in `info` with String-typed &quot;user&quot; and
      ;; &quot;password&quot; keyed values. In this case _Buttle_ has to decide
      ;; which credentials to use. At the moment we just ignore `info`.
-     (connect [url _info]
-       (connect-fn url))
+     (connect [url info]
+       (connect-fn url info))
      ;; boolean acceptsURL(String url)
      (acceptsURL [url]
        (boolean (accepts-url-fn url)))
@@ -3418,8 +3442,10 @@ A note on classloading</p>
   goes wrong (see `java.sql.DriverManager.getConnection(String,
   String, String)`).</p>
 </td><td class="codes"><pre class="brush: clojure">(defn get-connection 
-  [url user password]
-  (DriverManager/getConnection url user password))</pre></td></tr><tr><td class="docs"><p>Iterates over all registered drivers (as of <code>(get-drivers)</code>) and
+  ([url user password]
+     (DriverManager/getConnection url user password))
+  ([url info]
+     (DriverManager/getConnection url info)))</pre></td></tr><tr><td class="docs"><p>Iterates over all registered drivers (as of <code>(get-drivers)</code>) and
   deregisters each. Returns seq of drivers.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn deregister-drivers
   []

@@ -132,6 +132,7 @@ java [...] %BUTTLE% [...]
     &lt;/connection-url&gt;
 &lt;/datasource&gt;
 </code></pre>
+<p>Note: if you define a <code>&lt;datasource&gt;</code> with <code>&lt;connection-url&gt;</code> then Wildfly will create a <code>javax.sql.DataSource</code> <strong>datasource proxy</strong> that uses the <code>java.sql.DriverManager</code> API to lookup the JDBC driver and open connections. So in the example above it will effectively use <code>buttle.jdbc.Driver</code> and not <code>buttle.jdbc.DataSource</code>. Below you find an example which involves <code>buttle.jdbc.DataSource</code>.</p>
 <p>Instead of loading the class explicitly you can just use a class literal with some arbitrary key in the map – like this:</p>
 <pre><code>    &lt;connection-url&gt;
         jdbc:buttle:{
@@ -169,7 +170,7 @@ java [...] %BUTTLE% [...]
 </code></pre>
 <p>For IBM WAS you enter <strong>security aliases</strong> (see below).</p>
 <p>Then when your application needs a JDBC connection it calls <code>javax.sql.DataSource.getConnection()</code> on the datasource which it usually retrieves from JNDI. Your app rarely calls <code>javax.sql.DataSource.getConnection(String username, String password)</code> since no-one wants to give authentication credentials to your app. That’s why it is given to the JEE container only.</p>
-<p>When calling <code>getConnection()</code> your app will be talking to a <code>javax.sql.DataSource</code> <strong>datasource proxy</strong> that the JEE container puts between your code and the <em>real</em> datasource (which may even be an XA-datasource really). If you have given authentication credentials explicitly to the container (like shown above) then the container’s <strong>datasource proxy</strong> will call <code>javax.sql.DataSource.getConnection(String username, String password)</code> on the <em>real</em> datasource when delegating your call and thus supplying the configured authentication credentials for connecting to the database.</p>
+<p>When calling <code>getConnection()</code> your app will be talking to a <code>javax.sql.DataSource</code> <strong>datasource proxy</strong> that the JEE container puts between your code and the <em>real</em> datasource (which may even be an XA-datasource really; like in the example shown above). If you have given authentication credentials explicitly to the container (like shown above) then the container’s <strong>datasource proxy</strong> will call <code>javax.sql.DataSource.getConnection(String username, String password)</code> on the <em>real</em> datasource when delegating your call and thus supplying the configured authentication credentials for connecting to the database.</p>
 <p>Instead of giving authentication credentials explicitly to the container (like shown above) you can usually set some of the <em>real</em> datasource’s Java-Beans property values to give it username and password.</p>
 <p>Note that in this case the container has no explicit knowledge about the details on how and what authentication credentials you give to the datasource. And it depends on the JDBC datasource class which Java-Beans properties you have to set (e.g. it’s <code>User</code> and <code>Password</code> for Postgres, but it may be <code>UserName</code> and <code>Passphrase</code> for some other driver).</p>
 <p>For Wildfly and Postgres this looks like this:</p>
@@ -229,6 +230,7 @@ java [...] %BUTTLE% [...]
   &lt;xa-datasource-property name="Url"&gt;jdbc:postgresql://127.0.0.1:6632/postgres&lt;/xa-datasource-property&gt;
 &lt;/xa-datasource&gt;
 </code></pre>
+<p>Note that <code>security</code> configuration is included here only for you to be able to test this datasource through the Wildfly admin console GUI in isolation. When proxying this datasource with <em>Buttle</em> these <code>security</code> settings will never be used (as explaied in <strong>A note on authentication</strong>).</p>
 <p>You can retrieve this from JNDI like this (done via nREPL into running Wildfly; build UBERJAR with <code>lein with-profile +swank,+wildfly
 uberjar</code> to include nrepl and Swank):</p>
 <pre><code>user=&gt; (buttle.util/jndi-lookup "java:/jdbc/postgres-xa")

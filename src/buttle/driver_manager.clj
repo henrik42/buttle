@@ -31,8 +31,10 @@
   goes wrong (see `java.sql.DriverManager.getConnection(String,
   String, String)`)."
   
-  [url user password]
-  (DriverManager/getConnection url user password))
+  ([url user password]
+     (DriverManager/getConnection url user password))
+  ([url info]
+     (DriverManager/getConnection url info)))
 
 (defn deregister-drivers
   "Iterates over all registered drivers (as of `(get-drivers)`) and

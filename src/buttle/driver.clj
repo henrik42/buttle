@@ -69,6 +69,11 @@
     (catch Throwable t
       (throw (ex-info "Could not parse URL" {:url url} t)))))
 
+#_
+(let [f {"foo" "FOO" "bar" "BAR"}
+      {foo "foo" :as g} f]
+  [g foo])
+
 (defn accepts-url-fn
   "Parses `url` via `parse-jdbc-url` and retrieves the keys
   `:target-url`, `:user`, `:password`, `:class-for-name` and
@@ -84,18 +89,26 @@
      :datasource-spec datasource-spec}))
 
 (defn connect-fn
-  "Returns `nil` if `url` is not a _Buttle_ URL (as of
+  "Returns a JDBC connection for given `url`.
+
+  Returns `nil` if `url` is not a _Buttle_ URL (as of
   `accepts-url-fn`). Else opens a JDBC `Connection` to `:target-url`
-  with `:user` and `:password` via
-  `buttle.driver-manager/get-connection`. If that throws then this
+  via `buttle.driver-manager/get-connection`. If that throws then this
   function throws. Otherwise the connection is returned. Note that in
   this case _Buttle_ does not call/use the proxied JDBC driver
   directly (but relies on the `DriverManager`).
 
   If `:datasource-spec` is given in the _Buttle_ URL a datasource
   `ds` (as of `buttle-ds/retrieve-data-soure`) will be used instead of
-  the `buttle.driver-manager/get-connection`. The connection is then
-  opened via `(.getConnection ds)`.
+  the `buttle.driver-manager/get-connection`.
+
+  Authentication credentials (user and password) are taken from
+  `info` (keys `\"user\"` and `\"password\"`) if given. Else they are
+  taken from _Buttle_ URL (keys `:user` and `:password`). If the
+  connection is opened via `DriverManager` then `info` will be passed
+  onto `DriverManager/getConnection` so that any properties beyond
+  `\"user\"` and `\"password\"` (which are set to the authentication
+  credentials) contained in `info` are preserved. 
 
   If `:class-for-name` is set in the _Buttle_ `url` then
   calls `(Class/forName class-for-name)` before opening the
@@ -103,22 +116,34 @@
   loaded auto-magically by the `DriverManager`. This may happen when
   the `DriverManager` is initialized and the classloader does not
   _see_ the proxied driver classes at that point (e.g. in JEE
-  application servers when loading _modules_)."
+  application servers when loading things via isolated classloaders)."
 
-  [url]
+  [url {info-user "user" info-password "password" :as info}]
   (when-let [{:keys [target-url user password class-for-name datasource-spec] :as args} (accepts-url-fn url)]
     (try 
       (when class-for-name
         (Class/forName class-for-name))
-      (if datasource-spec
-        (let [ds (buttle-ds/retrieve-data-soure datasource-spec)]
-          (if-not password (.getConnection ds)
-                  (.getConnection ds user password)))
-        (mgr/get-connection target-url user password))
+      ;; Take user/pw from info if given. Else use user/pw from
+      ;; url. If delegating to DriverManager pass info with
+      ;; user/pw. We do this since there may be more things in info
+      ;; and we want Buttle to be as "transarent" as we can make it.
+      (let [[user password] (if (and (empty? info-user) (empty? info-password))
+                              [user password]
+                              [info-user info-password])]
+        (if datasource-spec
+          (let [ds (buttle-ds/retrieve-data-soure datasource-spec)]
+            (if-not password
+              (.getConnection ds)
+              (.getConnection ds user password)))
+          (mgr/get-connection target-url (let [info (if info (.clone info)
+                                                        (java.util.Properties.))]
+                                           (when user (.setProperty info "user" user))
+                                           (when password (.setProperty info "password" password))
+                                           info))))
       (catch Throwable t
         (throw
          (RuntimeException.
-          (format "Could not connect to %s %s: %s" url args t) t))))))
+          (format "Could not connect to %s %s %s: %s" url info args t) t))))))
 
 (defn make-driver
   "Creates and returns a _Buttle_ `java.sql.Driver`.
@@ -156,8 +181,8 @@
      ;; <security> settings in `info` with String-typed "user" and
      ;; "password" keyed values. In this case _Buttle_ has to decide
      ;; which credentials to use. At the moment we just ignore `info`.
-     (connect [url _info]
-       (connect-fn url))
+     (connect [url info]
+       (connect-fn url info))
      ;; boolean acceptsURL(String url)
      (acceptsURL [url]
        (boolean (accepts-url-fn url)))
