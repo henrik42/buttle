@@ -156,6 +156,28 @@ java [...] %BUTTLE% [...]
   &lt;property name="buttle.user-file" value="&lt;path-to&gt;/buttle-user-file.clj" boot-time="true"/&gt;
 &lt;/system-properties&gt;
 </code></pre>
+<h4><a href="#using" name="using"></a>Using <code>buttle.jdbc.DataSource</code></h4>
+<p>Depending on how you define the <code>&lt;datasource&gt;</code> Wildfly will use the <code>java.sql.DriverManager</code>/<code>java.sql.Driver</code> (see above) or <code>javax.sql.DataSource</code> API. The following example shows how to make Wildfly use the <code>javax.sql.DataSource</code> API:</p>
+<pre><code>        &lt;datasource jndi-name="java:jboss/datasources/buttle-ds"
+          pool-name="buttle-ds"
+          enabled="true"
+          use-java-context="true"&gt;
+
+          &lt;driver&gt;buttle-driver&lt;/driver&gt;
+         &lt;datasource-class&gt;buttle.jdbc.DataSource&lt;/datasource-class&gt;
+
+         &lt;security&gt;
+           &lt;user-name&gt;xkv&lt;/user-name&gt;
+           &lt;password&gt;Waldfee&lt;/password&gt;
+         &lt;/security&gt;
+
+         &lt;connection-property name="DelegateSpec"&gt;
+          {:delegate-class org.postgresql.ds.PGSimpleDataSource :url "jdbc:postgresql://127.0.0.1:6632/postgres"}
+         &lt;/connection-property&gt;
+
+        &lt;/datasource&gt;
+</code></pre>
+<p>Note that for <code>connection-property</code> there <strong>must be no linebreak</strong> in the element value!</p>
 <h4><a href="#a-note-on-authentication" name="a-note-on-authentication"></a>A note on authentication</h4>
 <p>Usually JEE containers let you define a datasource and with it supply authentication credentials (e.g. username and password). For Wildfly this is done through the <code>security</code> element:</p>
 <pre><code>    &lt;xa-datasource jndi-name="java:/jdbc/postgres-xa" pool-name="postgres-xa"&gt;

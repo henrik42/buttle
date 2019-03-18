@@ -3034,12 +3034,6 @@ define D. This makes D and P being compatible and M can be called.</p>
 <p>  This namespace delivers <code>buttle.jdbc.DataSource</code> via
   <code>:gen-class</code>. This named class can be used as a datasource class for
   application servers.</p>
-
-<p>  <strong>Note:</strong> This namespace has not yet been tested in an application
-  server. Wildfly and IBM Websphere both do not use
-  <code>javax.sql.DataSource</code> implementations (see README for more
-  details). So this namespace is only tested by
-  <code>buttle.data-source-test</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns buttle.data-source
   (:import [javax.sql DataSource]
            [java.sql SQLException]

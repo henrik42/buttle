@@ -3,13 +3,7 @@
 
   This namespace delivers `buttle.jdbc.DataSource` via
   `:gen-class`. This named class can be used as a datasource class for
-  application servers.
-
-  __Note:__ This namespace has not yet been tested in an application
-  server. Wildfly and IBM Websphere both do not use
-  `javax.sql.DataSource` implementations (see README for more
-  details). So this namespace is only tested by
-  `buttle.data-source-test`."
+  application servers."
   
   (:import [javax.sql DataSource]
            [java.sql SQLException]

@@ -252,6 +252,35 @@ load your _hook code_:
       <property name="buttle.user-file" value="<path-to>/buttle-user-file.clj" boot-time="true"/>
     </system-properties>
 
+#### Using `buttle.jdbc.DataSource`
+
+Depending on how you define the `<datasource>` Wildfly will use the
+`java.sql.DriverManager`/`java.sql.Driver` (see above) or
+`javax.sql.DataSource` API. The following example shows how to make
+Wildfly use the `javax.sql.DataSource` API:
+
+            <datasource jndi-name="java:jboss/datasources/buttle-ds"
+              pool-name="buttle-ds"
+              enabled="true"
+              use-java-context="true">
+			  
+              <driver>buttle-driver</driver>
+			  <datasource-class>buttle.jdbc.DataSource</datasource-class>
+          
+			  <security>
+				  <user-name>xkv</user-name>
+				  <password>Waldfee</password>
+			  </security>
+
+			  <connection-property name="DelegateSpec">
+				 {:delegate-class org.postgresql.ds.PGSimpleDataSource :url "jdbc:postgresql://127.0.0.1:6632/postgres"}
+			  </connection-property>
+
+            </datasource>
+
+Note that for `connection-property` there __must be no linebreak__ in
+the element value!
+
 #### A note on authentication
 
 Usually JEE containers let you define a datasource and with it supply
