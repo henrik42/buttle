@@ -62,7 +62,7 @@
 
   [url]
   (try 
-    (some-> (re-matches #"jdbc:buttle:(.+)" (.replaceAll url "[\\n\\t]+" " "))
+    (some-> (re-matches #"jdbc:buttle:(.+)" (.replaceAll url "[\\n\\t\\r]+" " "))
             second
             read-string
             eval)

@@ -91,7 +91,7 @@
            (util/with-tccl (.getClassLoader (Class/forName "buttle.jdbc.DataSource"))
              (reset! ds-spec
                      (-> spec
-                         (.replaceAll "[\\n\\t]+" " ")
+                         (.replaceAll "[\\n\\t\\r]+" " ")
                          read-string
                          eval)))
            (catch Throwable t

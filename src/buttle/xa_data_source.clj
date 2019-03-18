@@ -125,7 +125,7 @@
            (util/with-tccl (.getClassLoader (Class/forName "buttle.jdbc.XADataSource"))
              (reset! xa-ds-spec
                      (-> spec
-                         (.replaceAll "[\\n\\t]+" " ")
+                         (.replaceAll "[\\n\\t\\r]+" " ")
                          read-string
                          eval)))
            (catch Throwable t

@@ -2968,7 +2968,7 @@ define D. This makes D and P being compatible and M can be called.</p>
            (util/with-tccl (.getClassLoader (Class/forName &quot;buttle.jdbc.ConnectionPoolDataSource&quot;))
              (reset! cp-ds-spec
                      (-&gt; spec
-                         (.replaceAll &quot;[\\n\\t]+&quot; &quot; &quot;)
+                         (.replaceAll &quot;[\\n\\t\\r]+&quot; &quot; &quot;)
                          read-string
                          eval)))
            (catch Throwable t
@@ -3102,7 +3102,7 @@ A note on classloading</p>
            (util/with-tccl (.getClassLoader (Class/forName &quot;buttle.jdbc.DataSource&quot;))
              (reset! ds-spec
                      (-&gt; spec
-                         (.replaceAll &quot;[\\n\\t]+&quot; &quot; &quot;)
+                         (.replaceAll &quot;[\\n\\t\\r]+&quot; &quot; &quot;)
                          read-string
                          eval)))
            (catch Throwable t
@@ -3226,7 +3226,7 @@ A note on classloading</p>
 </td><td class="codes"><pre class="brush: clojure">(defn parse-jdbc-url
   [url]
   (try 
-    (some-&gt; (re-matches #&quot;jdbc:buttle:(.+)&quot; (.replaceAll url &quot;[\\n\\t]+&quot; &quot; &quot;))
+    (some-&gt; (re-matches #&quot;jdbc:buttle:(.+)&quot; (.replaceAll url &quot;[\\n\\t\\r]+&quot; &quot; &quot;))
             second
             read-string
             eval)
@@ -3871,7 +3871,7 @@ A note on classloading</p>
            (util/with-tccl (.getClassLoader (Class/forName &quot;buttle.jdbc.XADataSource&quot;))
              (reset! xa-ds-spec
                      (-&gt; spec
-                         (.replaceAll &quot;[\\n\\t]+&quot; &quot; &quot;)
+                         (.replaceAll &quot;[\\n\\t\\r]+&quot; &quot; &quot;)
                          read-string
                          eval)))
            (catch Throwable t

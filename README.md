@@ -200,7 +200,7 @@ __(3)__ Define `<datasource>`: in this example there is no extra
   authentication__ below for details on how authentication works with
   _Buttle_).
 
-    <datasource jndi-name="java:/jdbc/buttle-ds" pool-name="buttle-ds" use-java-context="true">
+    <datasource jndi-name="java:/jdbc/buttle-ds" pool-name="buttle-ds">
         <driver>buttle-driver</driver>
         <connection-url>
 	        jdbc:buttle:{
@@ -244,9 +244,9 @@ driver. Instead of adding the `<driver>` you can add
 
 	<module name="postgres" services="import"/>
 
-Since _Buttle_ itself doesn't give you much functionality you probably
-want to define `buttle.user-file` system property to have _Buttle_
-load your _hook code_:
+Since _Buttle_ itself doesn't give you much functionality beyond
+delegation logic you probably want to define `buttle.user-file` system
+property to have _Buttle_ load your _hook code_:
 
     <system-properties>
       <property name="buttle.user-file" value="<path-to>/buttle-user-file.clj" boot-time="true"/>
@@ -259,24 +259,17 @@ Depending on how you define the `<datasource>` Wildfly will use the
 `javax.sql.DataSource` API. The following example shows how to make
 Wildfly use the `javax.sql.DataSource` API:
 
-            <datasource jndi-name="java:jboss/datasources/buttle-ds"
-              pool-name="buttle-ds"
-              enabled="true"
-              use-java-context="true">
-			  
-              <driver>buttle-driver</driver>
-			  <datasource-class>buttle.jdbc.DataSource</datasource-class>
-          
-			  <security>
-				  <user-name>xkv</user-name>
-				  <password>Waldfee</password>
-			  </security>
-
-			  <connection-property name="DelegateSpec">
-				 {:delegate-class org.postgresql.ds.PGSimpleDataSource :url "jdbc:postgresql://127.0.0.1:6632/postgres"}
-			  </connection-property>
-
-            </datasource>
+    <datasource jndi-name="java:jboss/datasources/buttle-ds" pool-name="buttle-ds">
+          <driver>buttle-driver</driver>
+          <datasource-class>buttle.jdbc.DataSource</datasource-class>
+          <security>
+              <user-name>postgres-user</user-name>
+              <password>postgres-password</password>
+          </security>
+          <connection-property name="DelegateSpec">
+              {:delegate-class org.postgresql.ds.PGSimpleDataSource :url "jdbc:postgresql://127.0.0.1:6632/postgres"}
+          </connection-property>
+    </datasource>
 
 Note that for `connection-property` there __must be no linebreak__ in
 the element value!
@@ -583,12 +576,15 @@ __Configure _Buttle_ datasource__
 Before you can use/test the _Buttle_ datasource you need to configure
 it. Navigate to __Resources/JDBC/Data sources__, select __scope__
 (i.e. your Cell/Node/Server) and click on the _Buttle_ datasource you
-want to configure.
+want to configure. Click on __Additional Properties__/__Custom
+properties__.
 
-Click on __adjust properties__. If you have not added `delegateSpec`
-hit __add__. Otherwise click on `delegateSpec` entry in the table.
+If you have not added `delegateSpec` yet hit __New...__ to add a new
+entry. Otherwise click on `delegateSpec` entry in the table.
 
-Enter/change __value__.
+When adding a new entry enter __Name__ `delegateSpec`.
+
+Enter/change the entry __Value__.
 
 __Example: Postgres__
 
@@ -599,16 +595,16 @@ __Example: Postgres__
 	 :serverName "<postgres-hostname>"
 	 :user "<postgres-user>"}
 
-Then hit __ok__.
+Then hit __OK__.
 
 __Test _Buttle_ datasource__
 
 Finally we can test/use the _Buttle_ datasource. Navigate to
 __Resources/JDBC/datasources__, select __scope__ (e.g. your
-cell/node/server). Select (checkbox) the datasource. Hit __test
+cell/node/server). Select (checkbox) the datasource. Hit __Test
 connection__. If you have just changed the datasource you may get an
 error stating that you have to _synchronize_ the datasource settings
-first. Go ahead and click __synchronize__ and then repeat the test.
+first. Go ahead and click __Synchronize__ and then repeat the test.
 
 ### Clojure
 
