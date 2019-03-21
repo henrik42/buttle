@@ -3,7 +3,7 @@
 (cemerick.pomegranate.aether/register-wagon-factory!
  "http" #(org.apache.maven.wagon.providers.http.HttpWagon.))
 
-(defproject buttle/buttle "0.1.0"
+(defproject buttle/buttle "0.1.1-SNAPSHOT"
 
   :description "Buttle is a proxying JDBC driver with hooks."
   
