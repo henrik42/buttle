@@ -412,10 +412,29 @@ public class ButtleTest {
 <pre><code>$ buttle_user=&lt;user&gt; buttle_password=&lt;password&gt; lein test
 </code></pre>
 <h2><a href="#building" name="building"></a>Building</h2>
+<h3><a href="#building" name="building"></a>Building <code>buttle-standalone.jar</code></h3>
 <p>Use <code>lein make-doc</code> to build documenation to <code>resources/public/generated-doc</code>.</p>
-<p>Use <code>lein uberjar</code> to build the minimum <em>Buttle</em> UBERJAR. It’ll contain <em>Buttle</em>, Clojure and <code>core.async</code>. It won’t contain the Open Tracing API and no Jaeger.</p>
+<p>Use <code>lein uberjar</code> to build the minimum <em>Buttle</em> UBERJAR (<code>target/uberjar/buttle-standalone.jar</code>). It’ll contain <em>Buttle</em>, Clojure and <code>core.async</code>. It won’t contain the Open Tracing API and no Jaeger.</p>
 <p>Use <code>lein with-profile +jaeger,+wildfly uberjar</code> to build an UBERJAR incl. Open Tracing and Jaeger and suitable for usage in Wildfly.</p>
-<p>You can use <em>Buttle</em> as a library (<code>buttle.proxy</code> could probably be used for proxying other APIs like LDAP und JMS) but I usually use it like you would use a self-contained JDBC driver. If you have problems using <em>Buttle</em> in Clojure environments then you may have to fix the <code>make-</code> aliases.</p>
+<h3><a href="#deploying-a-snapshot" name="deploying-a-snapshot"></a>Deploying a SNAPSHOT</h3>
+<p>Deploy the current <code>target/uberjar/buttle-standalone.jar</code> to your own artefact repo:</p>
+<pre><code>lein with-profile +my-private-repos deploy-uberjar snapshots
+</code></pre>
+<p>For this to work you have to put your repository info into <code>&lt;user-home&gt;/.lein/profiles.clj</code>:</p>
+<pre><code>:my-private-repos {:repositories [["snapshots" {:url "http://&lt;host&gt;:&lt;path&gt;/nexus/content/repositories/snapshots/"
+                                                :username "&lt;username&gt;" :password "&lt;password&gt;"}]
+                                  ["releases" {:url "http://&lt;host&gt;:&lt;path&gt;/nexus/content/repositories/releases/"
+                                               :username "&lt;username&gt;" :password "&lt;password&gt;"}]]}
+</code></pre>
+<h3><a href="#releasing-buttle" name="releasing-buttle"></a>Releasing <em>Buttle</em></h3>
+<p>For releasing to my internal Nexus I do:</p>
+<pre><code>lein with-profile +my-private-repos release
+</code></pre>
+<p>For releasing to Clojars I do: (in <code>~/.lein/profiles.clj</code> I define <code>:clojars {:repositories [,,,</code>):</p>
+<pre><code>lein with-profile +clojars release
+</code></pre>
+<h3><a href="#building-buttle-library" name="building-buttle-library"></a>Building <em>Buttle</em> library</h3>
+<p>You can build and use <em>Buttle</em> as a library via <code>lein install</code>. You could probably use <code>buttle.proxy</code> for proxying other APIs like LDAP und JMS but I usually use it like you would use a self-contained JDBC driver.</p>
 <h2><a href="#todos" name="todos"></a>TODOS</h2>
 <ul>
   <li>

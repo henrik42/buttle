@@ -681,21 +681,51 @@ __Linux__
 
 ## Building
 
+### Building `buttle-standalone.jar`
+
 Use `lein make-doc` to build documenation to
 `resources/public/generated-doc`.
 
-Use `lein uberjar` to build the minimum _Buttle_ UBERJAR. It'll
-contain _Buttle_, Clojure and `core.async`. It won't contain the Open
-Tracing API and no Jaeger.
+Use `lein uberjar` to build the minimum _Buttle_ UBERJAR
+(`target/uberjar/buttle-standalone.jar`). It'll contain _Buttle_,
+Clojure and `core.async`. It won't contain the Open Tracing API and no
+Jaeger.
 
 Use `lein with-profile +jaeger,+wildfly uberjar` to build an UBERJAR
 incl. Open Tracing and Jaeger and suitable for usage in Wildfly.
 
-You can use _Buttle_ as a library (`buttle.proxy` could probably be
-used for proxying other APIs like LDAP und JMS) but I usually use it
-like you would use a self-contained JDBC driver. If you have problems
-using _Buttle_ in Clojure environments then you may have to fix the
-`make-` aliases.
+### Deploying a SNAPSHOT
+
+Deploy the current `target/uberjar/buttle-standalone.jar` to your own
+artefact repo:
+
+	lein with-profile +my-private-repos deploy-uberjar snapshots
+
+For this to work you have to put your repository info into
+`<user-home>/.lein/profiles.clj`:
+
+	:my-private-repos {:repositories [["snapshots" {:url "http://<host>:<path>/nexus/content/repositories/snapshots/"
+                                                    :username "<username>" :password "<password>"}]
+                                      ["releases" {:url "http://<host>:<path>/nexus/content/repositories/releases/"
+                                                   :username "<username>" :password "<password>"}]]}
+
+### Releasing _Buttle_
+
+For releasing to my internal Nexus I do:
+
+	lein with-profile +my-private-repos release
+
+For releasing to Clojars I do: (in `~/.lein/profiles.clj` I define
+`:clojars {:repositories [,,,`):
+
+	lein with-profile +clojars release
+
+### Building _Buttle_ library
+
+You can build and use _Buttle_ as a library via `lein install`. You
+could probably use `buttle.proxy` for proxying other APIs like LDAP
+und JMS but I usually use it like you would use a self-contained JDBC
+driver.
 
 ## TODOS
 

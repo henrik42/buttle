@@ -34,6 +34,69 @@
             [lein-marginalia "0.9.1"]
             [camechis/deploy-uberjar "0.3.0"]]
 
+  ;; Releasing _Buttle_
+  :release-tasks [["vcs" "assert-committed"]
+
+                  ;; Before trying to release we could/should test.
+                  #_ ["test"]
+
+                  ;; Bump SNAPSHOT to release version and tag.
+                  ;;
+                  ;; NOTE: Committing a non-SNAPSHOT version to master
+                  ;; can be dangerous! If your release fails half-way
+                  ;; you'll have a release version in master which may
+                  ;; go unnoticed for while. You'll be building
+                  ;; (compile, install, deploy) a **RELEASE** over and
+                  ;; over again producing unrepeatable builds (because
+                  ;; your local repo will _accept_ the new release but
+                  ;; your remote Nexus hopefully will not.....but
+                  ;; may..)
+                  ;;
+                  ;; So this should be changed to:
+                  ;;
+                  ;; * tag SNAPSHOT-revision on master with id
+                  ;;   `master-for-<release-version>`.  This will hepl
+                  ;;   you to see where your master was released.
+                  ;;
+                  ;; * branch & switch to revision id
+                  ;;   `master-<release-version>` with id
+                  ;;   `branch-<release-version>`.
+                  ;;
+                  ;; * bump version to <release-version>, commit and
+                  ;;   tag `release-<release-version>`
+                  ;;
+                  ;; * Build/deploy release
+                  ;; * Switch back to master
+                  ;; * Bump to next SNAPSHOT
+                  ;; * Build/deploy new SNAPSHOT
+                  ;; 
+                  ["change" "version" "leiningen.release/bump-version" "release"]
+                  ["vcs" "commit"]
+                  ["vcs" "tag"]
+
+                  ;; Before releasing we could/should test. 
+                  #_ ["test"]
+
+                  ;; --------- Build & deploy RELEASE ---------
+                  ["uberjar"]
+                  ["deploy-uberjar" "releases"]
+
+                  ;; --------- Bump version to next SNAPSHOT ---------
+                  ;;
+                  ;; NOTE: this could be a change from
+                  ;; release-version->next-SNAPSHOT-version or
+                  ;; SNAPSHOT-version->next-SNAPSHOT-version -
+                  ;; depending on whether you release on master or on
+                  ;; release-branch (see above).
+                  ["change" "version" "leiningen.release/bump-version"]
+                  ["vcs" "commit"]
+                  ["vcs" "push"]
+
+                  ;; --------- Build & deploy new SNAPSHOT ---------
+                  #_ ["uberjar"]
+                  #_ ["deploy-uberjar" "snapshots"]
+                  ]
+
   :aliases {;; uberjar will contain clojure RT!!
             "uberjar" ["do" "clean," "uberjar"]
 
