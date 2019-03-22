@@ -78,7 +78,25 @@ Use it for
 __Note__: I haven't done any measurements on how much _Buttle_ hurts
 the performance.
 
-## How to extend?
+## Using _Buttle_
+
+* You can download _Buttle_ UBERJAR releases and snapshots from
+  Clojars [1] and use it in __non-Clojure__ contexts like you would
+  use any other JDBC driver. This UBERJAR includes the Clojure core
+  lib and `clojure.core.async`. That's why you should not mix it with
+  a classpath that contains a seperate Clojure core lib. You find
+  examples for this use-case down below.
+
+* For Clojure projects you can use _Buttle_ as a lib/dependency
+  (e.g. via Leiningen). Just put the following in your `project.clj`
+  (see `use-buttle` [2] for a simple example).
+
+		:dependencies [[buttle "0.1.1-SNAPSHOT"] ,,,]
+
+[1] https://clojars.org/repo/buttle/buttle/
+[2] https://github.com/henrik42/use-buttle
+
+## Extending _Buttle_ at runtime
 
 There are two ways to _hook into Buttle_:
 
@@ -608,6 +626,9 @@ first. Go ahead and click __Synchronize__ and then repeat the test.
 
 ### Clojure
 
+Here _Buttle_ UBERJAR (includes Clojure) is used like you would use
+any other JDBC driver.
+
 	C:>java -cp buttle-0.1.0-SNAPSHOT-standalone.jar;postgresql-9.4.1212.jar clojure.main -r
 	Clojure 1.8.0
 	user=> (use 'buttle.driver-manager)
@@ -616,6 +637,10 @@ first. Go ahead and click __Synchronize__ and then repeat the test.
 		.createStatement
 		(.executeQuery "select * from pg_catalog.pg_tables where schemaname = 'pg_catalog'")
 		(resultset-seq))
+
+In [1] you find an example on how to use _Buttle_ as a lib.
+
+[1] https://github.com/henrik42/use-buttle
 
 ### Java
 
