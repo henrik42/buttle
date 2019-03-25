@@ -72,7 +72,7 @@
                   ;; 
                   ["change" "version" "leiningen.release/bump-version" "release"]
                   ["vcs" "commit"]
-                  ["vcs" "tag"]
+                  ["vcs" "tag" "--no-sign"]
 
                   ;; Before releasing we could/should test. 
                   #_ ["test"]
@@ -80,7 +80,8 @@
                   ;; --------- Build & deploy RELEASE ---------
                   ["uberjar"]
                   ["deploy-uberjar" "releases"]
-
+                  ["deploy" "releases"]
+                  
                   ;; --------- Bump version to next SNAPSHOT ---------
                   ;;
                   ;; NOTE: this could be a change from
@@ -95,6 +96,7 @@
                   ;; --------- Build & deploy new SNAPSHOT ---------
                   #_ ["uberjar"]
                   #_ ["deploy-uberjar" "snapshots"]
+                  #_ ["deploy" "snasphots"]
                   ]
 
   :aliases {;; uberjar will contain clojure RT!!
@@ -110,7 +112,7 @@
                          "-d" "resources/public/generated-doc/"
                          "-f" "buttle-source.html"
                          "src"]]}
-
+  
   :profiles {;; Build documentation from source. I check this into git
              ;; repo. Maybe thats not the best solution but this way I
              ;; see which things changed. There probably is a better
