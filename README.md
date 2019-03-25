@@ -93,8 +93,8 @@ the performance.
 
 		:dependencies [[buttle "0.1.1-SNAPSHOT"] ,,,]
 
-[1] https://clojars.org/repo/buttle/buttle/
-[2] https://github.com/henrik42/use-buttle
+[1] https://clojars.org/repo/buttle/buttle/  
+[2] https://github.com/henrik42/use-buttle  
 
 ## Extending _Buttle_ at runtime
 
