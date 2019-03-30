@@ -42,39 +42,73 @@
 
                   ;; Bump SNAPSHOT to release version and tag.
                   ;;
-                  ;; NOTE: Committing a non-SNAPSHOT version to master
-                  ;; can be dangerous! If your release fails half-way
-                  ;; you'll have a release version in master which may
-                  ;; go unnoticed for while. You'll be building
-                  ;; (compile, install, deploy) a **RELEASE** over and
-                  ;; over again producing unrepeatable builds (because
-                  ;; your local repo will _accept_ the new release but
-                  ;; your remote Nexus hopefully will not.....but
-                  ;; may..)
+                  ;; NOTE: Committing a non-SNAPSHOT
+                  ;; (i.e. __release__) version to master can be
+                  ;; dangerous! If your release fails half-way (after
+                  ;; having committed the release) you'll have a
+                  ;; release version in master which may go unnoticed
+                  ;; for while. You (or your CI build roboter) will be
+                  ;; building (compile, install, deploy) a **RELEASE**
+                  ;; over and over again producing unrepeatable builds
+                  ;; (because your local repo will _accept_ the new
+                  ;; updated release artefact but your remote Nexus
+                  ;; hopefully will not.....but maybe... and
+                  ;; downstream projects which are built on the same
+                  ;; build slave will see your locally "updated" repo
+                  ;; and all kinds of crazy thing will happen). We
+                  ;; never commit release versions to master (or what
+                  ;; ever branch you're releasing from).
                   ;;
-                  ;; So this should be changed to:
+                  ;; So this should be (but has not yet been) changed
+                  ;; to:
                   ;;
                   ;; * tag SNAPSHOT-revision on master with id
-                  ;;   `master-for-<release-version>`.  This will hepl
+                  ;;   `master-for-<release-version>`.  This will help
                   ;;   you to see where your master was released.
                   ;;
-                  ;; * branch & switch to revision id
-                  ;;   `master-<release-version>` with id
-                  ;;   `branch-<release-version>`.
+                  ;; * branch of master from revision id
+                  ;;   `master-for-<release-version>`. New branch will
+                  ;;   have name `branch-<release-version>`. Switch to
+                  ;;   new branch.
                   ;;
                   ;; * bump version to <release-version>, commit and
                   ;;   tag `release-<release-version>`
                   ;;
-                  ;; * Build/deploy release
+                  ;; * Build/deploy the release version
+                  ;;
+                  ;; At this point you should "close" the release
+                  ;; branch. You could keep it if you're planning to
+                  ;; hot-fix but then you must bump the release
+                  ;; version to the SNAPSHOT for the next release (see
+                  ;; above). If you are "pragmatic" you can (e.g. for
+                  ;; subversion and git) use a tag instead of the
+                  ;; release branch. You just have to be willing to do
+                  ;; the update to the release version __in a tag__
+                  ;; (which some people will refuse to do). With this
+                  ;; you'll save the extra branch. You can do this
+                  ;; with a special user-id which is allowed to
+                  ;; update/commit to tags which you will usually not
+                  ;; allow.
+                  ;;
                   ;; * Switch back to master
                   ;; * Bump to next SNAPSHOT
                   ;; * Build/deploy new SNAPSHOT
+                  ;;
+                  ;; Note that work on the release branch/tag
+                  ;; described above can be done in
+                  ;; parallel/offline/asynchronuously/whatever to what
+                  ;; has to be done on the master. So all you really
+                  ;; need is the tag or revision number on
+                  ;; master. From there you can release "any time".
                   ;; 
                   ["change" "version" "leiningen.release/bump-version" "release"]
                   ["vcs" "commit"]
                   ["vcs" "tag" "--no-sign"]
 
-                  ;; Before releasing we could/should test. 
+                  ;; Before releasing we could/should test -- aboe we
+                  ;; tested the __SNAPSHOT__ -- now we have the
+                  ;; __release__ version. This may be a parnoid
+                  ;; overkill ...
                   #_ ["test"]
 
                   ;; --------- Build & deploy RELEASE ---------
