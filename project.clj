@@ -31,14 +31,13 @@
   
   :plugins [[lein-swank "1.4.5"]
             [lein-codox "0.10.3"]
-            [lein-marginalia "0.9.1"]
-            [camechis/deploy-uberjar "0.3.0"]]
+            [lein-marginalia "0.9.1"]]
 
   ;; Releasing _Buttle_
   :release-tasks [["vcs" "assert-committed"]
 
                   ;; Before trying to release we could/should test.
-                  #_ ["test"]
+                  ["test"]
 
                   ;; Bump SNAPSHOT to release version and tag.
                   ;;
@@ -102,19 +101,19 @@
                   ;; master. From there you can release "any time".
                   ;; 
                   ["change" "version" "leiningen.release/bump-version" "release"]
+                  ["make-doc"]
+                  
                   ["vcs" "commit"]
                   ["vcs" "tag" "--no-sign"]
 
                   ;; Before releasing we could/should test -- aboe we
                   ;; tested the __SNAPSHOT__ -- now we have the
-                  ;; __release__ version. This may be a parnoid
+                  ;; __release__ version. This may be a paranoid
                   ;; overkill ...
                   #_ ["test"]
 
                   ;; --------- Build & deploy RELEASE ---------
-                  ["uberjar"]
-                  ["deploy-uberjar" "releases"]
-                  ["deploy" "releases"]
+                  ["deploy-all"]
                   
                   ;; --------- Bump version to next SNAPSHOT ---------
                   ;;
@@ -124,20 +123,21 @@
                   ;; depending on whether you release on master or on
                   ;; release-branch (see above).
                   ["change" "version" "leiningen.release/bump-version"]
+                  ["lein-doc"]
+                  
                   ["vcs" "commit"]
                   ["vcs" "push"]
 
                   ;; --------- Build & deploy new SNAPSHOT ---------
-                  #_ ["uberjar"]
-                  #_ ["deploy-uberjar" "snapshots"]
-                  #_ ["deploy" "snasphots"]
-                  ]
+                  ["deploy-all"]]
 
   :aliases {;; uberjar will contain clojure RT!!
             "uberjar" ["do" "clean," "uberjar"]
 
-            "deploy-uberjar" ["with-profile" "+deploy-uberjar" "deploy-uberjar"]
+            "deploy-all" ["do" "clean," "deploy," "uberjar," "deploy-driver"]
 
+            "deploy-driver" ["deploy-driver" ":leiningen/repository" "buttle/buttle" ":leiningen/version" "driver" "target/uberjar/buttle-driver.jar"]
+            
             ;; make documenation which is kept in git repo
             "make-doc" ["with-profile" "+make-doc" "do"
                         ["clean"]
@@ -182,10 +182,7 @@
              :swank {:dependencies [[swank-clojure/swank-clojure "1.4.3"]
                                     [org.clojure/tools.nrepl "0.2.12"]]}
 
-             :uberjar {:uberjar-name "buttle-standalone.jar"}
-             
-             :deploy-uberjar {:target-path "target/uberjar/"
-                              :uberjar-name "buttle-standalone.jar"}
+             :uberjar {:uberjar-name "buttle-driver.jar"}
              
              :test {:dependencies [[org.postgresql/postgresql "9.4.1212"]
                                    [opentracing-clj "0.1.2"]

@@ -7,12 +7,13 @@
   "Deploys the Buttle driver (UBERJAR) to the given repo.
 
    Deploys the JAR **only**. The `pom.xml` will not be deployed. Use
-   this to deploy just one file to a repo when you need a
+   this to deploy just one file to a repository when you need a
    `classifier`.
 
-   Example: build UBERJAR and deploy 
+   Example: build UBERJAR and deploy (works for snapshots and releases)
 
-      lein deploy-driver snapshots buttle/buttle 0.1.1-SNAPSHOT driver target/uberjar/buttle-0.1.1-SNAPSHOT-standalone.jar
+      lein uberjar 
+      lein deploy-driver :leiningen/repository buttle/buttle :leiningen/version driver target/uberjar/buttle-driver.jar
 
    "
   
@@ -20,6 +21,14 @@
   (let [identifier (symbol identifier)
         artifact-id (name identifier)
         group-id (namespace identifier)
+        version (if (= version ":leiningen/version")
+                  (:version project)
+                  version)
+        repository (if (= repository ":leiningen/repository")
+                     (if (.endsWith version "-SNAPSHOT")
+                       "snapshots"
+                       "releases")
+                     repository)
         repo (ldeploy/repo-for project repository)
         artifact-map {[:extension "jar"
                        :classifier classifier] file}
