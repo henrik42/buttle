@@ -156,7 +156,7 @@ __(1)__ In `squirrel-sql.bat` add system property `buttle.user-file` to java cal
 	java [...] %BUTTLE% [...]
 
 __(2)__ In the GUI add a _Driver_ with _extra classpath_
-  `<path-to>/buttle-standalone.jar` and class `buttle.jdbc.Driver`.
+  `<path-to>/buttle-driver.jar` and class `buttle.jdbc.Driver`.
 
 __(3)__ In the GUI add an _Alias_ with URL (replace `<user>` and
   `<password>`). Text following `jdbc:buttle:` will be
@@ -188,7 +188,7 @@ __(1)__ Define `<module>`: put this into
 	<module xmlns="urn:jboss:module:1.1" name="buttle">
 
 	  <resources>
-		<resource-root path="buttle-standalone.jar"/>
+		<resource-root path="buttle-driver.jar"/>
 	  </resources>
 
 	  <dependencies>
@@ -543,7 +543,7 @@ __Step 1: Create new JDBC provider__
 
 __Step 2: Enter database class path information__
 
-* enter __Class path__: `<path-to-buttle-standalone.jar>`
+* enter __Class path__: `<path-to-buttle-driver.jar>`
 * hit __Next__
 
 __Step 3: Summary__
@@ -629,7 +629,7 @@ first. Go ahead and click __Synchronize__ and then repeat the test.
 Here _Buttle_ UBERJAR (includes Clojure) is used like you would use
 any other JDBC driver.
 
-	C:>java -cp buttle-0.1.0-SNAPSHOT-standalone.jar;postgresql-9.4.1212.jar clojure.main -r
+	C:>java -cp buttle-0.1.0-SNAPSHOT-driver.jar;postgresql-9.4.1212.jar clojure.main -r
 	Clojure 1.8.0
 	user=> (use 'buttle.driver-manager)
 	;;--> nil
@@ -687,7 +687,7 @@ Build to `target/` dir:
 
 And run (adjust paths as needed):
 
-	C:\>java -cp buttle-standalone.jar;postgresql-9.4.1212.jar;target -Dbuttle_user=<user> -Dbuttle_password=<password> ButtleTest
+	C:\>java -cp buttle-driver.jar;postgresql-9.4.1212.jar;target -Dbuttle_user=<user> -Dbuttle_password=<password> ButtleTest
 
 ## Tests
 
@@ -704,53 +704,14 @@ __Linux__
 
 	$ buttle_user=<user> buttle_password=<password> lein test
 
-## Building
+## Building & Releasing
 
-### Building `buttle-standalone.jar`
+See also aliases in `project.clj`.
 
-Use `lein make-doc` to build documenation to
-`resources/public/generated-doc`.
-
-Use `lein uberjar` to build the minimum _Buttle_ UBERJAR
-(`target/uberjar/buttle-standalone.jar`). It'll contain _Buttle_,
-Clojure and `core.async`. It won't contain the Open Tracing API and no
-Jaeger.
-
-Use `lein with-profile +jaeger,+wildfly uberjar` to build an UBERJAR
-incl. Open Tracing and Jaeger and suitable for usage in Wildfly.
-
-### Deploying a SNAPSHOT
-
-Deploy the current `target/uberjar/buttle-standalone.jar` to your own
-artefact repo:
-
-	lein with-profile +my-private-repos deploy-uberjar snapshots
-
-For this to work you have to put your repository info into
-`<user-home>/.lein/profiles.clj`:
-
-	:my-private-repos {:repositories [["snapshots" {:url "http://<host>:<path>/nexus/content/repositories/snapshots/"
-                                                    :username "<username>" :password "<password>"}]
-                                      ["releases" {:url "http://<host>:<path>/nexus/content/repositories/releases/"
-                                                   :username "<username>" :password "<password>"}]]}
-
-### Releasing _Buttle_
-
-For releasing to my internal Nexus I do:
-
-	lein with-profile +my-private-repos release
-
-For releasing to Clojars I do: (in `~/.lein/profiles.clj` I define
-`:clojars {:repositories [,,,`):
-
-	lein with-profile +clojars release
-
-### Building _Buttle_ library
-
-You can build and use _Buttle_ as a library via `lein install`. You
-could probably use `buttle.proxy` for proxying other APIs like LDAP
-und JMS but I usually use it like you would use a self-contained JDBC
-driver.
+* build lib-jar: `lein jar`
+* build UBERJAR (`buttle-driver.jar`): `lein uberjar`
+* deploy lib-jar and UBERJAR to Nexus running on local machine: `lein with-profile +local deploy-all`
+* release: `lein with-profile +clojars,+skip-test release`
 
 ## TODOS
 
