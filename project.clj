@@ -3,7 +3,7 @@
 (cemerick.pomegranate.aether/register-wagon-factory!
  "http" #(org.apache.maven.wagon.providers.http.HttpWagon.))
 
-(defproject buttle/buttle "0.1.1"
+(defproject buttle/buttle "0.1.2-SNAPSHOT"
 
   :description "Buttle is a proxying JDBC driver with hooks."
   
@@ -34,24 +34,46 @@
             [lein-marginalia "0.9.1"]]
 
   :aliases {;; uberjar will contain clojure RT!!
-            "uberjar" ["do" "clean," "uberjar"]
-            "deploy" ["do" "clean," "deploy"]
+            "uberjar" ["do" "clean," "uberjar"]                      ;; builds driver/UBERJAR to target/uberjar/buttle-driver.jar
+            "deploy"  ["do" "clean," "deploy"]                       ;; deploys lib jar to snapshots/releases depending on version
             
-            "deploy-driver" ["deploy-driver" ":leiningen/repository" "buttle/buttle" ":leiningen/version" "driver" "target/uberjar/buttle-driver.jar"]
+            "deploy-driver" ["deploy-driver"                         ;; calls plugin/leiningen/deploy_driver.clj
+                             ":leiningen/repository"                 ;; fake-leiningen-keyword -- see plugin/leiningen/deploy_driver.clj
+                             "buttle/buttle"                         ;; group/artefact-id
+                             ":leiningen/version"                    ;; fake-leiningen-keyword -- see plugin/leiningen/deploy_driver.clj
+                             "driver"                                ;; classifier
+                             "target/uberjar/buttle-driver.jar"      ;; file
+                             ]
 
-            "deploy-all" ["do" "deploy," "uberjar," "deploy-driver"]
+            "deploy-all" ["do" "deploy," "uberjar," "deploy-driver"] ;; depoy everything to snapshots/releases depending on version
 
-            "release" ["do" ["vcs" "assert-committed"]
+            ;; the lein release task does not honor with-profile --
+            ;; but the lein do task does. So we're using a release
+            ;; alias. We cannot do "major" and "minor" releases this
+            ;; way. Instead we have to manually prepare the version in
+            ;; case of major releases.
+            "release" ["do" ;; *********** RELEASE procedure ***********
+                       
+                       ;; prepare / build and test
+                       ["vcs" "assert-committed"]
                        ["test"]
+
+                       ;; bump to release version and commit
                        ["change" "version" "leiningen.release/bump-version" "release"]
                        ["make-doc"]
                        ["vcs" "commit"]
                        ["vcs" "tag" "--no-sign"]
+
+                       ;; build & deploy release version
                        ["deploy-all"]
+
+                       ;; bump to next SNAPSHOT and commit
                        ["change" "version" "leiningen.release/bump-version"]
-                       ["lein-doc"]
+                       ["make-doc"]
                        ["vcs" "commit"]
                        ["vcs" "push"]
+
+                       ;; build & deploy SNASHOT version
                        ["deploy-all"]]
             
             ;; make documenation which is kept in git repo
@@ -99,7 +121,9 @@
                                     [org.clojure/tools.nrepl "0.2.12"]]}
 
              :uberjar {:uberjar-name "buttle-driver.jar"}
-             
+
+             ;; use for `lein with-profile +clojars,+skip-test release`
+             :skip-test {:aliases {"test" ["do"]}}
              :test {:dependencies [[org.postgresql/postgresql "9.4.1212"]
                                    [opentracing-clj "0.1.2"]
                                    
@@ -107,4 +131,20 @@
                                    ;; https://github.com/hen/osjava/tree/master/simple-jndi
                                    [com.github.h-thurow/simple-jndi "0.17.2"]
                                    [io.jaegertracing/jaeger-client "0.33.1"]
-                                   [org.slf4j/slf4j-jdk14 "1.7.25"]]}})
+                                   [org.slf4j/slf4j-jdk14 "1.7.25"]]}
+
+             ;; run a local docker container with:
+             ;; docker run -d -p 8081:8081 --name nexus sonatype/nexus:oss
+             ;;
+             ;; Then you can deploy a SNAPSHOT:
+             ;; lein with-profile +local deploy-all
+             ;;
+             ;; Release to local repository:
+             ;; buttle_user=<postgres-user> buttle_password=<postgres-password> lein with-profile +local release
+             :local {:repositories [["snapshots" {:url "http://localhost:8081/nexus/content/repositories/snapshots/"
+                                                  :sign-releases false 
+                                                  :username "admin" :password "admin123"}]
+                                    ["releases" {:url "http://localhost:8081/nexus/content/repositories/releases/"
+                                                 :sign-releases false 
+                                                 :username "admin" :password "admin123"}]]}})
+
