@@ -41,7 +41,7 @@
 
             "deploy-all" ["do" "deploy," "uberjar," "deploy-driver"]
 
-            "release" [["vcs" "assert-committed"]
+            "release" ["do" ["vcs" "assert-committed"]
                        ["test"]
                        ["change" "version" "leiningen.release/bump-version" "release"]
                        ["make-doc"]
