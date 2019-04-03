@@ -47,34 +47,51 @@
 
             "deploy-all" ["do" "deploy," "uberjar," "deploy-driver"] ;; depoy everything to snapshots/releases depending on version
 
+            ;; --------------------------------------------------------
+            ;; THIS IS BROKEN!
+            ;;
+            ;; The lein do task loads `project.clj` only ONCE. So
+            ;; after ["change" "version" ,,,] the project version is
+            ;; unchanged for the tasks which are invoked by do. The
+            ;; release task loads `project.clj` before invoking each
+            ;; of the :release-tasks. But the release task does not
+            ;; honor with-profile settings. So none of these works.
+            ;;
+            ;; Workaround: split up the do tasks and invoke lein from
+            ;; shell for each "release-step". Each time lein is
+            ;; invoked `project.clj` will be read and so the version
+            ;; info will be visible to the invoked tasks.
+            ;;
+            ;; --------------------------------------------------------
             ;; the lein release task does not honor with-profile --
             ;; but the lein do task does. So we're using a release
             ;; alias. We cannot do "major" and "minor" releases this
             ;; way. Instead we have to manually prepare the version in
             ;; case of major releases.
-            "release" ["do" ;; *********** RELEASE procedure ***********
+            "release-broken!"
+            ["do" ;; *********** RELEASE procedure ***********
                        
-                       ;; prepare / build and test
-                       ["vcs" "assert-committed"]
-                       ["test"]
+             ;; prepare / build and test
+             ["vcs" "assert-committed"]
+             ["test"]
 
-                       ;; bump to release version and commit
-                       ["change" "version" "leiningen.release/bump-version" "release"]
-                       ["make-doc"]
-                       ["vcs" "commit"]
-                       ["vcs" "tag" "--no-sign"]
+             ;; bump to release version and commit
+             ["change" "version" "leiningen.release/bump-version" "release"]
+             ["make-doc"]
+             ["vcs" "commit"]
+             ["vcs" "tag" "--no-sign"]
 
-                       ;; build & deploy release version
-                       ["deploy-all"]
-
-                       ;; bump to next SNAPSHOT and commit
-                       ["change" "version" "leiningen.release/bump-version"]
-                       ["make-doc"]
-                       ["vcs" "commit"]
-                       ["vcs" "push"]
-
-                       ;; build & deploy SNASHOT version
-                       ["deploy-all"]]
+             ;; build & deploy release version
+             ["deploy-all"]
+             
+             ;; bump to next SNAPSHOT and commit
+             ["change" "version" "leiningen.release/bump-version"]
+             ["make-doc"]
+             ["vcs" "commit"]
+             ["vcs" "push"]
+             
+             ;; build & deploy SNASHOT version
+             ["deploy-all"]]
             
             ;; make documenation which is kept in git repo
             "make-doc" ["with-profile" "+make-doc" "do"
