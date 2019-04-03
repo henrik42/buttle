@@ -38,15 +38,36 @@
             "deploy"  ["do" "clean," "deploy"]                       ;; deploys lib jar to snapshots/releases depending on version
             
             "deploy-driver" ["deploy-driver"                         ;; calls plugin/leiningen/deploy_driver.clj
-                             ":leiningen/repository"                 ;; fake-leiningen-keyword -- see plugin/leiningen/deploy_driver.clj
+                             ":leiningen/repository"                 ;; pseudo repository -- see plugin/leiningen/deploy_driver.clj
                              "buttle/buttle"                         ;; group/artefact-id
-                             ":leiningen/version"                    ;; fake-leiningen-keyword -- see plugin/leiningen/deploy_driver.clj
+                             ":leiningen/version"                    ;; pseudo version number -- see plugin/leiningen/deploy_driver.clj
                              "driver"                                ;; classifier
-                             "target/uberjar/buttle-driver.jar"      ;; file
+                             "target/uberjar/buttle-driver.jar"      ;; file -- see :uberjar-name
                              ]
 
             "deploy-all" ["do" "deploy," "uberjar," "deploy-driver"] ;; depoy everything to snapshots/releases depending on version
 
+            "release-prepare!" ["do" ;; *********** RELEASE procedure 1/3 ***********
+                                ;; build and test
+                                ["vcs" "assert-committed"]
+                                ["test"]
+                                
+                                ;; bump to release version and commit
+                                ["change" "version" "leiningen.release/bump-version" "release"]
+                                ["make-doc"]
+                                ["vcs" "commit"]
+                                ["vcs" "tag" "--no-sign"]]
+            
+            "release-deploy!" ["do" ;; *********** RELEASE procedure 2/3 ***********
+                               ;; build & deploy release version
+                               ["deploy-all"]]
+            
+            "release-push!" ["do" ;; *********** RELEASE procedure 3/3 ***********
+                             ["change" "version" "leiningen.release/bump-version"]
+                             ["make-doc"]
+                             ["vcs" "commit"]
+                             ["vcs" "push"]]}
+            
             ;; --------------------------------------------------------
             ;; THIS IS BROKEN!
             ;;
@@ -92,6 +113,7 @@
              
              ;; build & deploy SNASHOT version
              ["deploy-all"]]
+            ;; -------- END BROKEN --------------------------------------
             
             ;; make documenation which is kept in git repo
             "make-doc" ["with-profile" "+make-doc" "do"
