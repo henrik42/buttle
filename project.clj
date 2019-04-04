@@ -81,20 +81,25 @@
                                 ;; project.clj and commit before
                                 ;; releasing.
                                 ["change" "version" "leiningen.release/bump-version" "release"]
-                                ["make-doc"]
-                                ["vcs" "commit"]
-                                ["vcs" "tag" "--no-sign"]]
+                                #_ ["make-doc"]
+                                #_ ["vcs" "commit"]
+                                #_ ["vcs" "tag" "--no-sign"]]
             
             "release-deploy!" ["do" ;; *********** RELEASE procedure 2/3 ***********
+                               ["make-doc"]
+                               ["vcs" "commit"]
+                               ["vcs" "tag" "--no-sign"]
                                ;; build & deploy release version
-                               ["deploy-all"]] ;; use +with-profile <target-repo-profile> -- see :local profile
+                               ["deploy-all"] ;; use +with-profile <target-repo-profile> -- see :local profile
+                               ["change" "version" "leiningen.release/bump-version"]
+                               ]
             
             "release-push!" ["do" ;; *********** RELEASE procedure 3/3 ***********
-                             ["change" "version" "leiningen.release/bump-version"]
+                             #_ ["change" "version" "leiningen.release/bump-version"]
                              ["make-doc"]
                              ["vcs" "commit"]
                              ["vcs-push"] ;; skip via `with-profile +skip-vcs-push`
-                             ]
+                             ["deploy-all"]]
   
             ;; --------------------------------------------------------
             ;; THIS IS BROKEN!
