@@ -98,7 +98,8 @@
                              #_ ["change" "version" "leiningen.release/bump-version"]
                              ["make-doc"]
                              ["vcs" "commit"]
-                             ["vcs-push"] ;; skip via `with-profile +skip-vcs-push`
+
+                             #_ ["vcs-push"] ;; skip via `with-profile +skip-vcs-push`
                              ["deploy-all"]]
   
             ;; --------------------------------------------------------
