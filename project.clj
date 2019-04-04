@@ -37,7 +37,7 @@
             "uberjar" ["do" "clean," "uberjar"]                      ;; builds driver/UBERJAR to target/uberjar/buttle-driver.jar
             "deploy"  ["do" "clean," "deploy"]                       ;; deploys lib jar to snapshots/releases depending on version
             
-            "deploy-driver" ["deploy-driver"                         ;; calls plugin/leiningen/deploy_driver.clj
+            "deploy-driver" ["deploy-driver"                         ;; calls Buttle's plugin/leiningen/deploy_driver.clj
                              ":leiningen/repository"                 ;; pseudo repository -- see plugin/leiningen/deploy_driver.clj
                              "buttle/buttle"                         ;; group/artefact-id
                              ":leiningen/version"                    ;; pseudo version number -- see plugin/leiningen/deploy_driver.clj
@@ -47,12 +47,39 @@
 
             "deploy-all" ["do" "deploy," "uberjar," "deploy-driver"] ;; depoy everything to snapshots/releases depending on version
 
+            ;; needed for release-push! alias -- see below
+            "vcs-push" ["vcs" "push"] 
+            
+            ;; --------------------------------------------------------
+            ;; RELEASING
+            ;;
+            ;; A release requires invoking lein three times:
+            ;;
+            ;; 1/3: lein with-profle +skip-test release-prepare!
+            ;;   or buttle_user=<postgres-user> buttle_password=<postgres-password> lein release-prepare!
+            ;;
+            ;; 2/3: lein with-profile +local release-deploy!
+            ;;
+            ;; 3/3: lein with-profile +skip-vcs-push release-push!
+            ;;   or lein release-push!
+            ;;
+            ;; You should deploy the new SNAPSHOT then:
+            ;; lein with-profile +local deploy-all
+            ;; Or: buttle_user=<postgres-user> buttle_password=<postgres-password> lein with-profile +local do test, deploy-all
+            ;; 
+            ;; --------------------------------------------------------
+            
             "release-prepare!" ["do" ;; *********** RELEASE procedure 1/3 ***********
                                 ;; build and test
                                 ["vcs" "assert-committed"]
-                                ["test"]
+                                ["test"] ;; skip via `with-profile +skip-test`
                                 
-                                ;; bump to release version and commit
+                                ;; bump to release version and
+                                ;; commit. Target release version
+                                ;; cannot be given as argument. Just
+                                ;; change SNAPSHOT-version in
+                                ;; project.clj and commit before
+                                ;; releasing.
                                 ["change" "version" "leiningen.release/bump-version" "release"]
                                 ["make-doc"]
                                 ["vcs" "commit"]
@@ -60,14 +87,15 @@
             
             "release-deploy!" ["do" ;; *********** RELEASE procedure 2/3 ***********
                                ;; build & deploy release version
-                               ["deploy-all"]]
+                               ["deploy-all"]] ;; use +with-profile <target-repo-profile> -- see :local profile
             
             "release-push!" ["do" ;; *********** RELEASE procedure 3/3 ***********
                              ["change" "version" "leiningen.release/bump-version"]
                              ["make-doc"]
                              ["vcs" "commit"]
-                             ["vcs" "push"]]}
-            
+                             ["vcs-push"] ;; skip via `with-profile +skip-vcs-push`
+                             ]
+  
             ;; --------------------------------------------------------
             ;; THIS IS BROKEN!
             ;;
@@ -161,8 +189,10 @@
 
              :uberjar {:uberjar-name "buttle-driver.jar"}
 
-             ;; use for `lein with-profile +clojars,+skip-test release`
+             ;; needed for "release procedure" aliases -- see above
+             :skip-vcs-push {:aliases {"vcs-push" ["do"]}}
              :skip-test {:aliases {"test" ["do"]}}
+             
              :test {:dependencies [[org.postgresql/postgresql "9.4.1212"]
                                    [opentracing-clj "0.1.2"]
                                    
