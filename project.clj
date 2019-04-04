@@ -55,7 +55,7 @@
             ;;
             ;; A release requires invoking lein three times:
             ;;
-            ;; 1/3: lein with-profle +skip-test release-prepare!
+            ;; 1/3: lein with-profile +skip-test release-prepare!
             ;;   or buttle_user=<postgres-user> buttle_password=<postgres-password> lein release-prepare!
             ;;
             ;; 2/3: lein with-profile +local release-deploy!
