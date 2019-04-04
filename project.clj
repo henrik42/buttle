@@ -3,7 +3,7 @@
 (cemerick.pomegranate.aether/register-wagon-factory!
  "http" #(org.apache.maven.wagon.providers.http.HttpWagon.))
 
-(defproject buttle/buttle "0.1.5"
+(defproject buttle/buttle "0.1.6-SNAPSHOT"
 
   :description "Buttle is a proxying JDBC driver with hooks."
   
@@ -60,7 +60,7 @@
             ;;
             ;; 2/3: lein with-profile +local release-deploy!
             ;;
-            ;; 3/3: lein with-profile +skip-vcs-push release-push!
+            ;; 3/3: lein with-profile +local release-push!
             ;;   or lein release-push!
             ;;
             ;; You should deploy the new SNAPSHOT then:
