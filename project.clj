@@ -33,8 +33,7 @@
             [lein-codox "0.10.3"]
             [lein-marginalia "0.9.1"]]
 
-  :aliases {;; uberjar will contain clojure RT!!
-            "uberjar" ["do" "clean," "uberjar"]                      ;; builds driver/UBERJAR to target/uberjar/buttle-driver.jar
+  :aliases {"uberjar" ["do" "clean," "uberjar"]                      ;; builds driver/UBERJAR to target/uberjar/buttle-driver.jar
             "deploy"  ["do" "clean," "deploy"]                       ;; deploys lib jar to snapshots/releases depending on version
             
             "deploy-driver" ["deploy-driver"                         ;; calls Buttle's plugin/leiningen/deploy_driver.clj
@@ -47,84 +46,73 @@
 
             "deploy-all" ["do" "deploy," "uberjar," "deploy-driver"] ;; depoy everything to snapshots/releases depending on version
 
-            ;; needed for release-push! alias -- see below
-            "vcs-push" ["vcs" "push"] 
-            
             ;; --------------------------------------------------------
-            ;; RELEASING
+            ;; RELEASE PROCEDURE
             ;;
-            ;; A release requires invoking lein three times:
+            ;; A release requires invoking lein three times. See
+            ;; comments on "release-broken!" below for some details
+            ;; for why this is done this way.
             ;;
             ;; 1/3: lein with-profile +skip-test release-prepare!
             ;;   or buttle_user=<postgres-user> buttle_password=<postgres-password> lein release-prepare!
             ;;
             ;; 2/3: lein with-profile +local release-deploy!
             ;;
-            ;; 3/3: lein with-profile +local release-push!
-            ;;   or lein release-push!
-            ;;
-            ;; You should deploy the new SNAPSHOT then:
-            ;; lein with-profile +local deploy-all
-            ;; Or: buttle_user=<postgres-user> buttle_password=<postgres-password> lein with-profile +local do test, deploy-all
+            ;; 3/3: lein with-profile +local release-finish!
             ;; 
+            ;; After that you just need to push commits to github.
             ;; --------------------------------------------------------
             
-            "release-prepare!" ["do" ;; *********** RELEASE procedure 1/3 ***********
-                                ;; build and test
+            "release-prepare!" ["do"
                                 ["vcs" "assert-committed"]
                                 ["test"] ;; skip via `with-profile +skip-test`
                                 
-                                ;; bump to release version and
-                                ;; commit. Target release version
-                                ;; cannot be given as argument. Just
-                                ;; change SNAPSHOT-version in
-                                ;; project.clj and commit before
-                                ;; releasing.
-                                ["change" "version" "leiningen.release/bump-version" "release"]
-                                #_ ["make-doc"]
-                                #_ ["vcs" "commit"]
-                                #_ ["vcs" "tag" "--no-sign"]]
+                                ;; bump to release version --> next step!
+                                ["change" "version" "leiningen.release/bump-version" "release"]]
             
-            "release-deploy!" ["do" ;; *********** RELEASE procedure 2/3 ***********
+            "release-deploy!" ["do" 
                                ["make-doc"]
                                ["vcs" "commit"]
                                ["vcs" "tag" "--no-sign"]
+                               
                                ;; build & deploy release version
                                ["deploy-all"] ;; use +with-profile <target-repo-profile> -- see :local profile
+                               
+                               ;; bump to next SNAPSHOT version --> next step!
                                ["change" "version" "leiningen.release/bump-version"]
                                ]
             
-            "release-push!" ["do" ;; *********** RELEASE procedure 3/3 ***********
-                             #_ ["change" "version" "leiningen.release/bump-version"]
-                             ["make-doc"]
-                             ["vcs" "commit"]
-
-                             #_ ["vcs-push"] ;; skip via `with-profile +skip-vcs-push`
-                             ["deploy-all"]]
+            "release-finish!" ["do" 
+                               ["make-doc"]
+                               ["vcs" "commit"]
+                               
+                               ;; build & deploy new SNAPSHOT
+                               ["deploy-all"]]
   
-            ;; --------------------------------------------------------
-            ;; THIS IS BROKEN!
+            ;; -----------------------------------------------------------------------------------
             ;;
-            ;; The lein do task loads `project.clj` only ONCE. So
+            ;; ************   THIS IS BROKEN!    ************
+            ;;
+            ;; (kept just for future reference)
+            ;;
+            ;; The lein `do` task loads `project.clj` only ONCE. So
             ;; after ["change" "version" ,,,] the project version is
-            ;; unchanged for the tasks which are invoked by do. The
-            ;; release task loads `project.clj` before invoking each
-            ;; of the :release-tasks. But the release task does not
-            ;; honor with-profile settings. So none of these works.
+            ;; unchanged for the tasks which are invoked by `do`. The
+            ;; `release` task loads `project.clj` before invoking each
+            ;; of the `:release-tasks`. But the `release` task does
+            ;; not honor `with-profile` "settings". So none of these
+            ;; works.
             ;;
-            ;; Workaround: split up the do tasks and invoke lein from
-            ;; shell for each "release-step". Each time lein is
-            ;; invoked `project.clj` will be read and so the version
-            ;; info will be visible to the invoked tasks.
+            ;; Workaround: split up the `do` tasks and invoke lein
+            ;; from shell for each "release-step" (see above). Each
+            ;; time lein is invoked `project.clj` will be read and so
+            ;; the new/changed version info will be visible to the
+            ;; invoked tasks.
             ;;
-            ;; --------------------------------------------------------
-            ;; the lein release task does not honor with-profile --
-            ;; but the lein do task does. So we're using a release
-            ;; alias. We cannot do "major" and "minor" releases this
-            ;; way. Instead we have to manually prepare the version in
-            ;; case of major releases.
+            ;; -----------------------------------------------------------------------------------
+            
             "release-broken!"
-            ["do" ;; *********** RELEASE procedure ***********
+            ["do" 
                        
              ;; prepare / build and test
              ["vcs" "assert-committed"]
@@ -195,8 +183,7 @@
 
              :uberjar {:uberjar-name "buttle-driver.jar"}
 
-             ;; needed for "release procedure" aliases -- see above
-             :skip-vcs-push {:aliases {"vcs-push" ["do"]}}
+             ;; use for `release-prepare!`
              :skip-test {:aliases {"test" ["do"]}}
              
              :test {:dependencies [[org.postgresql/postgresql "9.4.1212"]
@@ -208,18 +195,13 @@
                                    [io.jaegertracing/jaeger-client "0.33.1"]
                                    [org.slf4j/slf4j-jdk14 "1.7.25"]]}
 
-             ;; run a local docker container with:
+             ;; run a local Nexus in a docker container with:
              ;; docker run -d -p 8081:8081 --name nexus sonatype/nexus:oss
              ;;
-             ;; Then you can deploy a SNAPSHOT:
+             ;; Then you can deploy a SNAPSHOT or release via
              ;; lein with-profile +local deploy-all
-             ;;
-             ;; Release to local repository:
-             ;; buttle_user=<postgres-user> buttle_password=<postgres-password> lein with-profile +local release
              :local {:repositories [["snapshots" {:url "http://localhost:8081/nexus/content/repositories/snapshots/"
-                                                  :sign-releases false 
-                                                  :username "admin" :password "admin123"}]
+                                                  :sign-releases false :username "admin" :password "admin123"}]
                                     ["releases" {:url "http://localhost:8081/nexus/content/repositories/releases/"
-                                                 :sign-releases false 
-                                                 :username "admin" :password "admin123"}]]}})
+                                                 :sign-releases false :username "admin" :password "admin123"}]]}})
 
