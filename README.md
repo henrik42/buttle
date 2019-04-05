@@ -80,18 +80,18 @@ the performance.
 
 ## Using _Buttle_
 
-* You can download _Buttle_ UBERJAR releases and snapshots from
-  Clojars [1] and use it in __non-Clojure__ contexts like you would
-  use any other JDBC driver. This UBERJAR includes the Clojure core
-  lib and `clojure.core.async`. That's why you should not mix it with
-  a classpath that contains a seperate Clojure core lib. You find
+* You can download _Buttle_ UBERJAR (`driver`) releases and snapshots
+  from Clojars [1] and use it in __non-Clojure__ contexts like you
+  would use any other JDBC driver. This UBERJAR includes the Clojure
+  core lib and `clojure.core.async`. That's why you should not mix it
+  with a classpath that contains a seperate Clojure core lib. You find
   examples for this use-case down below.
 
 * For Clojure projects you can use _Buttle_ as a lib/dependency
   (e.g. via Leiningen). Just put the following in your `project.clj`
   (see `use-buttle` [2] for a simple example).
 
-		:dependencies [[buttle "0.1.1-SNAPSHOT"] ,,,]
+		:dependencies [[buttle "1.0.0"] ,,,]
 
 [1] https://clojars.org/repo/buttle/buttle/  
 [2] https://github.com/henrik42/use-buttle  
@@ -711,7 +711,10 @@ See also aliases in `project.clj`.
 * build lib-jar: `lein jar`
 * build UBERJAR (`buttle-driver.jar`): `lein uberjar`
 * deploy lib-jar and UBERJAR to Nexus running on local machine: `lein with-profile +local deploy-all`
-* release: `lein with-profile +clojars,+skip-test release`
+* release:  
+		`lein with-profile +skip-test release-prepare!`  
+		`lein with-profile +local release-deploy!`  
+		`lein with-profile +local release-finish!`  
 
 ## TODOS
 

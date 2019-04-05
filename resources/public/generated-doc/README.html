@@ -49,10 +49,10 @@
 <h2><a href="#using-buttle" name="using-buttle"></a>Using <em>Buttle</em></h2>
 <ul>
   <li>
-  <p>You can download <em>Buttle</em> UBERJAR releases and snapshots from  Clojars [1] and use it in <strong>non-Clojure</strong> contexts like you would  use any other JDBC driver. This UBERJAR includes the Clojure core  lib and <code>clojure.core.async</code>. That’s why you should not mix it with  a classpath that contains a seperate Clojure core lib. You find  examples for this use-case down below.</p></li>
+  <p>You can download <em>Buttle</em> UBERJAR (<code>driver</code>) releases and snapshots  from Clojars [1] and use it in <strong>non-Clojure</strong> contexts like you  would use any other JDBC driver. This UBERJAR includes the Clojure  core lib and <code>clojure.core.async</code>. That’s why you should not mix it  with a classpath that contains a seperate Clojure core lib. You find  examples for this use-case down below.</p></li>
   <li>
     <p>For Clojure projects you can use <em>Buttle</em> as a lib/dependency  (e.g. via Leiningen). Just put the following in your <code>project.clj</code>  (see <code>use-buttle</code> [2] for a simple example).</p>
-    <pre><code>:dependencies [[buttle "0.1.1-SNAPSHOT"] ,,,]
+    <pre><code>:dependencies [[buttle "1.0.0"] ,,,]
 </code></pre>
   </li>
 </ul>
@@ -431,7 +431,7 @@ public class ButtleTest {
   <li>build lib-jar: <code>lein jar</code></li>
   <li>build UBERJAR (<code>buttle-driver.jar</code>): <code>lein uberjar</code></li>
   <li>deploy lib-jar and UBERJAR to Nexus running on local machine: <code>lein with-profile +local deploy-all</code></li>
-  <li>release: <code>lein with-profile +clojars,+skip-test release</code></li>
+  <li>release:<br /> <code>lein with-profile +skip-test release-prepare!</code><br /> <code>lein with-profile +local release-deploy!</code><br /> <code>lein with-profile +local release-finish!</code></li>
 </ul>
 <h2><a href="#todos" name="todos"></a>TODOS</h2>
 <ul>
